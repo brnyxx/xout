@@ -214,15 +214,12 @@ def test_rendered_routes_have_matching_structure_links_and_seo(tmp_path: Path) -
         "verify_checksums.py SHA256SUMS --only "
         f"xout-plugin-{builder.project_version()}.zip" in english
     )
-    assert (
-        f"/releases/download/v{builder.project_version()}/"
-        f"xout-{builder.project_version()}-py3-none-any.whl" in english
-    )
+    assert "pip install xout" in english
     assert 'class="storyboard" aria-hidden="true"' in english
     assert "Korean-first v1" in english
-    assert "mined-prior defaults" in english
+    assert "strike-backed axes" in english
     assert (
-        "자율성, 범위 준수, 테스트 규율, 주석·문서화, 오류 처리, 커밋 스타일" in korean
+        "자율성, 범위 준수, 테스트 규율, 주석과 문서화, 에러 시 행동, 커밋 정책, 완료 전 검증, 의존성 정책" in korean
     )
 
 
