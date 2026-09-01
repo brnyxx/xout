@@ -21,6 +21,7 @@ import argparse
 import json
 import logging
 import os
+import sys
 import webbrowser
 from datetime import datetime, timezone
 from functools import wraps
@@ -921,9 +922,15 @@ def _add_serve_common(parser: argparse.ArgumentParser) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="xout",
-        description="반증(긋기)만으로 Claude Code 설정을 수렴시키는 도구",
+        description=(
+            "아닌 행동에 X를 쳐서 Claude Code 규칙을 만드는 도구.\n"
+            "  xout         세션 시작 (미완료 세션이 있으면 이어서)\n"
+            "  xout undo    적용 취소 - 소유한 @import 한 줄만 제거\n"
+            "  xout status  규칙 8줄과 활성화 상태 확인"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    sub = parser.add_subparsers(dest="command", required=True)
+    sub = parser.add_subparsers(dest="command", required=True, metavar="command")
 
     p_open = sub.add_parser("open", help="일반 세션을 연다 (15긋기, 완주 시 착지)")
     _add_serve_common(p_open)
@@ -1013,7 +1020,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_enable.set_defaults(func=cmd_enable)
 
-    p_rollback = sub.add_parser("rollback", help="@import 한 줄 제거 (전체 롤백 지점)")
+    p_undo = sub.add_parser("undo", help="@import 한 줄 제거 (전체 롤백 지점)")
+    _add_common(p_undo)
+    p_undo.set_defaults(func=cmd_rollback)
+
+    p_rollback = sub.add_parser("rollback", help="undo의 이전 이름 (동일 동작)")
     _add_common(p_rollback)
     p_rollback.set_defaults(func=cmd_rollback)
 
@@ -1032,9 +1043,15 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def normalize_argv(argv: Sequence[str] | None) -> list[str]:
+    """인자 없는 `xout`은 `xout open`과 같다 - 시작이 곧 기본 동작."""
+    resolved = list(sys.argv[1:] if argv is None else argv)
+    return resolved if resolved else ["open"]
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
-    args = build_parser().parse_args(argv)
+    args = build_parser().parse_args(normalize_argv(argv))
     if getattr(args, "base_dir", None) is None:
         try:
             migrate_legacy_home()
