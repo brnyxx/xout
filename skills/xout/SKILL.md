@@ -31,6 +31,7 @@ xout는 질문 대신 반증 가능한 대비 페어를 제시하고, 사용자�
 | 인자 | 실행 | 명령 | 설명 |
 |---|---|---|---|
 | (없음) 또는 `open` | 백그라운드+URL | `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/xout_plugin.py" open --no-browser --repo "$PWD"` | 미완료 일반 세션 1건이면 계속하고, 없으면 새 15긋기 세션 |
+| `chat` | 포그라운드 반복 | `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/xout_plugin.py" pair` 로 페어를 받고, 사용자가 고른 탈락 쪽을 `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/xout_plugin.py" strike <left\|right\|both\|pair> --pair-id <id>` 로 기록 | 브라우저 없이 대화 안에서 세션 진행. 페어 두 본문을 그대로 보여주고, 사용자가 명시적으로 고른 것만 기록한다 - 절대 대신 긋지 않는다 |
 | `resume <id>` | 백그라운드+URL | `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/xout_plugin.py" resume <id> --no-browser --repo "$PWD"` | 중단 세션 재개 (`id` 생략은 미완료 1건일 때만) |
 | `recheck` | 백그라운드+URL | `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/xout_plugin.py" recheck --no-browser --repo "$PWD"` | 4막 경량 재심 |
 | `validate` | 백그라운드+URL | `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/xout_plugin.py" validate --no-browser --repo "$PWD"` | 검증 세션 |

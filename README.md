@@ -79,6 +79,7 @@ Rules you confirmed by X'ing are labeled **confirmed**; defaults xout guessed wi
 | Command | What it does |
 |---|---|
 | `xout` | Start (or automatically resume) a session; self-checks before opening |
+| `xout open --tui` | Run the whole session inside the terminal - no browser |
 | `xout undo` | Remove the one import line xout owns - full rollback |
 | `xout status` | Show your 8 rules and whether they are active |
 | `xout dev ...` | Power tools: export, validate, re-pick, backup, session inspection |
