@@ -1,16 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
-  <title id="title">Popper red-pen behavior test</title>
-  <desc id="desc">Two transcript cards compare behavior: one is crossed out in crimson and one is retained, becoming a rule.</desc>
+  <title id="title">xout logo</title>
+  <desc id="desc">A behavior card crossed out with a bold crimson X; a single kept rule line remains below.</desc>
   <rect width="256" height="256" rx="28" fill="#F7F3EA"/>
-  <g stroke="#171717" stroke-width="7" stroke-linejoin="round">
-    <rect x="20" y="25" width="100" height="112" rx="10" fill="#F7F3EA"/>
-    <rect x="136" y="25" width="100" height="112" rx="10" fill="#D9D4C9"/>
-  </g>
+  <rect x="48" y="48" width="160" height="140" rx="12" fill="#F7F3EA" stroke="#171717" stroke-width="7" stroke-linejoin="round"/>
   <g stroke="#171717" stroke-width="7" stroke-linecap="round">
-    <path d="M38 57H101M38 81H92M38 105H82"/>
-    <path d="M154 57H217M154 81H207M154 105H197"/>
+    <path d="M72 84H184M72 112H168M72 140H152"/>
   </g>
-  <path d="M27 32L113 125" stroke="#D92332" stroke-width="11" stroke-linecap="round"/>
-  <path d="M186 137V168H70V198" fill="none" stroke="#6E6A63" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M70 198H186" stroke="#171717" stroke-width="9" stroke-linecap="round"/>
+  <g stroke="#D92332" stroke-width="20" stroke-linecap="round">
+    <path d="M58 58L198 178"/>
+    <path d="M198 58L58 178"/>
+  </g>
+  <path d="M72 220H184" stroke="#171717" stroke-width="10" stroke-linecap="round"/>
 </svg>

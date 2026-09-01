@@ -33,6 +33,7 @@ release = ["build>=1.2,<2", "twine>=5,<7"]
 
 [project.scripts]
 popper = "popper.cli:main"
+xout = "popper.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["popper*"]
