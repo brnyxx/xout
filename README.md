@@ -132,9 +132,15 @@ Every strike is an append-only JSONL event with fsync; landing is atomic with co
 
 </details>
 
-## Claude Code plugin
+## Claude Code plugin & Agent Skills
 
 xout also runs inside Claude Code as a conversation: `/xout:xout` shows each behavior pair in chat, you pick the one to X, and the agent records only your explicit choice. `/xout:xout status`, `/xout:xout undo` work the same way.
+
+Or install the same skill through the open [Agent Skills](https://github.com/vercel-labs/skills) ecosystem - one command, any supported agent:
+
+```bash
+npx skills@latest add brnyxx/xout
+```
 
 <details>
 <summary><strong>Checksum-verified plugin install</strong></summary>
@@ -171,5 +177,9 @@ python3 -m pytest tests/ -q
 ```
 
 CI covers Python 3.10-3.14 on macOS, Linux, and Windows. Releases ship wheel, sdist, plugin ZIP, `SHA256SUMS`, and artifact provenance.
+
+## Credits
+
+Built on the [Agent Skills](https://github.com/vercel-labs/skills) ecosystem (MIT) - its `SKILL.md` architecture and one-command install, in the skill-authoring lineage of [mattpocock/skills](https://github.com/mattpocock/skills) (MIT). Not a fork - the falsification engine underneath (append-only event ledger, pure-fold compiler, sealed preregistration) is xout's own.
 
 MIT © 2026 Brian Kim.

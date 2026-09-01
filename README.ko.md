@@ -130,9 +130,15 @@ X로 직접 확정한 규칙은 **확정**, xout이 묻지 않고 추정한 기�
 
 </details>
 
-## Claude Code 플러그인
+## Claude Code 플러그인 & Agent Skills
 
 xout은 Claude Code 안에서 대화로 실행됩니다: `/xout:xout`이 행동 페어를 채팅으로 보여주고, 당신이 X 칠 쪽을 고르면 에이전트는 그 명시적 선택만 기록합니다. `/xout:xout status`, `/xout:xout undo`도 동일합니다.
+
+같은 스킬을 오픈 [Agent Skills](https://github.com/vercel-labs/skills) 생태계로도 설치할 수 있습니다 - 명령 한 줄, 지원되는 어떤 에이전트든:
+
+```bash
+npx skills@latest add brnyxx/xout
+```
 
 <details>
 <summary><strong>체크섬 검증 플러그인 설치</strong></summary>
@@ -169,5 +175,9 @@ python3 -m pytest tests/ -q
 ```
 
 CI는 macOS/Linux/Windows에서 Python 3.10-3.14를 커버합니다. 릴리스에는 wheel, sdist, 플러그인 ZIP, `SHA256SUMS`, 아티팩트 출처 증명이 포함됩니다.
+
+## Credits
+
+[Agent Skills](https://github.com/vercel-labs/skills) 생태계(MIT) 위에 만들었습니다 - `SKILL.md` 아키텍처와 명령 한 줄 설치를 그대로 따르며, 스킬 저작 계보로는 [mattpocock/skills](https://github.com/mattpocock/skills)(MIT)를 잇습니다. 포크가 아닙니다 - 그 아래의 반증 엔진(append-only 이벤트 원장, 순수 fold 컴파일러, 봉인 사전등록)은 xout 고유의 것입니다.
 
 MIT © 2026 Brian Kim.

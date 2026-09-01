@@ -1,5 +1,6 @@
 ---
-description: 두 Claude Code 행동 중 아닌 쪽에 X를 쳐서 로컬 CLAUDE.md 규칙으로 컴파일하고 명시적으로 활성화·롤백한다. 설정 인터뷰 대신 A/B 행동을 비교한다. 사용자가 "xout", "행동 규칙 컴파일", "긋기 세션", "재심(recheck)", "xout 활성화/롤백"을 요청할 때 사용.
+name: xout
+description: X out the AI behavior you never want - compare two concrete agent behaviors, cross out the wrong one, and compile the survivors into local CLAUDE.md rules with explicit activation and rollback. 두 Claude Code 행동 중 아닌 쪽에 X를 쳐서 로컬 CLAUDE.md 규칙으로 컴파일하고 명시적으로 활성화·롤백한다. 사용자가 "xout", "행동 규칙 컴파일", "긋기 세션", "재심(recheck)", "xout 활성화/롤백"을 요청할 때 사용.
 argument-hint: "[chat|status|sessions|doctor|enable|rollback|undo]"
 disable-model-invocation: true
 allowed-tools: 'Bash(python3 *)'
