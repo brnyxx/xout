@@ -29,6 +29,7 @@ from typing import Any, Callable, Mapping, Sequence
 
 from xout.backup import create_backup, inspect_backup
 from xout.compiler import (
+    GRADE_LABELS,
     MANIFEST_JSON,
     CompiledRule as CompilerRule,
     HashMismatch,
@@ -45,8 +46,8 @@ from xout.conflict import (
     ManualRule,
     detect_conflicts,
 )
-from xout.events import Event, EventType, SchemaViolation
-from xout.fixtures import load_pack
+from xout.events import Event, EventType, SchemaViolation, StrikeEvent
+from xout.fixtures import CONTEXT_IRREVERSIBLE, SCENE_CONTEXTS, load_pack
 from xout.migrate import migrate_legacy_home
 from xout.doctor import app_version, run_doctor
 from xout.exporter import EXPORT_FORMATS, render_export, write_export
@@ -67,6 +68,7 @@ from xout.session import (
 from xout.sessions import latest_resumable, summarize_sessions
 from xout.store import EventStore, StoreViolation
 from xout.state import (
+    AXIS_LABELS,
     ColdOpenSession,
     RecoveryUnavailable,
     SessionComplete,
@@ -563,6 +565,65 @@ def _headless_session(args: argparse.Namespace) -> ColdOpenSession:
     )
 
 
+CONTEXT_LABELS = {
+    "routine": "일상 작업",
+    CONTEXT_IRREVERSIBLE: "되돌리기 어려운 작업",
+}
+
+
+def cmd_why(args: argparse.Namespace) -> int:
+    """규칙 -> 그 규칙을 만든 X의 증거 사슬을 소급한다."""
+    base = Path(args.base_dir)
+    manifest = _load_manifest(base)
+    if manifest is None:
+        logger.error("착지된 manifest가 없다 - xout 세션을 먼저 완주해라")
+        return 1
+    rules = {
+        str(entry.get("axis")): entry
+        for entry in manifest.get("rules", ())
+        if isinstance(entry, Mapping)
+    }
+    axes = [args.axis] if args.axis else sorted(rules)
+    events_by_id: dict[str, StrikeEvent] = {}
+    for event in EventStore(base).load_all():
+        if isinstance(event, StrikeEvent):
+            events_by_id[str(event.event_id)] = event
+    for axis in axes:
+        entry = rules.get(axis)
+        if entry is None:
+            logger.error("manifest에 없는 축: %s", axis)
+            return 1
+        print(f"[{AXIS_LABELS.get(axis, axis)}]")
+        print(f"규칙: {entry.get('text')}")
+        grade = str(entry.get("corroboration_grade", ""))
+        source = str(entry.get("value_source", ""))
+        origin = "당신의 X" if source == "elicited" else "추정 기본값 (아직 안 물어봄)"
+        print(f"상태: {GRADE_LABELS.get(grade, grade)} / 출처: {origin}")
+        provenance = [
+            str(eid)
+            for eid in dict.fromkeys(entry.get("refutation_provenance", ()))
+        ]
+        struck = [events_by_id[eid] for eid in provenance if eid in events_by_id]
+        if not struck:
+            print("근거: 이 축을 겨눈 X가 아직 없다.")
+            print()
+            continue
+        print("근거:")
+        for event in struck:
+            context = SCENE_CONTEXTS.get(event.scene_id, "routine")
+            values = [
+                refutation.value
+                for refutation in event.refutations
+                if refutation.axis == axis
+            ]
+            print(
+                f"  - {CONTEXT_LABELS.get(context, context)} 장면({event.scene_id})에서 "
+                f"{', '.join(values)}에 X (세션 {event.session_id[:8]})"
+            )
+        print()
+    return 0
+
+
 @_runtime_exclusive
 def cmd_pair(args: argparse.Namespace) -> int:
     try:
@@ -1035,6 +1096,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="미완료 일반 세션이 있어도 새 세션을 연다",
     )
     p_open.set_defaults(func=cmd_open)
+
+    p_why = sub.add_parser(
+        "why", help="규칙이 어떤 X에서 나왔는지 증거를 소급해 보여준다"
+    )
+    _add_common(p_why)
+    p_why.add_argument("axis", nargs="?", default=None, help="축 이름 (생략 시 전부)")
+    p_why.set_defaults(func=cmd_why)
 
     p_pair = sub.add_parser(
         "pair", help="현재 세션의 다음 페어를 JSON으로 출력 (에이전트/스크립트용)"

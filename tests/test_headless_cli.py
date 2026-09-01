@@ -81,3 +81,27 @@ def test_tui_completes_session_and_lands(
     assert (tmp_path / XOUT_MD).is_file()
     manifest = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
     assert manifest
+
+
+def test_why_traces_rules_back_to_strikes(
+    monkeypatch: pytest.MonkeyPatch, capsys, tmp_path: Path
+) -> None:
+    def scripted_input(prompt: str = "") -> str:
+        return "1" if prompt.startswith("X>") else ""
+
+    monkeypatch.setattr(builtins, "input", scripted_input)
+    assert main(["open", "--base-dir", str(tmp_path)]) == 0
+    capsys.readouterr()
+
+    assert main(["why", "autonomy", "--base-dir", str(tmp_path)]) == 0
+    out = capsys.readouterr().out
+    assert "[자율성]" in out
+    assert "규칙: " in out
+    assert "근거:" in out
+    assert "에 X (세션 " in out
+
+    assert main(["why", "--base-dir", str(tmp_path)]) == 0
+    all_out = capsys.readouterr().out
+    assert all_out.count("규칙: ") == 8
+
+    assert main(["why", "no-such-axis", "--base-dir", str(tmp_path)]) == 1
