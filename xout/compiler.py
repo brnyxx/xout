@@ -46,6 +46,20 @@ GRADE_LABELS = {
     GRADE_UNTESTED: "완전 미시험",
     GRADE_UNSTABLE: "불안정",
 }
+GRADE_LABELS_JA = {
+    GRADE_DISCRIMINATED: "判別試験を通過",
+    GRADE_INDISCRIMINATE: "無差別に生存",
+    GRADE_UNTESTED: "未試験",
+    GRADE_UNSTABLE: "不安定",
+}
+GRADE_LABELS_ZH = {
+    GRADE_DISCRIMINATED: "通过判别试验",
+    GRADE_INDISCRIMINATE: "无差别存活",
+    GRADE_UNTESTED: "完全未测试",
+    GRADE_UNSTABLE: "不稳定",
+}
+# en은 등급 식별자를 그대로 노출한다 (manifest와 같은 어휘).
+GRADE_LABELS_BY_LANG = {"ko": GRADE_LABELS, "ja": GRADE_LABELS_JA, "zh": GRADE_LABELS_ZH}
 
 SOURCE_ELICITED = "elicited"
 SOURCE_MINED_PRIOR = "mined-prior"
@@ -157,10 +171,119 @@ IRREVERSIBLE_CONDITION_PREFIX_EN = (
     "However, for hard-to-reverse work like deletes, pushes, deploys, and migrations, "
 )
 
+
+RULE_TEXT_JA: dict[tuple[str, str], str] = {
+    ("autonomy", "ask_first"): "コードを変更する前に計画を示し、承認を得る。明らかなタイポ修正のような自明な変更だけが例外。",
+    ("autonomy", "propose_then_act"): "短い計画を先に書き、そのまま実行に進む。",
+    ("autonomy", "act_then_report"): "先に実行し、変更内容を要約して報告する。",
+    ("commit_style", "conventional"): "コミットメッセージは feat/fix/refactor のような conventional prefix で始める。リポジトリに既存のコミット規約があればそちらを優先する。",
+    ("commit_style", "narrative"): "コミットの題名は変更の意図を叙述文で書く。リポジトリに既存のコミット規約があればそちらを優先する。",
+    ("commit_style", "no_auto_commit"): "頼まれていないコミットは作らない。変更はワーキングツリーに残し、ユーザーが確認して自分でコミットする。",
+    ("test_discipline", "test_first"): "バグ修正は再現テストを先に書いて失敗を確認してから直す。機能実装もテストを先に書く。",
+    ("test_discipline", "test_after"): "実装の直後、同じ変更の中でテストを追加する。テストのない変更を完了と宣言しない。",
+    ("test_discipline", "on_request"): "テストは明示的に頼まれたときだけ書く。ただし既存テストが壊れていないかの確認は必ず行う。",
+    ("comment_doc", "minimal"): "コメントはコードで表せない制約と理由にだけ残す。コードのしていることを言い直すコメントは書かない。",
+    ("comment_doc", "docstring_only"): "公開関数とクラスには docstring を書き、インラインコメントは残さない。",
+    ("comment_doc", "thorough"): "公開 API には docstring を書き、自明でないロジックにだけインラインコメントを残す。",
+    ("error_behavior", "stop_and_report"): "エラーが出たらすぐ止め、生のログをそのまま報告する。ログを要約したり加工したりしない。",
+    ("error_behavior", "retry_then_report"): "一時的に見える失敗は一度だけ再試行する。それでも失敗したら生のログと一緒に報告して止める。",
+    ("error_behavior", "self_heal"): "テストやビルドの失敗は原因を直して通るまで進め、その後に結果を報告する。",
+    ("scope_adherence", "strict"): "依頼された範囲外のファイルは変更しない。範囲外の欠陥を見つけたら直さずに報告だけする。",
+    ("scope_adherence", "adjacent_fix_ok"): "依頼範囲に直接隣接する欠陥までは同じ変更で直し、その事実を報告に明記する。それ以外の発見は報告だけする。",
+    ("scope_adherence", "proactive"): "作業中に見つけた改善点は同じ変更に含めるが、報告では依頼範囲と付随的な整理を分けて書く。diff が依頼より大きくなるなら事前に知らせる。",
+    ("verification", "always_run"): "完了を宣言する前にテストとビルドを実際に走らせ、通った出力を確認する。",
+    ("verification", "on_risky"): "リスクの高い変更のときだけ全体検証を走らせ、普段は変更に直接関係するテストだけ確認する。",
+    ("verification", "trust_static"): "静的な確認（コードの読み直し、型チェック）で十分と判断したら、そのまま完了を宣言する。",
+    ("dependency_policy", "prefer_existing"): "新しいパッケージより既存の依存関係と標準ライブラリを優先する。やむを得ず追加したらその事実を報告する。",
+    ("dependency_policy", "ask_first"): "新しい依存関係は追加する前に必ず確認を取る。",
+    ("dependency_policy", "free"): "必要な依存関係はすぐ追加し、追加した一覧を報告に残す。",
+}
+
+IRREVERSIBLE_CLAUSE_JA: dict[tuple[str, str], str] = {
+    ("autonomy", "ask_first"): "実行前に必ず承認を得る",
+    ("autonomy", "propose_then_act"): "計画を知らせてから進めるが、最終適用は承認を待つ",
+    ("autonomy", "act_then_report"): "先に実行して結果を報告する",
+    ("error_behavior", "stop_and_report"): "エラーが出たらすぐ止めて生のログで報告する",
+    ("error_behavior", "retry_then_report"): "一時的な失敗だけ一度再試行し、その後は止めて報告する",
+    ("error_behavior", "self_heal"): "復旧ロジックを入れて最後まで進めてから結果を報告する",
+    ("verification", "always_run"): "適用前にコピーでのリハーサルとロールバック検証まで実際に走らせる",
+    ("verification", "on_risky"): "全体検証とリハーサルを必ず走らせる",
+    ("verification", "trust_static"): "静的な確認だけで完了を宣言する",
+    ("dependency_policy", "prefer_existing"): "既存の依存関係だけで解決する",
+    ("dependency_policy", "ask_first"): "新しいツールを入れる前に必ず確認を取る",
+    ("dependency_policy", "free"): "必要なツールをすぐ入れて進める",
+    ("commit_style", "conventional"): "コミットは作るがリポジトリの規約に従う",
+    ("commit_style", "narrative"): "コミットの題名は変更の意図を叙述文で書く",
+    ("commit_style", "no_auto_commit"): "コミットは作らず変更をワーキングツリーに残す",
+}
+
+IRREVERSIBLE_CONDITION_PREFIX_JA = (
+    "ただし、削除・push・デプロイ・マイグレーションのような取り消しにくい作業では、"
+)
+
+RULE_TEXT_ZH: dict[tuple[str, str], str] = {
+    ("autonomy", "ask_first"): "修改代码之前先给出方案并获得批准。只有像明显拼写错误这类不言自明的改动可以例外。",
+    ("autonomy", "propose_then_act"): "先写一个简短的方案，然后直接开始执行。",
+    ("autonomy", "act_then_report"): "先执行，再汇报一份改动摘要。",
+    ("commit_style", "conventional"): "提交信息以 feat/fix/refactor 之类的 conventional 前缀开头。如果仓库已有约定俗成的提交规范，以仓库规范为准。",
+    ("commit_style", "narrative"): "提交标题用叙述句写出改动的意图。如果仓库已有约定俗成的提交规范，以仓库规范为准。",
+    ("commit_style", "no_auto_commit"): "绝不创建没有被要求的提交。把改动留在工作区，由用户检查后自己提交。",
+    ("test_discipline", "test_first"): "修 bug 先写复现测试并看着它失败，再动手修。做功能也先写测试。",
+    ("test_discipline", "test_after"): "实现之后立刻在同一次改动里补测试。没有测试的改动不算完成。",
+    ("test_discipline", "on_request"): "只在被明确要求时才写测试。但一定要检查现有测试有没有被弄坏。",
+    ("comment_doc", "minimal"): "注释只留给代码表达不了的约束和理由。不要写复述代码在做什么的注释。",
+    ("comment_doc", "docstring_only"): "公开函数和类写 docstring，不留行内注释。",
+    ("comment_doc", "thorough"): "公开 API 写 docstring，只在不显而易见的逻辑处留行内注释。",
+    ("error_behavior", "stop_and_report"): "出错就立刻停下，把原始日志原样报出来。不要摘要或加工日志。",
+    ("error_behavior", "retry_then_report"): "看起来是临时性的失败只重试一次。还失败就连同原始日志一起汇报并停下。",
+    ("error_behavior", "self_heal"): "测试或构建失败就修掉原因，一直做到通过，然后汇报结果。",
+    ("scope_adherence", "strict"): "绝不修改请求范围之外的文件。发现范围外的缺陷只汇报、不修。",
+    ("scope_adherence", "adjacent_fix_ok"): "只把与请求范围直接相邻的缺陷放在同一次改动里修掉，并在汇报中说明。更远的发现只汇报。",
+    ("scope_adherence", "proactive"): "工作中发现的改进点放进同一次改动，但在汇报里把请求范围和顺手整理分开写。如果 diff 比请求大，提前说明。",
+    ("verification", "always_run"): "宣布完成之前，实际跑一遍测试和构建，确认通过的输出。",
+    ("verification", "on_risky"): "只对有风险的改动跑完整验证；平时只检查与改动直接相关的测试。",
+    ("verification", "trust_static"): "如果判断静态检查（重读代码、类型检查）已经足够，就据此宣布完成。",
+    ("dependency_policy", "prefer_existing"): "优先使用已有依赖和标准库，而不是新包。不得已新增时要汇报。",
+    ("dependency_policy", "ask_first"): "新增任何依赖之前一定先确认。",
+    ("dependency_policy", "free"): "需要的依赖直接加上，并在汇报里列出新增清单。",
+}
+
+IRREVERSIBLE_CLAUSE_ZH: dict[tuple[str, str], str] = {
+    ("autonomy", "ask_first"): "执行前一定先获得批准",
+    ("autonomy", "propose_then_act"): "先告知方案再推进，但最终应用要等批准",
+    ("autonomy", "act_then_report"): "先执行再汇报结果",
+    ("error_behavior", "stop_and_report"): "出错立刻停下并用原始日志汇报",
+    ("error_behavior", "retry_then_report"): "只对临时性失败重试一次，之后停下汇报",
+    ("error_behavior", "self_heal"): "加入恢复逻辑跑到最后，再汇报结果",
+    ("verification", "always_run"): "应用前实际做完副本演练和回滚检查",
+    ("verification", "on_risky"): "一定跑完整验证和演练",
+    ("verification", "trust_static"): "只凭静态检查宣布完成",
+    ("dependency_policy", "prefer_existing"): "只用已有依赖解决",
+    ("dependency_policy", "ask_first"): "安装任何新工具前一定先确认",
+    ("dependency_policy", "free"): "需要什么工具就直接装上继续",
+    ("commit_style", "conventional"): "创建提交但遵循仓库规范",
+    ("commit_style", "narrative"): "提交标题用叙述句写出意图",
+    ("commit_style", "no_auto_commit"): "不创建提交，把改动留在工作区",
+}
+
+IRREVERSIBLE_CONDITION_PREFIX_ZH = (
+    "不过，对于删除、push、部署、迁移这类难以撤销的工作，"
+)
+
 #: 언어별 규칙 문안 테이블 - 이벤트 원장은 언어 중립이고 언어는 컴파일 시점 렌더 선택이다.
+# 언어별 문장 결합: (기본 규칙과 조건절 사이의 접합 문자열, 문장 종결 부호).
+SENTENCE_STYLE = {
+    "ko": (" ", "."),
+    "en": (" ", "."),
+    "ja": ("", "。"),
+    "zh": ("", "。"),
+}
+
 RULE_LANG_TABLES: dict[str, tuple[dict[tuple[str, str], str], dict[tuple[str, str], str], str]] = {
     "ko": (RULE_TEXT, IRREVERSIBLE_CLAUSE, IRREVERSIBLE_CONDITION_PREFIX),
     "en": (RULE_TEXT_EN, IRREVERSIBLE_CLAUSE_EN, IRREVERSIBLE_CONDITION_PREFIX_EN),
+    "ja": (RULE_TEXT_JA, IRREVERSIBLE_CLAUSE_JA, IRREVERSIBLE_CONDITION_PREFIX_JA),
+    "zh": (RULE_TEXT_ZH, IRREVERSIBLE_CLAUSE_ZH, IRREVERSIBLE_CONDITION_PREFIX_ZH),
 }
 
 DEFAULT_RULE_LANG = "ko"
@@ -385,7 +508,8 @@ def conditional_rule_text(
     """두 맥락의 생존값이 갈릴 때 - 평시 문장 + 되돌리기-어려운-작업 절."""
     rule_text, clauses, prefix = _lang_tables(lang)
     clause = clauses[(axis, irreversible_value)]
-    return f"{rule_text[(axis, routine_value)]} {prefix}{clause}."
+    joiner, full_stop = SENTENCE_STYLE.get(lang, SENTENCE_STYLE[DEFAULT_RULE_LANG])
+    return f"{rule_text[(axis, routine_value)]}{joiner}{prefix}{clause}{full_stop}"
 
 
 def compile_rules(
@@ -653,7 +777,7 @@ def _write_outputs_unlocked(
         path = target_dir / name
         atomic_write_text(path, documents[name])
         written_by_name[name] = path
-    logger.info("popper 산출물 착지: %s", target_dir)
+    logger.info("xout 산출물 착지: %s", target_dir)
     return WriteResult(
         base_dir=target_dir,
         manifest=manifest,

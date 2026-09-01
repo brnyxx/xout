@@ -135,6 +135,9 @@ p { max-width: 65ch; }
 .activation-note, .axes-note { font-weight: 700; }
 
 /* ---------- mechanism ---------- */
+.how-it-works { margin: 1.9rem 0 2.4rem; }
+.how-it-works img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: .55rem; background: var(--paper); box-shadow: 0 .5rem 1.4rem -0.9rem var(--shadow-ink); }
+.how-it-works figcaption { margin-top: .7rem; color: var(--muted); font-size: .95rem; }
 .contrast-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.1rem; }
 .transcript, .rule { padding: 1.4rem 1.5rem; background: var(--panel); border: 1px solid var(--line); border-radius: .55rem; box-shadow: 0 .5rem 1.4rem -0.9rem var(--shadow-ink); }
 .transcript del { text-decoration-thickness: .14em; text-decoration-color: var(--accent); color: var(--muted); }

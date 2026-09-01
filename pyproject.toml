@@ -41,6 +41,8 @@ include = ["xout*"]
 "xout" = [
     "_data/fixtures/*.json",
     "_data/fixtures/en/*.json",
+    "_data/fixtures/ja/*.json",
+    "_data/fixtures/zh/*.json",
     "_data/ground_truth/*.sha256",
     "_data/ground_truth/*.txt",
     "_data/prereg/*.txt",

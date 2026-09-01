@@ -29,7 +29,7 @@ from typing import Any, Callable, Mapping, Sequence
 
 from xout.backup import create_backup, inspect_backup
 from xout.compiler import (
-    GRADE_LABELS,
+    GRADE_LABELS_BY_LANG,
     MANIFEST_JSON,
     CompiledRule as CompilerRule,
     HashMismatch,
@@ -525,6 +525,30 @@ _TUI_MSG: dict[str, dict[str, str]] = {
         "apply": "Apply to CLAUDE.md now? [y/N] ",
         "later": "Apply later with: xout enable --grant / undo with xout undo",
     },
+    "ja": {
+        "intro": "xout - 二度と見たくない方に X を。",
+        "keys": "入力: 1/2=片方に X, b=両方に X, p=このペアでは判別不能, u=取り消し, q=中断",
+        "aborted": "中断 - 進捗は保存済み。再実行すれば続きから。",
+        "allowed": "使える入力: 1, 2, b, p, u, q",
+        "rejected": "反映拒否: %s",
+        "voided": "セッション無効: %s",
+        "complete": "セッション完了 - コンパイルされたルール:",
+        "landed": "着地完了: %s",
+        "apply": "今すぐ CLAUDE.md に適用しますか？ [y/N] ",
+        "later": "後で適用: xout enable --grant / 取り消し: xout undo",
+    },
+    "zh": {
+        "intro": "xout - 给你再也不想看到的那个打 X。",
+        "keys": "输入: 1/2=给一侧打 X, b=两侧都打 X, p=这一对无法区分, u=撤销, q=退出",
+        "aborted": "已停止 - 进度已保存。再次运行即可继续。",
+        "allowed": "可用输入: 1, 2, b, p, u, q",
+        "rejected": "已拒绝: %s",
+        "voided": "会话作废: %s",
+        "complete": "会话完成 - 编译出的规则:",
+        "landed": "已落地: %s",
+        "apply": "现在应用到 CLAUDE.md 吗？ [y/N] ",
+        "later": "稍后应用: xout enable --grant / 撤销: xout undo",
+    },
 }
 
 
@@ -619,6 +643,13 @@ CONTEXT_LABELS_EN = {
     CONTEXT_IRREVERSIBLE: "hard-to-reverse-work",
 }
 
+CONTEXT_LABELS_BY_LANG = {
+    "ko": CONTEXT_LABELS,
+    "en": CONTEXT_LABELS_EN,
+    "ja": {"routine": "日常作業", CONTEXT_IRREVERSIBLE: "取り消しにくい作業"},
+    "zh": {"routine": "日常工作", CONTEXT_IRREVERSIBLE: "难以撤销的工作"},
+}
+
 #: xout why 출력 문자열 - 규칙 본문은 manifest에 착지된 언어 그대로 나온다.
 _WHY_MSG: dict[str, dict[str, str]] = {
     "ko": {
@@ -639,6 +670,24 @@ _WHY_MSG: dict[str, dict[str, str]] = {
         "evidence": "evidence:",
         "line": "  - X'd {values} in the {context} scene ({scene}) (session {session})",
     },
+    "ja": {
+        "rule": "ルール: {text}",
+        "state": "状態: {grade} / 出所: {origin}",
+        "origin_elicited": "あなたの X",
+        "origin_prior": "推定デフォルト（まだ尋ねていない）",
+        "no_evidence": "根拠: この軸を狙った X はまだない。",
+        "evidence": "根拠:",
+        "line": "  - {context}の場面({scene})で {values} に X (セッション {session})",
+    },
+    "zh": {
+        "rule": "规则: {text}",
+        "state": "状态: {grade} / 来源: {origin}",
+        "origin_elicited": "你的 X",
+        "origin_prior": "推定默认值（尚未询问）",
+        "no_evidence": "依据: 还没有 X 指向这个轴。",
+        "evidence": "依据:",
+        "line": "  - 在{context}场景({scene})给 {values} 打了 X (会话 {session})",
+    },
 }
 
 
@@ -654,6 +703,18 @@ _MINE_MSG = {
         "header": "local mining report (read-only, heuristic) - {count} observations",
         "hint": "cross-check these against your strikes: xout open",
         "no_files": "no rule files found (CLAUDE.md / AGENTS.md / .cursorrules etc.)",
+    },
+    "ja": {
+        "none": "観測なし - スキャンしたルールファイルにこの軸を狙う行はなかった。",
+        "header": "ローカル採掘レポート（読み取り専用・ヒューリスティック） - 観測 {count} 件",
+        "hint": "セッションで X を付けるとき、この観測と突き合わせる: xout open",
+        "no_files": "ルールファイルが見つからない (CLAUDE.md / AGENTS.md / .cursorrules など)",
+    },
+    "zh": {
+        "none": "无观测 - 扫描到的规则文件里没有针对这个轴的行。",
+        "header": "本地挖掘报告（只读、启发式） - 观测 {count} 条",
+        "hint": "在会话里打 X 时与这些观测交叉核对: xout open",
+        "no_files": "没有找到规则文件 (CLAUDE.md / AGENTS.md / .cursorrules 等)",
     },
 }
 
@@ -726,7 +787,7 @@ def cmd_why(args: argparse.Namespace) -> int:
             return 1
         lang = _args_lang(args)
         why = _WHY_MSG.get(lang, _WHY_MSG["ko"])
-        contexts = CONTEXT_LABELS_EN if lang == "en" else CONTEXT_LABELS
+        contexts = CONTEXT_LABELS_BY_LANG.get(lang, CONTEXT_LABELS)
         print(f"[{axis_label(axis, lang)}]")
         print(why["rule"].format(text=entry.get("rule")))
         grade = str(entry.get("corroboration_grade", ""))
@@ -734,7 +795,7 @@ def cmd_why(args: argparse.Namespace) -> int:
         origin = (
             why["origin_elicited"] if source == "elicited" else why["origin_prior"]
         )
-        grade_label = grade if lang == "en" else GRADE_LABELS.get(grade, grade)
+        grade_label = GRADE_LABELS_BY_LANG.get(lang, {}).get(grade, grade)
         print(why["state"].format(grade=grade_label, origin=origin))
         provenance = [
             str(eid)

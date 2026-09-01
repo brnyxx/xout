@@ -41,6 +41,32 @@ CHROME = {
         "apply": "Apply to CLAUDE.md now? [y/N] ",
         "applied": "Applied - one @import line added. Undo with xout undo",
     },
+    "ja": {
+        "cmd": "$ uvx xout --lang ja",
+        "tagline": "xout - 二度と見たくない方に X を。",
+        "promise": "2分後、あなたのエージェントにルールが8行できます。",
+        "strike_hint": "xout - 二度と見たくない方に X を。",
+        "complete": "セッション完了 - コンパイルされたルール:",
+        "apply": "今すぐ CLAUDE.md に適用しますか？ [y/N] ",
+        "applied": "適用完了 - @import を1行追加。取り消しは xout undo",
+    },
+    "zh": {
+        "cmd": "$ uvx xout --lang zh",
+        "tagline": "xout - 给你再也不想看到的那个打 X。",
+        "promise": "两分钟后，你的智能体就有了 8 条规则。",
+        "strike_hint": "xout - 给你再也不想看到的那个打 X。",
+        "complete": "会话完成 - 编译出的规则:",
+        "apply": "现在应用到 CLAUDE.md 吗？ [y/N] ",
+        "applied": "已应用 - 添加了一行 @import。撤销: xout undo",
+    },
+}
+
+#: 언어별 시스템 폰트 - CJK 글리프 커버리지가 언어마다 다르다.
+FONT_BY_LANG = {
+    "ko": "/System/Library/Fonts/AppleSDGothicNeo.ttc",
+    "en": "/System/Library/Fonts/AppleSDGothicNeo.ttc",
+    "ja": "/System/Library/Fonts/ヒラギノ角ゴシック W4.ttc",
+    "zh": "/System/Library/Fonts/Hiragino Sans GB.ttc",
 }
 
 WIDTH, HEIGHT = 960, 608
@@ -70,8 +96,8 @@ PREFERRED_VALUES = {
 RISKY_PREFERRED_VALUES = {**PREFERRED_VALUES, "autonomy": "ask_first"}
 
 
-def _font() -> ImageFont.FreeTypeFont:
-    return ImageFont.truetype(FONT_KO, FONT_SIZE)
+def _font(lang: str = "ko") -> ImageFont.FreeTypeFont:
+    return ImageFont.truetype(FONT_BY_LANG.get(lang, FONT_KO), FONT_SIZE)
 
 
 def _wrap(font: ImageFont.FreeTypeFont, text: str, max_width: int) -> list[str]:
@@ -176,7 +202,7 @@ def _completion_frames(snap, applied: bool, chrome: dict) -> list[Frame]:
 
 def capture(output: Path, lang: str = "ko") -> None:
     chrome = CHROME[lang]
-    font = _font()
+    font = _font(lang)
     frames: list[Image.Image] = []
     durations: list[int] = []
 
@@ -238,7 +264,7 @@ def capture(output: Path, lang: str = "ko") -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", type=Path)
-    parser.add_argument("--lang", choices=("ko", "en"), default="ko")
+    parser.add_argument("--lang", choices=tuple(CHROME), default="ko")
     args = parser.parse_args()
     capture(args.output, lang=args.lang)
     return 0

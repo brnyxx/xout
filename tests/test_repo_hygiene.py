@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import struct
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -42,3 +43,24 @@ def test_skill_frontmatter_contract() -> None:
     head = skill.read_text(encoding="utf-8").split("---")[1]
     assert "name: xout" in head
     assert "description:" in head
+
+
+def test_every_language_owns_its_surfaces() -> None:
+    """언어 하나를 추가하면 팩·데모 GIF·다이어그램·README가 같이 와야 한다."""
+    from xout.fixtures import SUPPORTED_LANGS
+
+    assets = ROOT / ".github" / "assets"
+    for lang in SUPPORTED_LANGS:
+        gif = assets / ("demo.gif" if lang == "ko" else f"demo.{lang}.gif")
+        payload = gif.read_bytes()
+        assert payload[:6] in {b"GIF87a", b"GIF89a"}, gif.name
+        assert struct.unpack("<HH", payload[6:10]) == (960, 608), gif.name
+        diagram = assets / ("how-it-works.svg" if lang == "en" else f"how-it-works.{lang}.svg")
+        assert 'viewBox="0 0 1200 470"' in diagram.read_text(encoding="utf-8")
+        readme = ROOT / ("README.md" if lang == "en" else f"README.{lang}.md")
+        body = readme.read_text(encoding="utf-8")
+        assert diagram.name in body, readme.name
+        assert gif.name in body, readme.name
+        for other in SUPPORTED_LANGS:
+            link = "README.md" if other == "en" else f"README.{other}.md"
+            assert other == lang or link in body, (readme.name, link)

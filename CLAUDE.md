@@ -31,9 +31,12 @@ cannot enforce by itself.
 - Version strings: `pyproject.toml` == `package.json` == plugin.json ==
   marketplace.json == README release links - guarded by
   `scripts/check_release_version.py`.
-- Language tables come in pairs: every `ko` entry has an `en` entry
-  (rule texts, clauses, axis labels, TUI/why strings) - guarded by
-  `tests/test_lang_en.py`. The ledger itself is language-neutral.
+- Language tables come in sets: every `ko` entry has an entry for each
+  language in `SUPPORTED_LANGS` (`en`, `ja`, `zh`) - rule texts, clauses,
+  axis labels, TUI/why strings - guarded by `tests/test_lang_en.py`. Each
+  language also owns a scene pack, a demo GIF, a how-it-works diagram, and a
+  README edition - guarded by `tests/test_repo_hygiene.py`. The ledger itself
+  is language-neutral.
 
 ## Working rules
 

@@ -263,7 +263,7 @@ class OwnedWriter:
         for name, body in documents.items():
             written.append(self.write_file(name, body))
         written.append(self.write_file(MANIFEST_JSON, _canonical(manifest)))
-        logger.info("popper 산출물 착지: %s", self.base_dir)
+        logger.info("xout 산출물 착지: %s", self.base_dir)
         return WriteOutcome(base_dir=self.base_dir, written=tuple(written))
 
     def write_outputs(

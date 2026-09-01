@@ -12,7 +12,7 @@
 
 [Quickstart](#how-it-works) · [Every rule proves itself](#every-rule-can-prove-itself) · [The map](#the-map) · [Commands](#commands) · [Why trust it](#why-you-can-trust-it)
 
-<sub>Read in: English · [한국어](README.ko.md) · [Live explanation](https://brnyxx.github.io/xout/)</sub>
+<sub>Read in: English · [한국어](README.ko.md) · [日本語](README.ja.md) · [简体中文](README.zh.md) · [Live explanation](https://brnyxx.github.io/xout/)</sub>
 
 </div>
 
@@ -54,6 +54,10 @@ Upgrading from Popper 1.x? Just run `xout` once: your data in `~/.claude/popper/
 
 ## How it works
 
+<img src=".github/assets/how-it-works.svg" alt="Three panels: two behaviors for Fix the bug with the wrong one crossed out, a funnel from 6,561 possible agents down to one after 15 X's, and eight rules landing in CLAUDE.md through one import line" width="920">
+
+<sub>Left to right: one X removes one behavior, 15 X's leave one agent, and that agent is written down as 8 rules.</sub>
+
 1. **You X out** the behavior you hate, across three real scenes: a routine bugfix, a new feature, and a risky production migration. Each pair shows two concrete agent behaviors - ask first vs act first, standard library vs install-a-package, rehearse the migration vs trust a re-read.
 2. **xout compiles** the survivors into 8 executable rules, written atomically under `~/.claude/xout/` with evidence and provenance. And when your X's diverge between routine and irreversible work, the rule compiles **with that condition attached**:
 
@@ -63,6 +67,25 @@ Upgrading from Popper 1.x? Just run `xout` once: your data in `~/.claude/popper/
 3. **You apply with one keystroke.** The completion screen asks "apply now?" - saying yes adds exactly one owned `@import` line to `~/.claude/CLAUDE.md`. `xout undo` removes only that line.
 
 Repeat the request that used to annoy you in a fresh Claude Code session and watch the rule hold. When it ever feels stale, `xout` again.
+
+<details>
+<summary><strong>Under the hood</strong> (one diagram)</summary>
+
+```mermaid
+flowchart LR
+    X["Your X<br/>(axis · value · scene)"] --> L[("Append-only<br/>event ledger")]
+    L --> F["Fold"]
+    F --> C["Counter<br/>6,561 → 1"]
+    F --> R["Compiler"]
+    R --> M["XOUT.md<br/>8 rules"]
+    R --> J["manifest.json<br/>evidence"]
+    M -- "@import" --> CL["~/.claude/CLAUDE.md"]
+    CL -. "xout undo" .-> M
+```
+
+Every X is one event. Everything else - the counter, the rules, the manifest - is a pure fold of that stream, so any rule can be replayed and traced back to its X's.
+
+</details>
 
 ## Every rule can prove itself
 
@@ -80,7 +103,7 @@ evidence:
 
 A rule you can't trace is a rule you can't trust. Every xout rule carries its receipts.
 
-> Sessions run in English with `--lang en` (pairs, rules, and screen text); the default without the flag is Korean. The event ledger is language-neutral either way.
+> `--lang en`, `--lang ja`, and `--lang zh` run the whole session in that language (pairs, rules, and screen text); the default without the flag is Korean. Japanese and Chinese are on `main` today and ship with the next release. The event ledger is language-neutral either way.
 
 ## What you get
 

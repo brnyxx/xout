@@ -5,6 +5,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and xout follows [Semantic Versioning](https://semver.org/) with a deliberately
 slow cadence: minor versions ship every 6-12 months, patches only for defects.
 
+## [Unreleased]
+
+### Added
+- Japanese and Simplified Chinese runtime packs: `--lang ja` and `--lang zh`
+  run the whole session (pairs, rules, screen text) in that language. The
+  ledger stays language-neutral; `xout why --lang ja|zh` renders the same
+  receipts.
+- A how-it-works diagram per language (`.github/assets/how-it-works*.svg`)
+  in the READMEs and on the site, plus an under-the-hood ledger diagram in
+  the READMEs.
+- `README.ja.md` and `README.zh.md`.
+
 ## [1.0.1] - 2026-09-01
 
 ### Added

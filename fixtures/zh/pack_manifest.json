@@ -1,0 +1,14 @@
+{
+  "catalog_version": "v2",
+  "pack_id": "xout-fixture-pack-zh",
+  "provenance": "render-then-freeze",
+  "scenario_count": 3,
+  "scene_ids": [
+    "scn-bugfix",
+    "scn-feature",
+    "scn-risky"
+  ],
+  "files": [
+    "scenes.json"
+  ]
+}

@@ -1,0 +1,137 @@
+{
+  "catalog_version": "v2",
+  "scenes": [
+    {
+      "scene_id": "scn-bugfix",
+      "context": "routine",
+      "title": "日常工作 - 修复分页的差一错误",
+      "segments": [
+        {
+          "kind": "static",
+          "segment_id": "sk-user-request",
+          "text": "[用户] 在我们 {framework} 技术栈（{lang}）的 {file} 里，分页列表会漏掉最后一项。请找出原因并修好。"
+        },
+        {"kind": "slot", "segment_id": "slot-autonomy", "axis": "autonomy"},
+        {"kind": "slot", "segment_id": "slot-scope_adherence", "axis": "scope_adherence"},
+        {"kind": "slot", "segment_id": "slot-test_discipline", "axis": "test_discipline"},
+        {"kind": "slot", "segment_id": "slot-comment_doc", "axis": "comment_doc"},
+        {"kind": "slot", "segment_id": "slot-error_behavior", "axis": "error_behavior"}
+      ],
+      "slots": {
+        "autonomy": {
+          "ask_first": "[智能体] 原因看起来是 {file} 里的边界计算。动手之前先确认一下 - 现在可以直接修吗？",
+          "propose_then_act": "[智能体] 原因看起来是 {file} 里的边界计算。我先把方案贴在下面，然后直接开始修。",
+          "act_then_report": "[智能体] 原因是 {file} 里的边界计算，我已经修完了，这里是结果汇报。"
+        },
+        "scope_adherence": {
+          "strict": "这次改动只限于你提到的这一个分页 bug，请求范围之外的文件我一律不碰。",
+          "adjacent_fix_ok": "请求的是分页 bug，不过同一个函数里挨着的一处拼写错误，我也在这次改动里顺手修掉。",
+          "proactive": "修分页 bug 的同时，我把周围重复的逻辑和过时的辅助函数也一并主动清理了。"
+        },
+        "test_discipline": {
+          "test_first": "修复之前，我先写了一个能复现「漏掉最后一项」的失败测试。",
+          "test_after": "修复之后，我在同一次改动里补了一个防止回归的验证测试。",
+          "on_request": "没有人要求写测试，所以这次改动没有加。需要的话告诉我。"
+        },
+        "comment_doc": {
+          "minimal": "这是补丁。\n```\ndef paginate(items, page, size):\n    start = (page - 1) * size\n    end = start + size\n    return items[start:end]\n```",
+          "docstring_only": "这是补丁。\n```\ndef paginate(items, page, size):\n    \"\"\"返回某一页的条目 - 包含最后一项。\"\"\"\n    start = (page - 1) * size\n    end = start + size\n    return items[start:end]\n```",
+          "thorough": "这是补丁。\n```\ndef paginate(items, page, size):\n    \"\"\"返回某一页的条目 - 包含最后一项。\n\n    结束边界直接加上 size，保持切片为左闭右开。\n    \"\"\"\n    # 把从 1 开始的页码换算成从 0 开始的起始下标\n    start = (page - 1) * size\n    # 旧代码在 end 上减了 1，这就是差一错误\n    end = start + size\n    return items[start:end]\n```"
+        },
+        "error_behavior": {
+          "stop_and_report": "验证时如果碰到 items 为空这种异常情况，我立刻停下，把原始日志原样报给你。",
+          "retry_then_report": "验证时如果碰到临时性失败，我只重试一次；还失败就停下来，连同日志一起汇报。",
+          "self_heal": "验证时如果碰到 items 为空，我会加一个把它当作空列表处理的防护，自行恢复后继续往下做。"
+        }
+      }
+    },
+    {
+      "scene_id": "scn-feature",
+      "context": "routine",
+      "title": "日常工作 - 新增 CSV 导出功能",
+      "segments": [
+        {
+          "kind": "static",
+          "segment_id": "sk-user-request-feature",
+          "text": "[用户] 请在我们 {framework} 技术栈（{lang}）的项目里加一个把列表导出为 CSV 文件的功能。入口放在 {file} 附近比较合适。"
+        },
+        {"kind": "slot", "segment_id": "slot-scope_adherence", "axis": "scope_adherence"},
+        {"kind": "slot", "segment_id": "slot-test_discipline", "axis": "test_discipline"},
+        {"kind": "slot", "segment_id": "slot-dependency_policy", "axis": "dependency_policy"},
+        {"kind": "slot", "segment_id": "slot-verification", "axis": "verification"},
+        {"kind": "slot", "segment_id": "slot-commit_style", "axis": "commit_style"}
+      ],
+      "slots": {
+        "scope_adherence": {
+          "strict": "我只加导出功能；过程中注意到的现有列表页排序不太对劲，我不去动，只在汇报里提一句。",
+          "adjacent_fix_ok": "加导出功能的同时，新代码直接调用的那个列表查询函数有一个错误默认值，我只把这一处一起改正，其他不碰。",
+          "proactive": "加导出功能的同时，我把列表页的排序问题和重复的格式化工具函数也一并收进这次改动里。"
+        },
+        "test_discipline": {
+          "test_first": "实现之前，我先写了一个失败测试，断言含逗号和换行的值必须被正确转义。",
+          "test_after": "导出功能实现之后，我在同一次改动里补了覆盖转义和空列表情况的测试。",
+          "on_request": "没有人要求写测试，所以这次实现没有加。需要的话告诉我。"
+        },
+        "dependency_policy": {
+          "prefer_existing": "CSV 序列化用标准库就够了，所以没有引入任何新包。如果以后真的需要外部库，我会先汇报。",
+          "ask_first": "有一个库能让 CSV 序列化更省事，但它是新依赖，所以先问一下 - 可以安装吗？",
+          "free": "我直接装了一个库来简化 CSV 序列化，然后继续实现。"
+        },
+        "verification": {
+          "always_run": "实现之后，我实际跑了测试套件和构建，确认全部通过，然后才报告完成。",
+          "on_risky": "这次改动以新文件为主、风险低，所以我只跑了新加的测试就报告完成。",
+          "trust_static": "我重读了代码确认逻辑，也没看到类型错误，就这样报告完成。"
+        },
+        "commit_style": {
+          "conventional": "提交: feat: 为列表新增 CSV 导出",
+          "narrative": "提交: 让列表可以导出为 CSV 文件",
+          "no_auto_commit": "我没有创建提交。改动留在工作区里，请你自己检查后提交。"
+        }
+      }
+    },
+    {
+      "scene_id": "scn-risky",
+      "context": "irreversible",
+      "title": "高风险工作 - 迁移用户表的结构",
+      "segments": [
+        {
+          "kind": "static",
+          "segment_id": "sk-user-request-risky",
+          "text": "[用户] 我们 {framework} 技术栈（{lang}）里，用户表的邮箱列需要统一转成小写。请在 {file} 里准备迁移和回填脚本。这会应用到生产数据库。"
+        },
+        {"kind": "slot", "segment_id": "slot-autonomy", "axis": "autonomy"},
+        {"kind": "slot", "segment_id": "slot-error_behavior", "axis": "error_behavior"},
+        {"kind": "slot", "segment_id": "slot-verification", "axis": "verification"},
+        {"kind": "slot", "segment_id": "slot-dependency_policy", "axis": "dependency_policy"},
+        {"kind": "slot", "segment_id": "slot-commit_style", "axis": "commit_style"}
+      ],
+      "slots": {
+        "autonomy": {
+          "ask_first": "[智能体] 迁移和回填脚本的草稿已经准备好。因为会碰到生产数据，在你审阅之前我不会执行任何东西。",
+          "propose_then_act": "[智能体] 我先把迁移计划贴出来，然后直接推进到 staging 环境应用。只有生产环境的应用等你批准。",
+          "act_then_report": "[智能体] 迁移和回填我已经在 staging 应用并验证完毕，这里是结果汇报。生产环境的应用命令也准备好了。"
+        },
+        "error_behavior": {
+          "stop_and_report": "回填时如果碰到格式损坏的邮箱，我当场停下，把那一行连同原始日志原样报给你。",
+          "retry_then_report": "回填时如果碰到临时性的锁冲突，我只重试一次；还失败就停止推进，连同日志一起汇报。",
+          "self_heal": "回填时如果碰到格式损坏的邮箱，我加一段把它置为 NULL 的修正逻辑，跑到最后再汇报结果。"
+        },
+        "verification": {
+          "always_run": "应用之前，我在 staging 副本上实际跑迁移前后的行数和抽样比对，连同输出一起汇报。",
+          "on_risky": "因为会碰到生产环境，这次我会做完副本演练和回滚脚本检查之后再汇报。",
+          "trust_static": "我重读了 SQL 确认逻辑，也没有语法错误，所以不做演练，直接报告可以应用。"
+        },
+        "dependency_policy": {
+          "prefer_existing": "回填只用了我们已经在用的数据库驱动。如果看起来需要迁移工具，我会另行提议。",
+          "ask_first": "为了安全地分批回填，我想用一个迁移工具，但它是新依赖，所以安装前先问一下。",
+          "free": "为了安全地分批回填，我直接装了一个迁移工具，并用它写好了脚本。"
+        },
+        "commit_style": {
+          "conventional": "提交: feat: 新增邮箱小写规范化迁移",
+          "narrative": "提交: 准备了一次规范化迁移，避免仅因邮箱大小写不同而产生重复账号",
+          "no_auto_commit": "我没有创建提交。迁移文件在工作区里，请你审阅后自己提交。"
+        }
+      }
+    }
+  ]
+}

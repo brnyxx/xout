@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 CATALOG_VERSION = "v2"
 
 DEFAULT_LANG = "ko"
-SUPPORTED_LANGS: tuple[str, ...] = ("ko", "en")
+SUPPORTED_LANGS: tuple[str, ...] = ("ko", "en", "ja", "zh")
 
 _SOURCE_FIXTURES_DIR = Path(__file__).resolve().parent.parent / "fixtures"
 _PACKAGED_FIXTURES_DIR = Path(__file__).resolve().parent / "_data" / "fixtures"
@@ -174,6 +174,18 @@ _SKIN_TRANSLATIONS: dict[str, dict[str, str]] = {
         "일반 프로젝트": "generic project",
         "Go 모듈": "Go module",
         "Python 프로젝트": "Python project",
+    },
+    "ja": {
+        "텍스트": "テキスト",
+        "일반 프로젝트": "一般プロジェクト",
+        "Go 모듈": "Goモジュール",
+        "Python 프로젝트": "Pythonプロジェクト",
+    },
+    "zh": {
+        "텍스트": "文本",
+        "일반 프로젝트": "通用项目",
+        "Go 모듈": "Go 模块",
+        "Python 프로젝트": "Python 项目",
     },
 }
 

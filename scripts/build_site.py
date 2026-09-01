@@ -45,6 +45,8 @@ ASSETS = (
     (Path("assets/site.css"), Path("assets/site.css")),
     (Path("../.github/assets/logo.svg"), Path("assets/logo.svg")),
     (Path("../.github/assets/hero.svg"), Path("assets/hero.svg")),
+    (Path("../.github/assets/how-it-works.svg"), Path("assets/how-it-works.svg")),
+    (Path("../.github/assets/how-it-works.ko.svg"), Path("assets/how-it-works.ko.svg")),
     (Path("../.github/assets/social-card.png"), Path("assets/social-card.png")),
     (Path("../.github/assets/demo.gif"), Path("assets/demo.gif")),
     (Path("../.github/assets/demo.en.gif"), Path("assets/demo.en.gif")),
@@ -59,6 +61,8 @@ ARTIFACT_FILES = frozenset(
         "assets/site.css",
         "assets/logo.svg",
         "assets/hero.svg",
+        "assets/how-it-works.svg",
+        "assets/how-it-works.ko.svg",
         "assets/social-card.png",
         "assets/demo.gif",
         "assets/demo.en.gif",
@@ -345,7 +349,7 @@ def _validate_assets(root: Path) -> None:
             raise SiteBuildError(f"INVALID_ARTIFACT_TREE:{gif_name}")
         if struct.unpack("<HH", demo[6:10]) != (960, 608):
             raise SiteBuildError("INVALID_ARTIFACT_TREE:demo-size")
-    for name in ("logo.svg", "hero.svg"):
+    for name in ("logo.svg", "hero.svg", "how-it-works.svg", "how-it-works.ko.svg"):
         svg = (root / "assets" / name).read_text(encoding="utf-8").lower()
         if (
             "<script" in svg

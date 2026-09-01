@@ -17,6 +17,7 @@ import pytest
 from xout.compiler import (
     IRREVERSIBLE_CLAUSE,
     IRREVERSIBLE_CLAUSE_EN,
+    RULE_LANG_TABLES,
     RULE_TEXT,
     RULE_TEXT_EN,
     XOUT_MD,
@@ -24,16 +25,18 @@ from xout.compiler import (
     conditional_rule_text,
 )
 from xout.counter import DEFAULT_CATALOG
-from xout.fixtures import FixtureViolation, load_pack
+from xout.fixtures import SUPPORTED_LANGS, FixtureViolation, load_pack
 from xout.state import ColdOpenSession
 from xout.store import EventStore
 
 _HANGUL = re.compile(r"[가-힣]")
+_FOREIGN = tuple(lang for lang in SUPPORTED_LANGS if lang != "ko")
 
 
-def test_en_pack_mirrors_ko_pack_structure() -> None:
+@pytest.mark.parametrize("lang", _FOREIGN)
+def test_foreign_pack_mirrors_ko_pack_structure(lang: str) -> None:
     ko = load_pack()
-    en = load_pack(lang="en")
+    en = load_pack(lang=lang)
     assert en.scene_ids == ko.scene_ids
     for scene_id in ko.scene_ids:
         ko_scene = ko.scene(scene_id)
@@ -51,18 +54,37 @@ def test_unsupported_lang_is_rejected() -> None:
         load_pack(lang="fr")
 
 
-def test_en_rule_tables_cover_ko_tables() -> None:
-    assert set(RULE_TEXT_EN) == set(RULE_TEXT)
-    assert set(IRREVERSIBLE_CLAUSE_EN) == set(IRREVERSIBLE_CLAUSE)
-    for text in list(RULE_TEXT_EN.values()) + list(IRREVERSIBLE_CLAUSE_EN.values()):
+@pytest.mark.parametrize("lang", _FOREIGN)
+def test_foreign_rule_tables_cover_ko_tables(lang: str) -> None:
+    rule_text, clauses, prefix = RULE_LANG_TABLES[lang]
+    assert set(rule_text) == set(RULE_TEXT)
+    assert set(clauses) == set(IRREVERSIBLE_CLAUSE)
+    assert prefix
+    for text in list(rule_text.values()) + list(clauses.values()) + [prefix]:
         assert not _HANGUL.search(text)
+    assert set(RULE_LANG_TABLES) == set(SUPPORTED_LANGS)
 
 
-def test_compile_rules_en_emits_english_only() -> None:
-    rules = compile_rules((), lang="en")
+@pytest.mark.parametrize("lang", _FOREIGN)
+def test_compile_rules_foreign_emits_no_hangul(lang: str) -> None:
+    rules = compile_rules((), lang=lang)
     assert len(rules) == len(DEFAULT_CATALOG)
     for rule in rules:
         assert not _HANGUL.search(rule.text), rule.axis
+
+
+@pytest.mark.parametrize("lang", _FOREIGN)
+def test_foreign_session_lands_without_hangul(lang: str, tmp_path: Path) -> None:
+    store = EventStore(tmp_path)
+    session = ColdOpenSession(store=store, land_dir=tmp_path, lang=lang)
+    while True:
+        snap = session.snapshot()
+        if snap.session_complete or snap.pair is None:
+            break
+        assert not _HANGUL.search(snap.pair.left_text)
+        assert not _HANGUL.search(snap.pair.axis_label)
+        session.strike("left", expected_pair_id=snap.pair.pair_id)
+    assert not _HANGUL.search((tmp_path / XOUT_MD).read_text(encoding="utf-8"))
 
 
 def test_conditional_rule_text_en() -> None:
@@ -117,3 +139,31 @@ def test_why_prints_rule_body_not_none(capsys, tmp_path: Path) -> None:
     assert "rule: None" not in out
     assert "rule: " in out
     assert not _HANGUL.search(out)
+
+
+@pytest.mark.parametrize("lang", ("ja", "zh"))
+def test_cjk_conditional_rule_ends_with_ideographic_full_stop(lang: str) -> None:
+    """일본어/중국어 조건부 규칙은 ASCII 마침표가 아니라 '。'로 끝나야 한다."""
+    text = conditional_rule_text("autonomy", "propose_then_act", "ask_first", lang=lang)
+    assert text.endswith("。"), text
+    assert not text.endswith("."), text
+    assert " " not in text, text
+
+
+@pytest.mark.parametrize("lang", ("ja", "zh"))
+def test_why_grade_label_is_localized_for_cjk(capsys, lang: str, tmp_path: Path) -> None:
+    from xout.cli import main
+    from xout.compiler import GRADE_LABELS_BY_LANG
+
+    store = EventStore(tmp_path)
+    session = ColdOpenSession(store=store, land_dir=tmp_path, lang=lang)
+    while True:
+        snap = session.snapshot()
+        if snap.session_complete or snap.pair is None:
+            break
+        session.strike("left", expected_pair_id=snap.pair.pair_id)
+    assert main(["why", "autonomy", "--base-dir", str(tmp_path), "--lang", lang]) == 0
+    out = capsys.readouterr().out
+    assert "discriminated" not in out
+    assert any(label in out for label in GRADE_LABELS_BY_LANG[lang].values())
+    assert set(GRADE_LABELS_BY_LANG[lang]) == set(GRADE_LABELS_BY_LANG["ko"])

@@ -1,0 +1,137 @@
+{
+  "catalog_version": "v2",
+  "scenes": [
+    {
+      "scene_id": "scn-bugfix",
+      "context": "routine",
+      "title": "日常作業 - ページネーションのオフバイワン修正",
+      "segments": [
+        {
+          "kind": "static",
+          "segment_id": "sk-user-request",
+          "text": "[ユーザー] {framework} スタック（{lang}）の {file} で、一覧の最後の項目が抜け落ちます。原因を調べて直してください。"
+        },
+        {"kind": "slot", "segment_id": "slot-autonomy", "axis": "autonomy"},
+        {"kind": "slot", "segment_id": "slot-scope_adherence", "axis": "scope_adherence"},
+        {"kind": "slot", "segment_id": "slot-test_discipline", "axis": "test_discipline"},
+        {"kind": "slot", "segment_id": "slot-comment_doc", "axis": "comment_doc"},
+        {"kind": "slot", "segment_id": "slot-error_behavior", "axis": "error_behavior"}
+      ],
+      "slots": {
+        "autonomy": {
+          "ask_first": "[エージェント] 原因は {file} の境界計算のようです。手を付ける前にひとつ確認させてください - このまま修正を進めてよろしいですか？",
+          "propose_then_act": "[エージェント] 原因は {file} の境界計算のようです。以下の方針を共有したうえで、すぐに修正へ進みます。",
+          "act_then_report": "[エージェント] 原因は {file} の境界計算でした。すでに修正を適用済みなので、結果を報告します。"
+        },
+        "scope_adherence": {
+          "strict": "今回の変更は依頼されたページネーションのバグ一箇所に限定し、依頼範囲外のファイルには一切触れません。",
+          "adjacent_fix_ok": "依頼はページネーションのバグですが、同じ関数内にある隣接したタイポ一件も、この変更で一緒に直します。",
+          "proactive": "ページネーションのバグを直すついでに、周辺の重複ロジックと古いヘルパーの整理も先回りして一緒に片付けます。"
+        },
+        "test_discipline": {
+          "test_first": "修正の前に、最後の項目が抜ける状況を再現する失敗テストを先に書きました。",
+          "test_after": "修正の直後、同じ変更の中で回帰を防ぐ検証テストを追加しました。",
+          "on_request": "テストは特に依頼がなかったので、今回の変更には追加していません。必要ならお知らせください。"
+        },
+        "comment_doc": {
+          "minimal": "修正パッチです。\n```\ndef paginate(items, page, size):\n    start = (page - 1) * size\n    end = start + size\n    return items[start:end]\n```",
+          "docstring_only": "修正パッチです。\n```\ndef paginate(items, page, size):\n    \"\"\"1ページ分の項目を返す - 最後の項目を含む。\"\"\"\n    start = (page - 1) * size\n    end = start + size\n    return items[start:end]\n```",
+          "thorough": "修正パッチです。\n```\ndef paginate(items, page, size):\n    \"\"\"1ページ分の項目を返す - 最後の項目を含む。\n\n    終端は半開区間になるよう size をそのまま足す。\n    \"\"\"\n    # 1始まりのページ番号を0始まりの開始インデックスに変換する\n    start = (page - 1) * size\n    # 旧コードは end から 1 を引いており、オフバイワンだった\n    end = start + size\n    return items[start:end]\n```"
+        },
+        "error_behavior": {
+          "stop_and_report": "検証中に items が空という例外的な状況に当たったら、すぐに作業を止めて生のログをそのまま報告します。",
+          "retry_then_report": "検証中に一時的な失敗に当たったら一度だけ再試行し、それでも失敗したらログと一緒に報告します。",
+          "self_heal": "検証中に items が空のケースに当たったら、空リストとして扱うガードを入れて自力で復旧し、そのまま進めます。"
+        }
+      }
+    },
+    {
+      "scene_id": "scn-feature",
+      "context": "routine",
+      "title": "日常作業 - CSVエクスポート機能の追加",
+      "segments": [
+        {
+          "kind": "static",
+          "segment_id": "sk-user-request-feature",
+          "text": "[ユーザー] {framework} スタック（{lang}）のプロジェクトに、一覧をCSVファイルへ書き出す機能を追加してください。入口は {file} の近くがよさそうです。"
+        },
+        {"kind": "slot", "segment_id": "slot-scope_adherence", "axis": "scope_adherence"},
+        {"kind": "slot", "segment_id": "slot-test_discipline", "axis": "test_discipline"},
+        {"kind": "slot", "segment_id": "slot-dependency_policy", "axis": "dependency_policy"},
+        {"kind": "slot", "segment_id": "slot-verification", "axis": "verification"},
+        {"kind": "slot", "segment_id": "slot-commit_style", "axis": "commit_style"}
+      ],
+      "slots": {
+        "scope_adherence": {
+          "strict": "エクスポート機能だけを追加します。途中で気づいた既存一覧画面の不自然なソート順には触れず、報告にとどめます。",
+          "adjacent_fix_ok": "エクスポート機能を追加しつつ、新しいコードが直接呼ぶ一覧取得関数の誤ったデフォルト値一件だけは一緒に正します。それ以上は触りません。",
+          "proactive": "エクスポート機能を入れるついでに、一覧画面のソート順の修正と重複したフォーマット用ユーティリティの整理もこの変更に含めます。"
+        },
+        "test_discipline": {
+          "test_first": "実装の前に、カンマや改行を含む値が正しくエスケープされるべきだという失敗テストを先に書きました。",
+          "test_after": "エクスポートの実装直後、同じ変更の中でエスケープと空一覧のケースを覆うテストを追加しました。",
+          "on_request": "テストは特に依頼がなかったので、今回の実装には追加していません。必要ならお知らせください。"
+        },
+        "dependency_policy": {
+          "prefer_existing": "CSVの直列化は標準ライブラリで十分なので、新しいパッケージなしで実装しました。外部ライブラリが本当に必要になったら、その時に先に報告します。",
+          "ask_first": "CSVの直列化に使えそうなライブラリがありますが、新しい依存関係なので先に確認させてください - インストールしてもよいですか？",
+          "free": "CSVの直列化が楽になるよう関連ライブラリをすぐにインストールして、実装を進めました。"
+        },
+        "verification": {
+          "always_run": "実装後にテストスイートとビルドを実際に走らせ、すべて通る出力を確認してから完了として報告します。",
+          "on_risky": "今回の変更は新規ファイル中心でリスクが低いと判断し、新しいテストだけ走らせて確認したうえで完了として報告します。",
+          "trust_static": "コードを読み直してロジックを確認し、型エラーも見当たらないので、このまま完了として報告します。"
+        },
+        "commit_style": {
+          "conventional": "コミット: feat: 一覧のCSVエクスポートを追加",
+          "narrative": "コミット: 一覧をCSVファイルへ書き出せるようにした",
+          "no_auto_commit": "コミットは作っていません。変更はワーキングツリーにそのままあるので、確認のうえご自身でコミットしてください。"
+        }
+      }
+    },
+    {
+      "scene_id": "scn-risky",
+      "context": "irreversible",
+      "title": "高リスク作業 - ユーザーテーブルのスキーマ移行",
+      "segments": [
+        {
+          "kind": "static",
+          "segment_id": "sk-user-request-risky",
+          "text": "[ユーザー] {framework} スタック（{lang}）で、ユーザーテーブルのメールアドレス列を小文字に正規化する必要があります。{file} にマイグレーションとバックフィルのスクリプトを用意してください。本番DBに適用する予定です。"
+        },
+        {"kind": "slot", "segment_id": "slot-autonomy", "axis": "autonomy"},
+        {"kind": "slot", "segment_id": "slot-error_behavior", "axis": "error_behavior"},
+        {"kind": "slot", "segment_id": "slot-verification", "axis": "verification"},
+        {"kind": "slot", "segment_id": "slot-dependency_policy", "axis": "dependency_policy"},
+        {"kind": "slot", "segment_id": "slot-commit_style", "axis": "commit_style"}
+      ],
+      "slots": {
+        "autonomy": {
+          "ask_first": "[エージェント] マイグレーションとバックフィルのスクリプト案ができました。本番データに触れる作業なので、レビューをいただくまで何も実行しません。",
+          "propose_then_act": "[エージェント] マイグレーション計画をまず共有し、ステージング環境への適用まではそのまま進めます。本番適用だけ承認を待ちます。",
+          "act_then_report": "[エージェント] マイグレーションとバックフィルはすでにステージングへ適用して検証まで済ませたので、結果を報告します。本番適用のコマンドも用意してあります。"
+        },
+        "error_behavior": {
+          "stop_and_report": "バックフィル中に形式の壊れたメールアドレスに当たったら、その場で止めて該当行と生のログをそのまま報告します。",
+          "retry_then_report": "バックフィル中に一時的なロック競合に当たったら一度だけ再試行し、それでも失敗したら進行を止めてログと一緒に報告します。",
+          "self_heal": "バックフィル中に形式の壊れたメールアドレスに当たったら NULL に置き換える補正ロジックを入れて最後まで進め、その後に結果を報告します。"
+        },
+        "verification": {
+          "always_run": "適用前にステージングのコピーで移行前後の行数とサンプル照合を実際に走らせ、その出力と一緒に報告します。",
+          "on_risky": "本番に触れる作業なので、今回はコピーでのリハーサルとロールバックスクリプトの検証まで終えてから報告します。",
+          "trust_static": "SQLを読み直してロジックを確認し、構文エラーもないので、リハーサルなしで適用準備完了として報告します。"
+        },
+        "dependency_policy": {
+          "prefer_existing": "バックフィルは既に使っているDBドライバだけで書きました。マイグレーションツールの導入が必要そうなら別途提案します。",
+          "ask_first": "安全なバッチバックフィルのためにマイグレーションツールを使いたいのですが、新しい依存関係なのでインストール前に確認させてください。",
+          "free": "安全なバッチバックフィルのためにマイグレーションツールをすぐインストールして、スクリプトを書きました。"
+        },
+        "commit_style": {
+          "conventional": "コミット: feat: メールアドレス小文字正規化のマイグレーションを追加",
+          "narrative": "コミット: メールアドレスの大文字小文字違いによる重複アカウントを防ぐため、正規化マイグレーションを用意した",
+          "no_auto_commit": "コミットは作っていません。マイグレーションファイルはワーキングツリーにあるので、レビューのうえご自身でコミットしてください。"
+        }
+      }
+    }
+  ]
+}

@@ -132,9 +132,33 @@ AXIS_LABELS_EN: dict[str, str] = {
     "dependency_policy": "Dependency policy",
 }
 
+AXIS_LABELS_JA: dict[str, str] = {
+    "autonomy": "自律性",
+    "commit_style": "コミット方針",
+    "test_discipline": "テスト規律",
+    "comment_doc": "コメントとドキュメント",
+    "error_behavior": "エラー時の行動",
+    "scope_adherence": "範囲の遵守",
+    "verification": "完了前の検証",
+    "dependency_policy": "依存関係の方針",
+}
+
+AXIS_LABELS_ZH: dict[str, str] = {
+    "autonomy": "自主性",
+    "commit_style": "提交方式",
+    "test_discipline": "测试纪律",
+    "comment_doc": "注释与文档",
+    "error_behavior": "出错时的行为",
+    "scope_adherence": "范围遵守",
+    "verification": "完成前验证",
+    "dependency_policy": "依赖策略",
+}
+
 AXIS_LABELS_BY_LANG: dict[str, dict[str, str]] = {
     "ko": AXIS_LABELS,
     "en": AXIS_LABELS_EN,
+    "ja": AXIS_LABELS_JA,
+    "zh": AXIS_LABELS_ZH,
 }
 
 #: 화면이 제공하는 유일한 입력 어포던스 - 긋기 대상 네 가지.

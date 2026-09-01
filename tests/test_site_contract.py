@@ -25,6 +25,8 @@ EXPECTED_ARTIFACTS = {
     "assets/site.css",
     "assets/logo.svg",
     "assets/hero.svg",
+    "assets/how-it-works.svg",
+    "assets/how-it-works.ko.svg",
     "assets/social-card.png",
     "assets/demo.gif",
     "assets/demo.en.gif",
@@ -251,6 +253,18 @@ def test_brand_assets_are_local_deterministic_and_social_ready(tmp_path: Path) -
         assert not re.search(r"(?:xlink:)?href\s*=", body, re.I)
         assert "check" not in body.lower()
         assert body.count("#D92332") == 1
+    for name in (
+        "how-it-works.svg",
+        "how-it-works.ko.svg",
+        "how-it-works.ja.svg",
+        "how-it-works.zh.svg",
+    ):
+        body = (ROOT / ".github" / "assets" / name).read_text(encoding="utf-8")
+        assert 'viewBox="0 0 1200 470"' in body
+        assert "<script" not in body.lower()
+        assert not re.search(r"(?:xlink:)?href\s*=", body, re.I)
+        assert "url(" not in body.lower()
+        assert "6,561" in body and "CLAUDE.md" in body
     hero = (ROOT / ".github" / "assets" / "hero.svg").read_text(encoding="utf-8")
     for message in (
         "FIX THE BUG.",
