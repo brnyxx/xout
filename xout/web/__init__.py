@@ -5,8 +5,8 @@
 이벤트 스트림에서 다시 파생된다.
 """
 
-from popper.web.page import render_page, render_rules
-from popper.web.server import (
+from xout.web.page import render_page, render_rules
+from xout.web.server import (
     ColdOpenHandler,
     ColdOpenServer,
     PATH_INDEX,
@@ -15,7 +15,7 @@ from popper.web.server import (
     build_server,
     serve,
 )
-from popper.web.state import (
+from xout.web.state import (
     AXIS_LABELS,
     COLD_OPEN_AXIS,
     STRIKE_LABELS,

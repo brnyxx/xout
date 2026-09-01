@@ -6,9 +6,9 @@ import json
 from pathlib import Path
 from typing import Any, Iterable
 
-from popper.atomic import atomic_write_text
-from popper.compiler import compile_rules, render_popper_md
-from popper.locking import target_lock
+from xout.atomic import atomic_write_text
+from xout.compiler import compile_rules, render_popper_md
+from xout.locking import target_lock
 
 FORMAT_MARKDOWN = "markdown"
 FORMAT_AGENTS = "agents"

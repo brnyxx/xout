@@ -64,8 +64,8 @@ def test_plugin_archive_is_deterministic_and_self_contained(tmp_path: Path) -> N
         assert ".claude-plugin/plugin.json" in names
         assert "skills/popper/SKILL.md" in names
         assert "scripts/popper_plugin.py" in names
-        assert "popper/_data/prereg/prereg_sealed.txt" in names
-        assert "popper/_data/ground_truth/ground_truth.txt" in names
+        assert "xout/_data/prereg/prereg_sealed.txt" in names
+        assert "xout/_data/ground_truth/ground_truth.txt" in names
         assert "LICENSE" in names
         assert "README.md" in names
         assert "README.ko.md" in names
@@ -310,4 +310,4 @@ def test_skill_distinguishes_servers_from_sync_diagnostics() -> None:
     assert "| `doctor` | 포그라운드 출력 |" in skill
     assert "조회·진단·소유권 명령(`status`, `sessions`, `doctor`, `enable`" in skill
     assert '"${CLAUDE_PLUGIN_ROOT}/scripts/popper_plugin.py" enable --grant' in skill
-    assert "python3 -m popper" not in skill
+    assert "python3 -m xout" not in skill

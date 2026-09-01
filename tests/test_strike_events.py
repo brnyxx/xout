@@ -5,7 +5,7 @@ from __future__ import annotations
 import unittest
 from dataclasses import FrozenInstanceError
 
-from popper.events import (
+from xout.events import (
     POSITIVE_INTENT_LEXEMES,
     REFUTATION_ARITY,
     AppendOnlyViolation,

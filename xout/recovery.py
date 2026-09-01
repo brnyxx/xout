@@ -37,7 +37,7 @@ from math import prod
 from types import MappingProxyType
 from typing import Any, Iterable, Mapping, Sequence
 
-from popper.events import Event, EventType, StrikeEvent
+from xout.events import Event, EventType, StrikeEvent
 
 logger = logging.getLogger(__name__)
 

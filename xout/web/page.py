@@ -16,7 +16,7 @@ from html import escape
 from pathlib import Path
 from typing import Sequence
 
-from popper.web.state import LandingView, RuleView, Snapshot
+from xout.web.state import LandingView, RuleView, Snapshot
 
 logger = logging.getLogger(__name__)
 

@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from popper.compiler import (
+from xout.compiler import (
     CATALOG_VERSION,
     EPISTEMIC_TOKENS,
     GRADE_DISCRIMINATED,
@@ -31,8 +31,8 @@ from popper.compiler import (
     verify_outputs,
     write_outputs,
 )
-from popper.counter import DEFAULT_CATALOG
-from popper.events import Event, EventType, Refutation, StrikeTarget, strike
+from xout.counter import DEFAULT_CATALOG
+from xout.events import Event, EventType, Refutation, StrikeTarget, strike
 
 SESSION = "sess-compile"
 NOW = "2026-08-28T00:00:00+00:00"

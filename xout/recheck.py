@@ -27,15 +27,15 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable, Mapping
 
-from popper.compiler import MANIFEST_JSON, manifest_self_hash
-from popper.events import Event, EventType
-from popper.recovery import (
+from xout.compiler import MANIFEST_JSON, manifest_self_hash
+from xout.events import Event, EventType
+from xout.recovery import (
     RECHECK_CLASS_PRIORITY,
     Demotion,
     RecoveryChannel,
     RecoveryState,
 )
-from popper.session import PROFILE_RECHECK
+from xout.session import PROFILE_RECHECK
 
 logger = logging.getLogger(__name__)
 

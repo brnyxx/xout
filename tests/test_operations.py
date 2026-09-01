@@ -8,14 +8,14 @@ from pathlib import Path
 
 import pytest
 
-import popper.backup as backup_module
-from popper.backup import BACKUP_MANIFEST, create_backup, inspect_backup
-from popper.cli import _activation_state, main
-from popper.doctor import run_doctor
-from popper.exporter import EXPORT_FORMATS, render_export, write_export
-from popper.store import EventStore
-from popper.web.state import ColdOpenSession
-from popper.writer import OwnedWriter
+import xout.backup as backup_module
+from xout.backup import BACKUP_MANIFEST, create_backup, inspect_backup
+from xout.cli import _activation_state, main
+from xout.doctor import run_doctor
+from xout.exporter import EXPORT_FORMATS, render_export, write_export
+from xout.store import EventStore
+from xout.web.state import ColdOpenSession
+from xout.writer import OwnedWriter
 
 
 def _land(base: Path, session_id: str = "operations") -> EventStore:

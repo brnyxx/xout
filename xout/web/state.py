@@ -42,20 +42,20 @@ from pathlib import Path
 from threading import RLock
 from typing import Any, Callable, Mapping, Sequence
 
-from popper.compiler import (
+from xout.compiler import (
     CompiledRule,
     HashMismatch,
     compile_rules,
     write_outputs,
 )
-from popper.counter import fold
-from popper.judgment import (
+from xout.counter import fold
+from xout.judgment import (
     CORRECT_RESTORATIONS_KEY,
     DISCRIMINATIVE_INSTANCES_KEY,
     MIS_RESTORATIONS_KEY,
 )
-from popper.locking import base_lock
-from popper.events import (
+from xout.locking import base_lock
+from xout.events import (
     Event,
     EventLog,
     EventType,
@@ -64,8 +64,8 @@ from popper.events import (
     StrikeEvent,
     StrikeTarget,
 )
-from popper.events import strike as make_strike
-from popper.fixtures import (
+from xout.events import strike as make_strike
+from xout.fixtures import (
     GENERIC_SKIN,
     RenderedPair,
     RenderedTranscript,
@@ -76,8 +76,8 @@ from popper.fixtures import (
     render_all_pairs,
     scan_repo_skin,
 )
-from popper.recheck import DEFAULT_BUDGET, plan_recheck_session
-from popper.session import (
+from xout.recheck import DEFAULT_BUDGET, plan_recheck_session
+from xout.session import (
     PROFILE_PRODUCT,
     PROFILE_RECHECK,
     PROFILE_VALIDATION,
@@ -88,7 +88,7 @@ from popper.session import (
     probe_shown,
     select_probe_pairs,
 )
-from popper.scoring import (
+from xout.scoring import (
     CELL_MIS_RESTORED,
     CELL_RESTORED,
     DEFAULT_GROUND_TRUTH_HASH_PATH,
@@ -96,8 +96,8 @@ from popper.scoring import (
     load_ground_truth,
     score_restoration,
 )
-from popper.store import EventStore, event_sort_key
-from popper.writer import OwnedWriter
+from xout.store import EventStore, event_sort_key
+from xout.writer import OwnedWriter
 
 logger = logging.getLogger(__name__)
 

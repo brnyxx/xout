@@ -7,9 +7,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from popper.counter import fold
-from popper.events import Event, EventType, Refutation, StrikeEvent, StrikeTarget
-from popper.store import EventStore, StoreViolation, event_from_record, event_sort_key
+from xout.counter import fold
+from xout.events import Event, EventType, Refutation, StrikeEvent, StrikeTarget
+from xout.store import EventStore, StoreViolation, event_from_record, event_sort_key
 
 
 def sample_strike(session_id: str = "s1") -> StrikeEvent:

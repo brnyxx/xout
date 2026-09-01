@@ -10,13 +10,13 @@ from pathlib import Path
 
 import pytest
 
-from popper.atomic import atomic_write_bytes
-from popper.cli import main
-from popper.compiler import MANIFEST_JSON, OUTPUT_FILES, write_outputs
-from popper.events import Event, EventType, StrikeTarget, strike
-from popper.locking import LockTimeout, ProcessFileLock, base_runtime_lock
-from popper.store import EventStore
-from popper.web.state import ColdOpenSession
+from xout.atomic import atomic_write_bytes
+from xout.cli import main
+from xout.compiler import MANIFEST_JSON, OUTPUT_FILES, write_outputs
+from xout.events import Event, EventType, StrikeTarget, strike
+from xout.locking import LockTimeout, ProcessFileLock, base_runtime_lock
+from xout.store import EventStore
+from xout.web.state import ColdOpenSession
 
 
 def _append_worker(base: str, worker: int, count: int, barrier) -> None:

@@ -39,7 +39,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Iterable, Mapping
 
-from popper.events import Event, EventType, StrikeEvent
+from xout.events import Event, EventType, StrikeEvent
 
 logger = logging.getLogger(__name__)
 

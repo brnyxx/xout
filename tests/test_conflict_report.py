@@ -6,8 +6,8 @@ import json
 
 import pytest
 
-from popper.compiler import CATALOG_VERSION, MANIFEST_JSON, write_outputs
-from popper.conflict import (
+from xout.compiler import CATALOG_VERSION, MANIFEST_JSON, write_outputs
+from xout.conflict import (
     CONFLICT_CLASS,
     CONFLICT_REASON_PREFIX,
     CORROBORATION_GRADES,
@@ -31,7 +31,7 @@ from popper.conflict import (
     is_falsification_target,
     parse_conflict_id,
 )
-from popper.recovery import RECHECK_CLASS_PRIORITY, RecheckEntry
+from xout.recovery import RECHECK_CLASS_PRIORITY, RecheckEntry
 
 NOW = "2026-08-28T00:00:00+00:00"
 MANUAL_ID = "user-verbosity"

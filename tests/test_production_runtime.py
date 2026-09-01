@@ -19,13 +19,13 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from popper.compiler import MANIFEST_JSON, POPPER_MD, SETTINGS_JSON
-from popper.counter import INITIAL_COMBINATIONS, fold
-from popper.events import EventType, SchemaViolation, StrikeEvent
-from popper.session import PROFILE_VALIDATION, fold_session, load_session_specs
-from popper.store import EventStore
-from popper.web.server import build_server
-from popper.web.state import (
+from xout.compiler import MANIFEST_JSON, POPPER_MD, SETTINGS_JSON
+from xout.counter import INITIAL_COMBINATIONS, fold
+from xout.events import EventType, SchemaViolation, StrikeEvent
+from xout.session import PROFILE_VALIDATION, fold_session, load_session_specs
+from xout.store import EventStore
+from xout.web.server import build_server
+from xout.web.state import (
     PROFILE_RECHECK,
     ColdOpenSession,
     RecoveryUnavailable,

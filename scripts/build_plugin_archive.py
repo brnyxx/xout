@@ -16,7 +16,7 @@ ROOT_FILES = (
     "pyproject.toml",
     "scripts/popper_plugin.py",
 )
-DIRECTORIES = (".claude-plugin", "skills", "popper")
+DIRECTORIES = (".claude-plugin", "skills", "xout")
 EXCLUDED_PARTS = {
     "__pycache__",
     ".pytest_cache",

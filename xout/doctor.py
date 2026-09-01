@@ -11,17 +11,17 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any, Callable
 
-from popper.compiler import OUTPUT_FILES, verify_outputs
-from popper.fixtures import load_pack
-from popper.scoring import (
+from xout.compiler import OUTPUT_FILES, verify_outputs
+from xout.fixtures import load_pack
+from xout.scoring import (
     DEFAULT_GROUND_TRUTH_HASH_PATH,
     DEFAULT_GROUND_TRUTH_PATH,
     load_ground_truth,
 )
-from popper.events import Event, EventType
-from popper.session import PROFILE_RECHECK, load_session_specs
-from popper.sessions import summarize_sessions
-from popper.store import EventStore
+from xout.events import Event, EventType
+from xout.session import PROFILE_RECHECK, load_session_specs
+from xout.sessions import summarize_sessions
+from xout.store import EventStore
 
 APP_VERSION_FALLBACK = "source"
 SUPPORTED_PYTHON_MIN = (3, 10)

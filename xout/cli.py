@@ -27,8 +27,8 @@ from functools import wraps
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
-from popper.backup import create_backup, inspect_backup
-from popper.compiler import (
+from xout.backup import create_backup, inspect_backup
+from xout.compiler import (
     MANIFEST_JSON,
     CompiledRule as CompilerRule,
     HashMismatch,
@@ -36,7 +36,7 @@ from popper.compiler import (
     default_base_dir,
     write_outputs,
 )
-from popper.conflict import (
+from xout.conflict import (
     CompiledRule as ConflictRule,
     ConsentKind,
     ConsentLedger,
@@ -45,29 +45,29 @@ from popper.conflict import (
     ManualRule,
     detect_conflicts,
 )
-from popper.events import Event, EventType, SchemaViolation
-from popper.fixtures import load_pack
-from popper.doctor import app_version, run_doctor
-from popper.exporter import EXPORT_FORMATS, render_export, write_export
-from popper.judgment import acknowledge, emit_condition_met, fold_judgment
-from popper.locking import LockTimeout, base_lock, base_runtime_lock
-from popper.recheck import (
+from xout.events import Event, EventType, SchemaViolation
+from xout.fixtures import load_pack
+from xout.doctor import app_version, run_doctor
+from xout.exporter import EXPORT_FORMATS, render_export, write_export
+from xout.judgment import acknowledge, emit_condition_met, fold_judgment
+from xout.locking import LockTimeout, base_lock, base_runtime_lock
+from xout.recheck import (
     DEFAULT_BUDGET,
     MANUAL_COMMAND,
     RecheckViolation,
     check_due,
 )
-from popper.session import (
+from xout.session import (
     DEFAULT_PREREG_PATH,
     PROFILE_PRODUCT,
     PROFILE_RECHECK,
     PROFILE_VALIDATION,
 )
-from popper.sessions import latest_resumable, summarize_sessions
-from popper.store import EventStore, StoreViolation
-from popper.web.server import EPHEMERAL_PORT, HOST, build_server
-from popper.web.state import ColdOpenSession, SessionComplete
-from popper.writer import OwnedWriter
+from xout.sessions import latest_resumable, summarize_sessions
+from xout.store import EventStore, StoreViolation
+from xout.web.server import EPHEMERAL_PORT, HOST, build_server
+from xout.web.state import ColdOpenSession, SessionComplete
+from xout.writer import OwnedWriter
 
 logger = logging.getLogger("popper")
 

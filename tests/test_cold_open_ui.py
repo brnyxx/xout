@@ -26,10 +26,10 @@ from dataclasses import dataclass, field
 from html.parser import HTMLParser
 from pathlib import Path
 
-from popper.counter import DEFAULT_CATALOG, INITIAL_COMBINATIONS
-from popper.web.page import TEMPLATE_PATH, render_page
-from popper.web.server import build_server
-from popper.web.state import (
+from xout.counter import DEFAULT_CATALOG, INITIAL_COMBINATIONS
+from xout.web.page import TEMPLATE_PATH, render_page
+from xout.web.server import build_server
+from xout.web.state import (
     COLD_OPEN_AXIS,
     STRIKE_TARGETS,
     ColdOpenSession,
@@ -39,7 +39,7 @@ from popper.web.state import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-WEB_DIR = REPO_ROOT / "popper" / "web"
+WEB_DIR = REPO_ROOT / "xout" / "web"
 
 #: AC8이 요구하는 콜드 오픈 상한 - 기동부터 첫 페어까지.
 COLD_OPEN_BUDGET_SECONDS = 10.0
@@ -88,7 +88,7 @@ ALLOWED_IMPORT_ROOTS = frozenset(
         "threading",
         "typing",
         "uuid",
-        "popper",
+        "xout",
     }
 )
 

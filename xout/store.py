@@ -18,8 +18,8 @@ import os
 from pathlib import Path
 from typing import Any, Iterator, Mapping
 
-from popper.compiler import default_base_dir
-from popper.events import (
+from xout.compiler import default_base_dir
+from xout.events import (
     Event,
     EventType,
     Refutation,
@@ -27,7 +27,7 @@ from popper.events import (
     StrikeEvent,
     StrikeTarget,
 )
-from popper.locking import base_lock
+from xout.locking import base_lock
 
 logger = logging.getLogger(__name__)
 

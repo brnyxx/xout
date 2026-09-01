@@ -25,9 +25,9 @@ from pathlib import Path
 from threading import Event, Lock, Thread
 from typing import Any
 
-from popper.events import SchemaViolation
-from popper.web.page import render_page
-from popper.web.state import (
+from xout.events import SchemaViolation
+from xout.web.page import render_page
+from xout.web.state import (
     ColdOpenSession,
     RecoveryUnavailable,
     SessionComplete,

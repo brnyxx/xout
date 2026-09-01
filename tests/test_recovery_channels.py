@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from popper.events import (
+from xout.events import (
     Event,
     EventLog,
     EventType,
@@ -12,7 +12,7 @@ from popper.events import (
     StrikeTarget,
     strike,
 )
-from popper.recovery import (
+from xout.recovery import (
     DEFAULT_AXIS_CATALOG,
     RECHECK_CLASS_PRIORITY,
     RecheckEntry,

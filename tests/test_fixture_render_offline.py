@@ -11,9 +11,9 @@ from pathlib import Path
 
 import pytest
 
-from popper import fixtures as fx
-from popper.counter import DEFAULT_CATALOG
-from popper.events import Refutation
+from xout import fixtures as fx
+from xout.counter import DEFAULT_CATALOG
+from xout.events import Refutation
 
 
 def _pack() -> fx.FixturePack:
@@ -284,7 +284,7 @@ class TestOfflineGuarantee:
             "json",
             "logging",
             "pathlib",
-            "popper",
+            "xout",
             "typing",
         }
     )

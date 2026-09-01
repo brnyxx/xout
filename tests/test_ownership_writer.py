@@ -13,9 +13,9 @@ from pathlib import Path
 
 import pytest
 
-from popper.compiler import MANIFEST_JSON, POPPER_MD, SETTINGS_JSON
-from popper.conflict import ConsentLedger
-from popper.writer import (
+from xout.compiler import MANIFEST_JSON, POPPER_MD, SETTINGS_JSON
+from xout.conflict import ConsentLedger
+from xout.writer import (
     ACTIVATION_RECEIPT,
     DETECT_MANUAL_EDIT,
     IMPORT_ADDED,

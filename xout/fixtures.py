@@ -24,8 +24,8 @@ from itertools import combinations
 from pathlib import Path
 from typing import Any, Iterator, Mapping
 
-from popper.counter import DEFAULT_CATALOG
-from popper.events import Refutation
+from xout.counter import DEFAULT_CATALOG
+from xout.events import Refutation
 
 logger = logging.getLogger(__name__)
 

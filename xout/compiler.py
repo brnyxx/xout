@@ -15,10 +15,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
-from popper.atomic import atomic_write_text
-from popper.counter import DEFAULT_CATALOG, AxisCatalog, fold
-from popper.events import EventType
-from popper.locking import base_lock
+from xout.atomic import atomic_write_text
+from xout.counter import DEFAULT_CATALOG, AxisCatalog, fold
+from xout.events import EventType
+from xout.locking import base_lock
 
 logger = logging.getLogger(__name__)
 

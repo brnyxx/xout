@@ -10,8 +10,8 @@ from pathlib import Path
 
 import pytest
 
-import popper.recheck as recheck_module
-from popper.compiler import (
+import xout.recheck as recheck_module
+from xout.compiler import (
     MANIFEST_JSON,
     POPPER_MD,
     SETTINGS_JSON,
@@ -21,21 +21,21 @@ from popper.compiler import (
     render_popper_md,
     render_settings,
 )
-from popper.conflict import (
+from xout.conflict import (
     CompiledRule as ConflictCompiledRule,
     ConflictEntry,
     ManualRule,
     conflict_id,
 )
-from popper.events import Event, EventLog, EventType, Refutation, StrikeTarget, strike
-from popper.recovery import (
+from xout.events import Event, EventLog, EventType, Refutation, StrikeTarget, strike
+from xout.recovery import (
     DEFAULT_AXIS_CATALOG,
     RECHECK_CLASS_PRIORITY,
     RecoveryChannel,
     fold_recovery,
     revive,
 )
-from popper.recheck import (
+from xout.recheck import (
     DEFAULT_BUDGET,
     DUE_DAYS,
     MAX_BUDGET,
@@ -48,7 +48,7 @@ from popper.recheck import (
     refresh_last_review,
     revived_demotions,
 )
-from popper.session import PROFILE_PRODUCT, PROFILE_RECHECK
+from xout.session import PROFILE_PRODUCT, PROFILE_RECHECK
 
 SID = "sess-main"
 RID = "sess-recheck"

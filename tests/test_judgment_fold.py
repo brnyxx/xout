@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from popper.events import Event, EventType
-from popper.judgment import (
+from xout.events import Event, EventType
+from xout.judgment import (
     CATALOG_REVISED_VERSION,
     JudgmentViolation,
     acknowledge,
@@ -303,7 +303,7 @@ def test_void_session_instances_count_for_neither_side() -> None:
 
 
 def test_non_validation_profiles_do_not_count_as_validation_evidence(caplog) -> None:
-    caplog.set_level("WARNING", logger="popper.judgment")
+    caplog.set_level("WARNING", logger="xout.judgment")
     product = validated(N_INSTANCES, 0, 0, event_id="product")
     product.payload["profile"] = "product"
     recheck = validated(N_INSTANCES, 0, 0, event_id="recheck")

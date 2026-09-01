@@ -12,7 +12,7 @@ import unittest
 from datetime import datetime, timezone
 from pathlib import Path
 
-from popper.cli import (
+from xout.cli import (
     CONSENT_FILE,
     MANUAL_RULES_FILE,
     _conflicts_for,
@@ -21,13 +21,13 @@ from popper.cli import (
     build_parser,
     main,
 )
-from popper.events import Event, EventType
-from popper.fixtures import FIXTURES_DIR
-from popper.judgment import fold_judgment
-from popper.compiler import MANIFEST_JSON, POPPER_MD, compile_rules
-from popper.session import DEFAULT_PREREG_PATH
-from popper.store import EventStore
-from popper.web.state import ColdOpenSession
+from xout.events import Event, EventType
+from xout.fixtures import FIXTURES_DIR
+from xout.judgment import fold_judgment
+from xout.compiler import MANIFEST_JSON, POPPER_MD, compile_rules
+from xout.session import DEFAULT_PREREG_PATH
+from xout.store import EventStore
+from xout.web.state import ColdOpenSession
 
 PRODUCT_CAP = 15
 
@@ -201,7 +201,7 @@ class SealEventTest(unittest.TestCase):
 
     def test_packaged_data_copies_match_the_source_artifacts(self) -> None:
         root = Path(__file__).resolve().parent.parent
-        packaged_fixtures = root / "popper" / "_data" / "fixtures"
+        packaged_fixtures = root / "xout" / "_data" / "fixtures"
         for source in (root / "fixtures").glob("*.json"):
             self.assertEqual(
                 source.read_bytes(),
@@ -209,18 +209,18 @@ class SealEventTest(unittest.TestCase):
             )
         self.assertEqual(
             (root / "docs" / "prereg" / "prereg_sealed.json").read_bytes(),
-            (root / "popper" / "_data" / "prereg" / "prereg_sealed.txt").read_bytes(),
+            (root / "xout" / "_data" / "prereg" / "prereg_sealed.txt").read_bytes(),
         )
         self.assertEqual(
             (root / "ground_truth" / "ground_truth.jsonl").read_bytes(),
             (
-                root / "popper" / "_data" / "ground_truth" / "ground_truth.txt"
+                root / "xout" / "_data" / "ground_truth" / "ground_truth.txt"
             ).read_bytes(),
         )
         self.assertEqual(
             (root / "ground_truth" / "ground_truth.sha256").read_bytes(),
             (
-                root / "popper" / "_data" / "ground_truth" / "ground_truth.sha256"
+                root / "xout" / "_data" / "ground_truth" / "ground_truth.sha256"
             ).read_bytes(),
         )
         self.assertTrue(FIXTURES_DIR.is_dir())

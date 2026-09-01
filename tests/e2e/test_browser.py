@@ -20,7 +20,7 @@ def _start_server(
     extra_args: list[str] | None = None,
     operation: str = "open",
 ) -> tuple[subprocess.Popen[str], str]:
-    prefix = command or [sys.executable, "-m", "popper"]
+    prefix = command or [sys.executable, "-m", "xout"]
     process = subprocess.Popen(
         [
             *prefix,

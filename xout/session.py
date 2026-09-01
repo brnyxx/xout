@@ -29,8 +29,8 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Iterable, Mapping
 
-from popper.counter import AxisCatalog, fold as fold_counter
-from popper.events import Event, EventType, StrikeEvent
+from xout.counter import AxisCatalog, fold as fold_counter
+from xout.events import Event, EventType, StrikeEvent
 
 logger = logging.getLogger(__name__)
 

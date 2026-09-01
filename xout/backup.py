@@ -11,11 +11,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from popper.atomic import atomic_write_bytes, atomic_write_text
-from popper.doctor import app_version
-from popper.locking import base_lock
-from popper.sessions import summarize_sessions
-from popper.store import EventStore
+from xout.atomic import atomic_write_bytes, atomic_write_text
+from xout.doctor import app_version
+from xout.locking import base_lock
+from xout.sessions import summarize_sessions
+from xout.store import EventStore
 
 BACKUP_SCHEMA_VERSION = 1
 BACKUP_MANIFEST = "backup.json"

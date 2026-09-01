@@ -5,8 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Iterable, Sequence
 
-from popper.events import Event, EventType, StrikeEvent
-from popper.session import PROFILE_RECHECK, load_session_specs
+from xout.events import Event, EventType, StrikeEvent
+from xout.session import PROFILE_RECHECK, load_session_specs
 
 STATUS_IN_PROGRESS = "in_progress"
 STATUS_COMPLETE = "complete"

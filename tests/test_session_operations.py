@@ -7,19 +7,19 @@ from pathlib import Path
 
 import pytest
 
-import popper.cli
-from popper.cli import main
-from popper.doctor import run_doctor
-from popper.events import Event, EventType, EventLog, SchemaViolation, StrikeEvent
-from popper.session import PROFILE_RECHECK
-from popper.sessions import (
+import xout.cli
+from xout.cli import main
+from xout.doctor import run_doctor
+from xout.events import Event, EventType, EventLog, SchemaViolation, StrikeEvent
+from xout.session import PROFILE_RECHECK
+from xout.sessions import (
     STATUS_IN_PROGRESS,
     latest_resumable,
     summarize_session,
     summarize_sessions,
 )
-from popper.store import EventStore
-from popper.web.state import ColdOpenSession, SessionComplete
+from xout.store import EventStore
+from xout.web.state import ColdOpenSession, SessionComplete
 
 
 def test_event_log_hydrates_without_changing_event_identity() -> None:
@@ -237,7 +237,7 @@ def test_cli_full_slot_recovery_does_not_leave_an_idle_server(
     def must_not_build_server(**kwargs):
         raise AssertionError("recovered terminal session must not open a server")
 
-    monkeypatch.setattr(popper.cli, "build_server", must_not_build_server)
+    monkeypatch.setattr(xout.cli, "build_server", must_not_build_server)
     assert (
         main(["resume", "cli-crash", "--base-dir", str(tmp_path), "--no-browser"])
         == 0
@@ -304,7 +304,7 @@ def test_open_auto_resumes_one_product_session(tmp_path: Path, monkeypatch) -> N
         observed["slots_used"] = session.snapshot().slots_used
         return 0
 
-    monkeypatch.setattr(popper.cli, "_serve", fake_serve)
+    monkeypatch.setattr(xout.cli, "_serve", fake_serve)
     assert main(["open", "--base-dir", str(tmp_path), "--no-browser"]) == 0
     assert observed == {"session_id": "auto-resume", "slots_used": 3}
 
@@ -324,5 +324,5 @@ def test_open_requires_explicit_choice_for_multiple_incomplete_sessions(
     def must_not_serve(session, args):
         raise AssertionError("ambiguous open must not start a server")
 
-    monkeypatch.setattr(popper.cli, "_serve", must_not_serve)
+    monkeypatch.setattr(xout.cli, "_serve", must_not_serve)
     assert main(["open", "--base-dir", str(tmp_path), "--no-browser"]) == 1

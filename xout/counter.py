@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from math import prod
 from typing import Any, Iterable, Mapping, Sequence
 
-from popper.events import Event, EventType, Refutation, StrikeEvent
+from xout.events import Event, EventType, Refutation, StrikeEvent
 
 AxisCatalog = Mapping[str, Sequence[str]]
 

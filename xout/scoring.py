@@ -23,8 +23,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
-from popper.compiler import CATALOG_VERSION, METRIC_SPEC_VERSION, content_hash
-from popper.conflict import (
+from xout.compiler import CATALOG_VERSION, METRIC_SPEC_VERSION, content_hash
+from xout.conflict import (
     CORE_DENOMINATOR_CELLS,
     CORRECTION_CELL,
     CORROBORATION_GRADES,
@@ -32,7 +32,7 @@ from popper.conflict import (
     SCORING_CELLS,
     core_denominator,
 )
-from popper.counter import DEFAULT_CATALOG
+from xout.counter import DEFAULT_CATALOG
 
 logger = logging.getLogger(__name__)
 

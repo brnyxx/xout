@@ -222,7 +222,7 @@ class JudgmentNumbersAbsentFromCodeTest(unittest.TestCase):
 
     def test_scan_actually_covers_runtime_code(self) -> None:
         scanned = {p.relative_to(REPO_ROOT).as_posix() for p in self.targets}
-        self.assertIn("popper/events.py", scanned)
+        self.assertIn("xout/events.py", scanned)
         self.assertNotIn("seed.yaml", scanned)
         self.assertFalse({s for s in scanned if s.startswith(NON_RUNTIME_PREFIXES)})
 

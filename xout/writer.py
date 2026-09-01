@@ -23,8 +23,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
-from popper.atomic import atomic_write_bytes, atomic_write_text
-from popper.compiler import (
+from xout.atomic import atomic_write_bytes, atomic_write_text
+from xout.compiler import (
     MANIFEST_JSON,
     MANIFEST_VERSION,
     POPPER_MD,
@@ -32,8 +32,8 @@ from popper.compiler import (
     content_hash,
     default_base_dir,
 )
-from popper.conflict import ConsentKind, ConsentRecord
-from popper.locking import base_lock, target_lock
+from xout.conflict import ConsentKind, ConsentRecord
+from xout.locking import base_lock, target_lock
 
 logger = logging.getLogger(__name__)
 

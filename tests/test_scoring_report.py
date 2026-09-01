@@ -17,9 +17,9 @@ from pathlib import Path
 
 import pytest
 
-from popper.conflict import CORE_DENOMINATOR_CELLS, core_denominator
-from popper.counter import DEFAULT_CATALOG
-from popper.scoring import (
+from xout.conflict import CORE_DENOMINATOR_CELLS, core_denominator
+from xout.counter import DEFAULT_CATALOG
+from xout.scoring import (
     CELL_CORRECTED,
     CELL_MIS_RESTORED,
     CELL_RESTORED,
@@ -35,7 +35,7 @@ from popper.scoring import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-SCORING_SOURCE_PATH = REPO_ROOT / "popper" / "scoring.py"
+SCORING_SOURCE_PATH = REPO_ROOT / "xout" / "scoring.py"
 EXAMPLE_GROUND_TRUTH = REPO_ROOT / "ground_truth" / "ground_truth.jsonl"
 
 NOW = "2026-08-28T12:00:00+00:00"

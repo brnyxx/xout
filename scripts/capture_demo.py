@@ -16,9 +16,9 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
-from popper.store import EventStore
-from popper.web.server import build_server
-from popper.web.state import ColdOpenSession
+from xout.store import EventStore
+from xout.web.server import build_server
+from xout.web.state import ColdOpenSession
 
 
 def capture(output: Path) -> None:

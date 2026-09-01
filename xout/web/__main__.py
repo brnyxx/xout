@@ -1,4 +1,4 @@
-"""`python -m popper.web` - 로컬 긋기 UI를 연다.
+"""`python -m xout.web` - 로컬 긋기 UI를 연다.
 
 인자 없이 실행하면 루프백의 빈 포트를 잡아 서버를 띄우고 주소를 로그로 남긴다.
 기동 과정에서 사용자에게 묻는 것은 하나도 없다.
@@ -10,7 +10,7 @@ import argparse
 import logging
 from pathlib import Path
 
-from popper.web.server import EPHEMERAL_PORT, HOST, serve
+from xout.web.server import EPHEMERAL_PORT, HOST, serve
 
 logger = logging.getLogger("popper.web")
 

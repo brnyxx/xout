@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from popper.counter import (
+from xout.counter import (
     CounterViolation,
     DEFAULT_CATALOG,
     INITIAL_COMBINATIONS,
@@ -18,7 +18,7 @@ from popper.counter import (
     fold,
     remaining_combinations,
 )
-from popper.events import (
+from xout.events import (
     Event,
     EventLog,
     EventType,

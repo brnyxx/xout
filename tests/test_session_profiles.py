@@ -13,9 +13,9 @@ from pathlib import Path
 
 import pytest
 
-from popper.counter import DEFAULT_CATALOG, fold as fold_counter
-from popper.events import Event, EventType, Refutation, StrikeEvent, StrikeTarget, strike
-from popper.session import (
+from xout.counter import DEFAULT_CATALOG, fold as fold_counter
+from xout.events import Event, EventType, Refutation, StrikeEvent, StrikeTarget, strike
+from xout.session import (
     PROFILE_PRODUCT,
     PROFILE_VALIDATION,
     REASON_PROBE_IN_PRODUCT,
