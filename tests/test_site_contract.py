@@ -217,7 +217,7 @@ def test_rendered_routes_have_matching_structure_links_and_seo(tmp_path: Path) -
     )
     assert "pip install xout" in english
     assert 'class="storyboard" aria-hidden="true"' in english
-    assert "Korean-first v1" in english
+    assert "--lang en" in english
     assert "strike-backed axes" in english
     assert (
         "자율성, 범위 준수, 테스트 규율, 주석과 문서화, 에러 시 행동, 커밋 정책, 완료 전 검증, 의존성 정책" in korean
