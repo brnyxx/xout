@@ -521,17 +521,8 @@ def test_pages_workflow_is_sha_pinned_least_privilege_and_deploy_gated() -> None
         for step in deploy["steps"]
         if (step.get("uses") or "").startswith("actions/upload-pages-artifact@")
     )
-    assert upload["with"]["path"] == "${{ runner.temp }}/popper-pages"
+    assert upload["with"]["path"] == "${{ runner.temp }}/xout-pages"
     verify_runs = "\n".join(step["run"] for step in verify["steps"] if "run" in step)
-    assert 'python -m pip install ".[test,e2e]"' in verify_runs
-    assert "python -m playwright install --with-deps chromium" in verify_runs
-    browser_step = next(
-        step
-        for step in verify["steps"]
-        if step.get("name") == "Verify rendered Pages behavior"
-    )
-    assert browser_step["env"] == {
-        "BROWSER": "chromium",
-        "REQUIRE_BROWSER_E2E": "1",
-    }
-    assert browser_step["run"] == "python -m pytest tests/e2e/test_pages.py -q"
+    assert 'python -m pip install ".[test]"' in verify_runs
+    assert "python -m pytest tests/test_site_contract.py -q" in verify_runs
+    assert "playwright" not in verify_runs

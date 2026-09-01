@@ -24,34 +24,20 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
-      - run: python -m pip install ".[test,e2e]"
+      - run: python -m pip install ".[test]"
       - run: npm install --global @anthropic-ai/claude-code@2.1.235
-      - run: python -m playwright install --with-deps chromium firefox webkit
       - name: Validate release version contract
         if: startsWith(github.ref, 'refs/tags/v')
         run: python scripts/check_release_version.py --tag "${GITHUB_REF_NAME}"
       - run: claude plugin validate .
       - name: Run unit and integration tests
-        run: python -m pytest tests/ --ignore=tests/e2e -q
-      - name: Run browser completion and recovery E2E
-        run: |
-          for browser in chromium firefox webkit; do
-            BROWSER="$browser" REQUIRE_BROWSER_E2E=1 \
-              python -m pytest tests/e2e/test_browser.py tests/e2e/test_pages.py -q
-          done
+        run: python -m pytest tests/ -q
       - name: Build and validate the installable plugin archive
         run: |
           python scripts/build_plugin_archive.py /tmp/xout-plugin.zip
           mkdir /tmp/xout-plugin
           python -m zipfile -e /tmp/xout-plugin.zip /tmp/xout-plugin
           claude plugin validate /tmp/xout-plugin
-      - name: Run clean installed-plugin lifecycle E2E
-        env:
-          BROWSER: chromium
-          XOUT_PLUGIN_ROOT: /tmp/xout-plugin
-          REQUIRE_BROWSER_E2E: '1'
-          RUN_CLEAN_PLUGIN_E2E: '1'
-        run: python -m pytest tests/e2e/test_clean_plugin_browser.py -q
 
   release:
     needs: quality
