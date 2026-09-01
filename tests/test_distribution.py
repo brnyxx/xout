@@ -105,7 +105,7 @@ def test_readmes_are_bilingual_brand_first_and_lifecycle_complete() -> None:
         assert "uvx xout" in readme
         assert "xout undo" in readme
         assert "xout status" in readme
-        assert "/xout:xout open" in readme
+        assert "/xout:xout" in readme
         assert "verify_checksums.py" in readme
         assert f"xout-plugin-{version}.zip" in readme
         assert f"../../releases/tag/v{version}" in readme
@@ -302,8 +302,10 @@ def test_sdist_normalizer_is_deterministic_and_rejects_unsafe_members(
 
 def test_skill_distinguishes_servers_from_sync_diagnostics() -> None:
     skill = (ROOT / "skills" / "xout" / "SKILL.md").read_text(encoding="utf-8")
-    assert "| (없음) 또는 `open` | 백그라운드+URL |" in skill
+    assert "| (없음) 또는 `chat` | 포그라운드 반복 |" in skill
     assert "| `doctor` | 포그라운드 출력 |" in skill
-    assert "조회·진단·소유권 명령(`status`, `sessions`, `doctor`, `enable`" in skill
+    assert '"${CLAUDE_PLUGIN_ROOT}/scripts/xout_plugin.py" pair' in skill
     assert '"${CLAUDE_PLUGIN_ROOT}/scripts/xout_plugin.py" enable --grant' in skill
+    assert "사용자 대신 X를 치지 않는다" in skill
     assert "python3 -m xout" not in skill
+    assert "--no-browser" not in skill

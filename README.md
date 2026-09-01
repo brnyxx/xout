@@ -8,6 +8,8 @@
 
 <img src=".github/assets/hero.svg" alt="Fix the bug becomes an A/B behavior test: Should I start is X'd out, Fixed and tests pass survives, and Act first report after becomes the rule" width="920">
 
+[![PyPI](https://img.shields.io/pypi/v/xout)](https://pypi.org/project/xout/) [![CI](https://github.com/brnyxx/xout/actions/workflows/ci.yml/badge.svg)](https://github.com/brnyxx/xout/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 [한국어](README.ko.md) · [Live explanation](https://brnyxx.github.io/xout/)
 
 </div>
@@ -18,7 +20,9 @@ Your coding agent shows two concrete ways it could behave. You X out the wrong o
 uvx xout
 ```
 
-That's it. Your browser opens. X things out for about 2 minutes. Your agent gets 8 rules.
+That's it. The whole session runs right in your terminal. X things out for about 2 minutes. Your agent gets 8 rules.
+
+<img src=".github/assets/demo.gif" alt="A real xout terminal session progressing through fifteen cross-outs, compiling eight conditional rules, and applying them with one keystroke" width="860">
 
 **No cloud. No telemetry. No LLM calls. One-line rollback.**
 
@@ -48,15 +52,9 @@ Upgrading from Popper 1.x? Just run `xout` once: your data in `~/.claude/popper/
 
 1. **You X out** the behavior you hate. Each pair compares two real agent behaviors: ask first vs act first, strict scope vs proactive cleanup, test first vs test after, and so on.
 2. **xout compiles** the surviving choices into 8 executable rule lines, written atomically under `~/.claude/xout/` with evidence and provenance.
-3. **You apply with one click.** The completion screen asks "apply now?" - saying yes adds exactly one owned `@import` line to `~/.claude/CLAUDE.md`. `xout undo` removes only that line.
+3. **You apply with one keystroke.** The completion screen asks "apply now?" - saying yes adds exactly one owned `@import` line to `~/.claude/CLAUDE.md`. `xout undo` removes only that line.
 
 Repeat the request that used to annoy you in a fresh Claude Code session and watch the rule hold. When it ever feels stale, `xout` again.
-
-<details>
-<summary><strong>Watch the real 15-X browser session</strong> (1.6 MB GIF)</summary>
-<br>
-<img src=".github/assets/demo.gif" alt="The real browser UI progressing from zero to fifteen cross-outs, compiling local rules, and completing the session" width="860">
-</details>
 
 > **Korean-first v1:** the session UI and generated rule text are currently Korean. An English runtime pack is planned; this README describes the product honestly either way.
 
@@ -79,7 +77,6 @@ Rules you confirmed by X'ing are labeled **confirmed**; defaults xout guessed wi
 | Command | What it does |
 |---|---|
 | `xout` | Start (or automatically resume) a session; self-checks before opening |
-| `xout open --tui` | Run the whole session inside the terminal - no browser |
 | `xout undo` | Remove the one import line xout owns - full rollback |
 | `xout status` | Show your 8 rules and whether they are active |
 | `xout dev ...` | Power tools: export, validate, re-pick, backup, session inspection |
@@ -94,13 +91,13 @@ Rules you confirmed by X'ing are labeled **confirmed**; defaults xout guessed wi
 <details>
 <summary><strong>The engineering behind those claims</strong></summary>
 
-Append-only JSONL events, fsync, process locks, sealed fixture/session digests, deterministic replay, atomic replacement, loopback Host/Origin checks, duplicate-session rejection, and manual-edit detection before landing. The sealed preregistration lives in [`docs/prereg/prereg_sealed.json`](docs/prereg/prereg_sealed.json); the frozen axis catalog lives in [`docs/axis_locality_table.md`](docs/axis_locality_table.md). The eight-axis catalog is deliberately frozen: xout is a local behavior compiler, not a prompt manager, cloud profile, or agent orchestrator.
+Every strike is an append-only JSONL event with fsync; landing is atomic with content hashes; sessions replay deterministically; duplicate sessions are rejected; manual edits are detected before landing. The 15 strikes narrow a 6,561-agent hypothesis space (3 values across 8 axes) down to one - and the survivor is only \"not falsified yet,\" never \"proven right.\" The sealed preregistration lives in [`docs/prereg/prereg_sealed.json`](docs/prereg/prereg_sealed.json); the frozen axis catalog lives in [`docs/axis_locality_table.md`](docs/axis_locality_table.md). The eight-axis catalog is deliberately frozen: xout is a local behavior compiler, not a prompt manager, cloud profile, or agent orchestrator.
 
 </details>
 
 ## Claude Code plugin
 
-xout also runs inside Claude Code: `/xout:xout open`, `/xout:xout status`, `/xout:xout undo`.
+xout also runs inside Claude Code as a conversation: `/xout:xout` shows each behavior pair in chat, you pick the one to X, and the agent records only your explicit choice. `/xout:xout status`, `/xout:xout undo` work the same way.
 
 <details>
 <summary><strong>Checksum-verified plugin install</strong></summary>
@@ -117,7 +114,7 @@ claude plugin marketplace add "$DEST"
 claude plugin install xout@xout-marketplace
 ```
 
-Then in a fresh Claude Code session: `/xout:xout doctor`, `/xout:xout open`.
+Then in a fresh Claude Code session: `/xout:xout doctor`, `/xout:xout`.
 
 </details>
 
@@ -132,10 +129,10 @@ Your rules and event history stay in `~/.claude/xout/` (yours to keep or delete)
 ## Development
 
 ```bash
-python3 -m pip install -e '.[test,e2e,release]'
+python3 -m pip install -e '.[test,release]'
 python3 -m pytest tests/ -q
 ```
 
-CI covers Python 3.10-3.14, macOS/Linux/Windows, and Chromium/Firefox/WebKit. Releases ship wheel, sdist, plugin ZIP, `SHA256SUMS`, and artifact provenance.
+CI covers Python 3.10-3.14 on macOS, Linux, and Windows. Releases ship wheel, sdist, plugin ZIP, `SHA256SUMS`, and artifact provenance.
 
 MIT © 2026 Brian Kim.

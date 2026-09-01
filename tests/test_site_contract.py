@@ -241,7 +241,7 @@ def test_brand_assets_are_local_deterministic_and_social_ready(tmp_path: Path) -
     assert payload[:8] == b"\x89PNG\r\n\x1a\n"
     assert struct.unpack(">II", payload[16:24]) == (1200, 630)
     demo = (ROOT / ".github" / "assets" / "demo.gif").read_bytes()
-    assert _gif_timeline(demo) == (960, 608, 124, 1033)
+    assert _gif_timeline(demo) == (960, 608, 49, 2311)
     for name, dimensions in (
         ("logo.svg", 'viewBox="0 0 256 256"'),
         ("hero.svg", 'viewBox="0 0 1200 420"'),
