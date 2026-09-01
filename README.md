@@ -26,6 +26,8 @@ That's it. The whole session runs right in your terminal. X things out for about
 
 <img src=".github/assets/demo.en.gif" alt="A real xout terminal session progressing through fifteen cross-outs, compiling eight conditional rules, and applying them with one keystroke" width="860">
 
+<sub>That recording is a real session, not a mockup: every pair and rule on screen was produced by the actual engine (`scripts/record_tui_demo.py` drives a live `ColdOpenSession`).</sub>
+
 **No cloud. No telemetry. No LLM calls. One-line rollback.**
 
 **v1.0.0 · Python 3.10–3.14 · MIT · zero third-party runtime packages**
@@ -108,6 +110,16 @@ Eight axes, measured across three scenes. Five axes are measured in **both** con
 | Scope adherence | bugfix + feature | - | cross-checked |
 | Test discipline | bugfix + feature | - | cross-checked |
 | Comments and docs | bugfix | - | style axis |
+
+## How it compares
+
+|  | Hand-written CLAUDE.md / interview tools | xout |
+|---|---|---|
+| How preferences are captured | You state them - and normative pressure skews stated answers | Revealed by choice: you cross out one of two concrete behaviors |
+| Where rules come from | Written from memory, no provenance | Compiled from your strikes - `xout why` traces every rule to its evidence |
+| Routine vs risky work | One rule fits all situations | Rules fork on the routine/irreversible boundary - only when your X's actually diverged |
+| Rollback | Hand-edit the file and hope | One receipt-proofed line; `xout undo` removes exactly it |
+| **When rules go stale** | They silently drift until the agent annoys you again | Stale rules get re-struck in a 2-minute session; unstable ones are flagged for recheck |
 
 ## Commands
 
