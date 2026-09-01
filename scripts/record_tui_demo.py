@@ -21,6 +21,28 @@ sys.path.insert(0, str(REPO_ROOT))
 from xout.state import ColdOpenSession  # noqa: E402
 from xout.store import EventStore  # noqa: E402
 
+# 화면 크롬 문자열 - 페어/규칙 본문은 실제 세션이 언어별 팩에서 만든다.
+CHROME = {
+    "ko": {
+        "cmd": "$ uvx xout",
+        "tagline": "xout - 아닌 쪽에 X를 치세요.",
+        "promise": "2분 뒤, 에이전트에게 규칙 8줄이 생깁니다.",
+        "strike_hint": "xout - 아닌 쪽에 X를 치세요.",
+        "complete": "세션 완료 - 컴파일된 규칙:",
+        "apply": "지금 CLAUDE.md에 적용할까요? [y/N] ",
+        "applied": "적용 완료 - @import 한 줄이 추가됐다. 취소는 xout undo",
+    },
+    "en": {
+        "cmd": "$ uvx xout --lang en",
+        "tagline": "xout - cross out the one you never want.",
+        "promise": "Two minutes from now, your agent has eight rules.",
+        "strike_hint": "xout - cross out the one you never want.",
+        "complete": "Session complete - compiled rules:",
+        "apply": "Apply to CLAUDE.md now? [y/N] ",
+        "applied": "Applied - one @import line added. Undo with xout undo",
+    },
+}
+
 WIDTH, HEIGHT = 960, 608
 BG = "#141412"
 INK = "#F7F3EA"
@@ -112,10 +134,10 @@ def _divergent(left: str, right: str) -> tuple[str, str]:
     return left_lines[index], right_lines[index]
 
 
-def _pair_frame(snap, typed: str | None, struck: str | None) -> Frame:
+def _pair_frame(snap, typed: str | None, struck: str | None, chrome: dict) -> Frame:
     frame = Frame()
-    frame.line("$ uvx xout", GREEN)
-    frame.line("xout - 아닌 쪽에 X를 치세요.", MUTED)
+    frame.line(chrome["cmd"], GREEN)
+    frame.line(chrome["strike_hint"], MUTED)
     frame.line()
     pair = snap.pair
     frame.line(f"[{snap.slots_used + 1}/{snap.slots_total}] {pair.axis_label}", INK)
@@ -131,28 +153,29 @@ def _pair_frame(snap, typed: str | None, struck: str | None) -> Frame:
     return frame
 
 
-def _completion_frames(snap, applied: bool) -> list[Frame]:
+def _completion_frames(snap, applied: bool, chrome: dict) -> list[Frame]:
     base = Frame()
-    base.line("$ uvx xout", GREEN)
+    base.line(chrome["cmd"], GREEN)
     base.line()
-    base.line("세션 완료 - 컴파일된 규칙:", INK)
+    base.line(chrome["complete"], INK)
     for rule in snap.rules[:8]:
         base.line("  - " + rule.text, MUTED)
     frames = [base]
     ask = Frame()
     ask.rows = list(base.rows)
     ask.line()
-    ask.line("지금 CLAUDE.md에 적용할까요? [y/N] " + ("y" if applied else ""), GREEN)
+    ask.line(chrome["apply"] + ("y" if applied else ""), GREEN)
     frames.append(ask)
     done = Frame()
     done.rows = list(ask.rows)
     done.line()
-    done.line("적용 완료 - @import 한 줄이 추가됐다. 취소는 xout undo", INK)
+    done.line(chrome["applied"], INK)
     frames.append(done)
     return frames
 
 
-def capture(output: Path) -> None:
+def capture(output: Path, lang: str = "ko") -> None:
+    chrome = CHROME[lang]
     font = _font()
     frames: list[Image.Image] = []
     durations: list[int] = []
@@ -163,12 +186,12 @@ def capture(output: Path) -> None:
 
     with tempfile.TemporaryDirectory() as tmp:
         store = EventStore(Path(tmp))
-        session = ColdOpenSession(store=store, land_dir=Path(tmp))
+        session = ColdOpenSession(store=store, land_dir=Path(tmp), lang=lang)
         intro = Frame()
-        intro.line("$ uvx xout", GREEN)
+        intro.line(chrome["cmd"], GREEN)
         intro.line()
-        intro.line("xout - 아닌 쪽에 X를 치세요.", INK)
-        intro.line("2분 뒤, 에이전트에게 규칙 8줄이 생깁니다.", MUTED)
+        intro.line(chrome["tagline"], INK)
+        intro.line(chrome["promise"], MUTED)
         emit(intro, 170)
         slot = 0
         while True:
@@ -189,13 +212,15 @@ def capture(output: Path) -> None:
                 target = "left" if slot % 2 == 0 else "right"
             choice = "1" if target == "left" else "2"
             show, typed, struck = (110, 45, 70) if slot < 3 else (38, 14, 26)
-            emit(_pair_frame(snap, None, None), show)
-            emit(_pair_frame(snap, choice, None), typed)
-            emit(_pair_frame(snap, choice, target), struck)
+            emit(_pair_frame(snap, None, None, chrome), show)
+            emit(_pair_frame(snap, choice, None, chrome), typed)
+            emit(_pair_frame(snap, choice, target, chrome), struck)
             session.strike(target, expected_pair_id=snap.pair.pair_id)
             slot += 1
         final = session.snapshot()
-        for index, frame in enumerate(_completion_frames(final, applied=True)):
+        for index, frame in enumerate(
+            _completion_frames(final, applied=True, chrome=chrome)
+        ):
             emit(frame, (170, 120, 240)[index])
 
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -213,8 +238,9 @@ def capture(output: Path) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", type=Path)
+    parser.add_argument("--lang", choices=("ko", "en"), default="ko")
     args = parser.parse_args()
-    capture(args.output)
+    capture(args.output, lang=args.lang)
     return 0
 
 

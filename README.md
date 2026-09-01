@@ -17,12 +17,12 @@
 Your coding agent shows two concrete ways it could behave. You X out the wrong one. Two minutes and 15 X's later, the surviving choices are compiled into 8 local rules that Claude Code loads from `CLAUDE.md`.
 
 ```bash
-uvx xout
+uvx xout --lang en
 ```
 
 That's it. The whole session runs right in your terminal. X things out for about 2 minutes. Your agent gets 8 rules.
 
-<img src=".github/assets/demo.gif" alt="A real xout terminal session progressing through fifteen cross-outs, compiling eight conditional rules, and applying them with one keystroke" width="860">
+<img src=".github/assets/demo.en.gif" alt="A real xout terminal session progressing through fifteen cross-outs, compiling eight conditional rules, and applying them with one keystroke" width="860">
 
 **No cloud. No telemetry. No LLM calls. One-line rollback.**
 
@@ -53,7 +53,7 @@ Upgrading from Popper 1.x? Just run `xout` once: your data in `~/.claude/popper/
 1. **You X out** the behavior you hate, across three real scenes: a routine bugfix, a new feature, and a risky production migration. Each pair shows two concrete agent behaviors - ask first vs act first, standard library vs install-a-package, rehearse the migration vs trust a re-read.
 2. **xout compiles** the survivors into 8 executable rules, written atomically under `~/.claude/xout/` with evidence and provenance. And when your X's diverge between routine and irreversible work, the rule compiles **with that condition attached**:
 
-   > 짧은 계획을 먼저 적고 곧바로 이어서 실행한다. **단, 삭제, push, 배포, 마이그레이션처럼 되돌리기 어려운 작업에서는 실행 전에 반드시 승인을 받는다.**
+   > Write a short plan first, then proceed immediately. **However, for hard-to-reverse work like deletes, pushes, deploys, and migrations, always get approval before executing.**
 
    That condition is not a template. It exists because you X'd differently in the migration scene. No interview-based tool can produce it.
 3. **You apply with one keystroke.** The completion screen asks "apply now?" - saying yes adds exactly one owned `@import` line to `~/.claude/CLAUDE.md`. `xout undo` removes only that line.
@@ -65,18 +65,18 @@ Repeat the request that used to annoy you in a fresh Claude Code session and wat
 `xout why` traces any rule back to the exact X's that created it:
 
 ```text
-$ xout why autonomy
-[자율성]
-규칙: 짧은 계획을 먼저 적고 곧바로 이어서 실행한다. 단, ... 승인을 받는다.
-상태: 판별시험 통과 / 출처: 당신의 X
-근거:
-  - 일상 작업 장면(scn-bugfix)에서 ask_first에 X (세션 a3f2c9d1)
-  - 되돌리기 어려운 작업 장면(scn-risky)에서 act_then_report에 X (세션 a3f2c9d1)
+$ xout why autonomy --lang en
+[Autonomy]
+rule: Write a short plan first, then proceed immediately. However, ... get approval before executing.
+state: discriminated / source: your X
+evidence:
+  - X'd ask_first in the routine-work scene (scn-bugfix) (session a3f2c9d1)
+  - X'd act_then_report in the hard-to-reverse-work scene (scn-risky) (session a3f2c9d1)
 ```
 
 A rule you can't trace is a rule you can't trust. Every xout rule carries its receipts.
 
-> **Korean-first v1:** the session UI and generated rule text are currently Korean. An English runtime pack is planned; this README describes the product honestly either way.
+> Sessions run in English with `--lang en` (pairs, rules, and screen text); the default without the flag is Korean. The event ledger is language-neutral either way.
 
 ## What you get
 
@@ -128,7 +128,7 @@ Eight axes, measured across three scenes. Five axes are measured in **both** con
 <details>
 <summary><strong>The engineering behind those claims</strong></summary>
 
-Every strike is an append-only JSONL event with fsync; landing is atomic with content hashes; sessions replay deterministically; duplicate sessions are rejected; manual edits are detected before landing. Pair scheduling judges discriminative power per context, so routine strikes never starve the risky scene; a session is voided unless at least five axes carry real strike evidence. The 15 strikes narrow a 6,561-agent hypothesis space (3 values across 8 axes) down to one - and the survivor is only \"not falsified yet,\" never \"proven right.\" The sealed preregistration lives in [`docs/prereg/prereg_sealed.json`](docs/prereg/prereg_sealed.json); the frozen axis catalog lives in [`docs/axis_locality_table.md`](docs/axis_locality_table.md). The eight-axis catalog is deliberately frozen: xout is a local behavior compiler, not a prompt manager, cloud profile, or agent orchestrator.
+Every strike is an append-only JSONL event with fsync; landing is atomic with content hashes; sessions replay deterministically; duplicate sessions are rejected; manual edits are detected before landing. Pair scheduling judges discriminative power per context, so routine strikes never starve the risky scene; a session is voided unless at least five axes carry real strike evidence. The 15 strikes narrow a 6,561-agent hypothesis space (3 values across 8 axes) down to one - and the survivor is only "not falsified yet," never "proven right." The sealed preregistration lives in [`docs/prereg/prereg_sealed.json`](docs/prereg/prereg_sealed.json); the frozen axis catalog lives in [`docs/axis_locality_table.md`](docs/axis_locality_table.md). The eight-axis catalog is deliberately frozen: xout is a local behavior compiler, not a prompt manager, cloud profile, or agent orchestrator.
 
 </details>
 

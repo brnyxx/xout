@@ -47,7 +47,13 @@ from xout.conflict import (
     detect_conflicts,
 )
 from xout.events import Event, EventType, SchemaViolation, StrikeEvent
-from xout.fixtures import CONTEXT_IRREVERSIBLE, SCENE_CONTEXTS, load_pack
+from xout.fixtures import (
+    CONTEXT_IRREVERSIBLE,
+    DEFAULT_LANG,
+    SCENE_CONTEXTS,
+    SUPPORTED_LANGS,
+    load_pack,
+)
 from xout.migrate import migrate_legacy_home
 from xout.doctor import app_version, run_doctor
 from xout.exporter import EXPORT_FORMATS, render_export, write_export
@@ -70,6 +76,7 @@ from xout.store import EventStore, StoreViolation
 from xout.state import (
     AXIS_LABELS,
     ColdOpenSession,
+    axis_label,
     RecoveryUnavailable,
     SessionComplete,
     StalePresentation,
@@ -396,6 +403,10 @@ def _runtime_exclusive(
     return wrapped
 
 
+def _args_lang(args: argparse.Namespace) -> str:
+    return getattr(args, "lang", DEFAULT_LANG)
+
+
 def _resumed_session(
     base: Path,
     store: EventStore,
@@ -416,6 +427,7 @@ def _resumed_session(
         resume_events=events,
         banner=_banner_text(_load_manifest(base)),
         conflicts_for=_conflicts_for(base),
+        lang=_args_lang(args),
     )
 
 
@@ -462,12 +474,13 @@ def cmd_open(args: argparse.Namespace) -> int:
         history=store.load_completed(),
         banner=_banner_text(manifest),
         conflicts_for=_conflicts_for(base),
+        lang=_args_lang(args),
     )
     return _launch(session, args)
 
 
 def _launch(session: ColdOpenSession, args: argparse.Namespace) -> int:
-    return _run_tui(session, Path(args.base_dir))
+    return _run_tui(session, Path(args.base_dir), lang=_args_lang(args))
 
 
 def _grant_and_enable(base: Path) -> int:
@@ -485,11 +498,40 @@ def _grant_and_enable(base: Path) -> int:
 
 _TUI_TARGETS = {"1": "left", "2": "right", "b": "both", "p": "pair"}
 
+#: 세션 플로우 화면 문자열 - 언어는 렌더 계층에만 존재한다.
+_TUI_MSG: dict[str, dict[str, str]] = {
+    "ko": {
+        "intro": "xout - 아닌 쪽에 X를 치세요.",
+        "keys": "입력: 1/2=한쪽에 X, b=둘 다 X, p=이 페어로는 판별 불가, u=되돌리기, q=중단",
+        "aborted": "중단 - 진행 상황은 저장됐다. 다시 실행하면 이어진다.",
+        "allowed": "허용 입력: 1, 2, b, p, u, q",
+        "rejected": "반영 거부: %s",
+        "voided": "세션 무효: %s",
+        "complete": "세션 완료 - 컴파일된 규칙:",
+        "landed": "착지 완료: %s",
+        "apply": "지금 CLAUDE.md에 적용할까요? [y/N] ",
+        "later": "나중에 적용하려면: xout enable --grant / 취소는 xout undo",
+    },
+    "en": {
+        "intro": "xout - cross out the one you never want.",
+        "keys": "keys: 1/2=strike one side, b=strike both, p=pair can't discriminate, u=undo, q=quit",
+        "aborted": "Stopped - progress is saved. Run again to continue.",
+        "allowed": "allowed inputs: 1, 2, b, p, u, q",
+        "rejected": "rejected: %s",
+        "voided": "session voided: %s",
+        "complete": "Session complete - compiled rules:",
+        "landed": "landed: %s",
+        "apply": "Apply to CLAUDE.md now? [y/N] ",
+        "later": "Apply later with: xout enable --grant / undo with xout undo",
+    },
+}
 
-def _run_tui(session: ColdOpenSession, base: Path) -> int:
+
+def _run_tui(session: ColdOpenSession, base: Path, lang: str = DEFAULT_LANG) -> int:
     """터미널 세션 루프 - 웹과 같은 이벤트 원장 위에서 긋는다."""
-    print("xout - 아닌 쪽에 X를 치세요.")
-    print("입력: 1/2=한쪽에 X, b=둘 다 X, p=이 페어로는 판별 불가, u=되돌리기, q=중단")
+    msg = _TUI_MSG.get(lang, _TUI_MSG["ko"])
+    print(msg["intro"])
+    print(msg["keys"])
     while True:
         snap = session.snapshot()
         if snap.session_complete or snap.pair is None:
@@ -503,7 +545,7 @@ def _run_tui(session: ColdOpenSession, base: Path) -> int:
             choice = input("X> ").strip().lower()
         except (EOFError, KeyboardInterrupt):
             print()
-            logger.info("중단 - 진행 상황은 저장됐다. 다시 실행하면 이어진다.")
+            logger.info(msg["aborted"])
             return 0
         try:
             if choice in _TUI_TARGETS:
@@ -511,31 +553,31 @@ def _run_tui(session: ColdOpenSession, base: Path) -> int:
             elif choice == "u":
                 session.undo()
             elif choice == "q":
-                logger.info("중단 - 진행 상황은 저장됐다. 다시 실행하면 이어진다.")
+                logger.info(msg["aborted"])
                 return 0
             else:
-                print("허용 입력: 1, 2, b, p, u, q")
+                print(msg["allowed"])
         except SessionComplete:
             break
         except (StalePresentation, RecoveryUnavailable, SchemaViolation) as exc:
-            logger.error("반영 거부: %s", exc)
+            logger.error(msg["rejected"], exc)
     snap = session.snapshot()
     if snap.voided_reason:
-        logger.error("세션 무효: %s", snap.voided_reason)
+        logger.error(msg["voided"], snap.voided_reason)
         return 1
     print()
-    print("세션 완료 - 컴파일된 규칙:")
+    print(msg["complete"])
     for rule in snap.rules:
         print(f"  - {rule.text}")
     if snap.landing is not None:
-        logger.info("착지 완료: %s", base)
+        logger.info(msg["landed"], base)
     try:
-        answer = input("지금 CLAUDE.md에 적용할까요? [y/N] ").strip().lower()
+        answer = input(msg["apply"]).strip().lower()
     except (EOFError, KeyboardInterrupt):
         answer = ""
     if answer == "y":
         return _grant_and_enable(base)
-    logger.info("나중에 적용하려면: xout enable --grant / 취소는 xout undo")
+    logger.info(msg["later"])
     return 0
 
 
@@ -562,12 +604,40 @@ def _headless_session(args: argparse.Namespace) -> ColdOpenSession:
         history=store.load_completed(),
         banner=_banner_text(_load_manifest(base)),
         conflicts_for=_conflicts_for(base),
+        lang=_args_lang(args),
     )
 
 
 CONTEXT_LABELS = {
     "routine": "일상 작업",
     CONTEXT_IRREVERSIBLE: "되돌리기 어려운 작업",
+}
+
+CONTEXT_LABELS_EN = {
+    "routine": "routine-work",
+    CONTEXT_IRREVERSIBLE: "hard-to-reverse-work",
+}
+
+#: xout why 출력 문자열 - 규칙 본문은 manifest에 착지된 언어 그대로 나온다.
+_WHY_MSG: dict[str, dict[str, str]] = {
+    "ko": {
+        "rule": "규칙: {text}",
+        "state": "상태: {grade} / 출처: {origin}",
+        "origin_elicited": "당신의 X",
+        "origin_prior": "추정 기본값 (아직 안 물어봄)",
+        "no_evidence": "근거: 이 축을 겨눈 X가 아직 없다.",
+        "evidence": "근거:",
+        "line": "  - {context} 장면({scene})에서 {values}에 X (세션 {session})",
+    },
+    "en": {
+        "rule": "rule: {text}",
+        "state": "state: {grade} / source: {origin}",
+        "origin_elicited": "your X",
+        "origin_prior": "assumed default (never asked yet)",
+        "no_evidence": "evidence: no X has targeted this axis yet.",
+        "evidence": "evidence:",
+        "line": "  - X'd {values} in the {context} scene ({scene}) (session {session})",
+    },
 }
 
 
@@ -593,22 +663,28 @@ def cmd_why(args: argparse.Namespace) -> int:
         if entry is None:
             logger.error("manifest에 없는 축: %s", axis)
             return 1
-        print(f"[{AXIS_LABELS.get(axis, axis)}]")
-        print(f"규칙: {entry.get('text')}")
+        lang = _args_lang(args)
+        why = _WHY_MSG.get(lang, _WHY_MSG["ko"])
+        contexts = CONTEXT_LABELS_EN if lang == "en" else CONTEXT_LABELS
+        print(f"[{axis_label(axis, lang)}]")
+        print(why["rule"].format(text=entry.get("rule")))
         grade = str(entry.get("corroboration_grade", ""))
         source = str(entry.get("value_source", ""))
-        origin = "당신의 X" if source == "elicited" else "추정 기본값 (아직 안 물어봄)"
-        print(f"상태: {GRADE_LABELS.get(grade, grade)} / 출처: {origin}")
+        origin = (
+            why["origin_elicited"] if source == "elicited" else why["origin_prior"]
+        )
+        grade_label = grade if lang == "en" else GRADE_LABELS.get(grade, grade)
+        print(why["state"].format(grade=grade_label, origin=origin))
         provenance = [
             str(eid)
             for eid in dict.fromkeys(entry.get("refutation_provenance", ()))
         ]
         struck = [events_by_id[eid] for eid in provenance if eid in events_by_id]
         if not struck:
-            print("근거: 이 축을 겨눈 X가 아직 없다.")
+            print(why["no_evidence"])
             print()
             continue
-        print("근거:")
+        print(why["evidence"])
         for event in struck:
             context = SCENE_CONTEXTS.get(event.scene_id, "routine")
             values = [
@@ -617,8 +693,12 @@ def cmd_why(args: argparse.Namespace) -> int:
                 if refutation.axis == axis
             ]
             print(
-                f"  - {CONTEXT_LABELS.get(context, context)} 장면({event.scene_id})에서 "
-                f"{', '.join(values)}에 X (세션 {event.session_id[:8]})"
+                why["line"].format(
+                    context=contexts.get(context, context),
+                    scene=event.scene_id,
+                    values=", ".join(values),
+                    session=event.session_id[:8],
+                )
             )
         print()
     return 0
@@ -722,6 +802,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
         store=store,
         land_dir=base,
         history=store.load_completed(),
+        lang=_args_lang(args),
     )
     return _launch(session, args)
 
@@ -748,6 +829,7 @@ def cmd_recheck(args: argparse.Namespace) -> int:
             recheck_manifest=manifest,
             recheck_budget=args.budget,
             conflicts_for=_conflicts_for(base),
+            lang=_args_lang(args),
         )
     except RecheckViolation as exc:
         logger.error("%s", exc)
@@ -1062,6 +1144,12 @@ def _add_common(parser: argparse.ArgumentParser) -> None:
         "--base-dir",
         default=str(default_base_dir()),
         help="xout 소유 디렉토리 (기본 ~/.claude/xout)",
+    )
+    parser.add_argument(
+        "--lang",
+        choices=SUPPORTED_LANGS,
+        default=DEFAULT_LANG,
+        help="세션 언어 - 페어/규칙/화면 텍스트 (기본 ko)",
     )
 
 

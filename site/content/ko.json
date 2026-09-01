@@ -99,5 +99,7 @@
   "footer_note": "살펴볼 수 있는 로컬 코딩 에이전트 행동 규칙을 위해 만들었습니다.",
   "hosting_note": "이 정적 사이트에는 분석, 쿠키, 저장소, 원격 런타임 자산이 없습니다. GitHub Pages 호스팅에는",
   "hosting_link": "GitHub 개인정보처리방침이 적용됩니다.",
-  "footer_repository": "저장소"
+  "footer_repository": "저장소",
+  "demo_gif": "assets/demo.gif",
+  "quickstart_cmd": "uvx xout"
 }

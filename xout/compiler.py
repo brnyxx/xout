@@ -108,6 +108,63 @@ IRREVERSIBLE_CONDITION_PREFIX = (
     "단, 삭제, push, 배포, 마이그레이션처럼 되돌리기 어려운 작업에서는 "
 )
 
+RULE_TEXT_EN: dict[tuple[str, str], str] = {
+    ("autonomy", "ask_first"): "Present a plan and get approval before modifying code. The only exception is self-evident changes like obvious typo fixes.",
+    ("autonomy", "propose_then_act"): "Write a short plan first, then proceed immediately.",
+    ("autonomy", "act_then_report"): "Act first, then report a summary of what changed.",
+    ("commit_style", "conventional"): "Start commit messages with a conventional prefix like feat/fix/refactor. If the repo already has an established commit convention, that convention wins.",
+    ("commit_style", "narrative"): "Write commit titles as narrative sentences describing the intent of the change. If the repo already has an established commit convention, that convention wins.",
+    ("commit_style", "no_auto_commit"): "Never create commits that were not requested. Leave changes in the working tree for the user to review and commit themselves.",
+    ("test_discipline", "test_first"): "For bug fixes, write a reproducing test first and watch it fail before fixing. For features, write the tests first too.",
+    ("test_discipline", "test_after"): "Add tests in the same change right after implementing. Never declare a change done without tests.",
+    ("test_discipline", "on_request"): "Write tests only when explicitly asked. Always check whether existing tests break, though.",
+    ("comment_doc", "minimal"): "Leave comments only for constraints and reasons the code cannot express. Never write comments that restate what the code does.",
+    ("comment_doc", "docstring_only"): "Write docstrings on public functions and classes; leave no inline comments.",
+    ("comment_doc", "thorough"): "Write docstrings on public APIs and leave inline comments only on non-obvious logic.",
+    ("error_behavior", "stop_and_report"): "On error, stop immediately and report the raw log verbatim. Never summarize or massage the log.",
+    ("error_behavior", "retry_then_report"): "Retry a transient-looking failure exactly once. If it still fails, report with the raw log and stop.",
+    ("error_behavior", "self_heal"): "On test or build failures, fix the cause and keep going until they pass, then report the outcome.",
+    ("scope_adherence", "strict"): "Never modify files outside the requested scope. If you find a defect outside the scope, report it without fixing it.",
+    ("scope_adherence", "adjacent_fix_ok"): "Fix defects directly adjacent to the requested scope in the same change and say so in the report. Anything further out gets reported only.",
+    ("scope_adherence", "proactive"): "Include improvements discovered during the work in the same change, but separate the requested scope from incidental cleanup in the report. If the diff grows beyond the request, flag it beforehand.",
+    ("verification", "always_run"): "Before declaring done, actually run the tests and the build and confirm the passing output.",
+    ("verification", "on_risky"): "Run full verification only for risky changes; otherwise check just the tests directly related to the change.",
+    ("verification", "trust_static"): "When static checks (re-reading the code, type checking) seem sufficient, declare done on that basis.",
+    ("dependency_policy", "prefer_existing"): "Favor existing dependencies and the standard library over new packages. If an addition is unavoidable, report it.",
+    ("dependency_policy", "ask_first"): "Always ask before adding a new dependency.",
+    ("dependency_policy", "free"): "Add whatever dependencies are needed right away, and list the additions in the report.",
+}
+
+IRREVERSIBLE_CLAUSE_EN: dict[tuple[str, str], str] = {
+    ("autonomy", "ask_first"): "always get approval before executing",
+    ("autonomy", "propose_then_act"): "announce the plan and proceed, but wait for approval on the final apply",
+    ("autonomy", "act_then_report"): "act first and report the result",
+    ("error_behavior", "stop_and_report"): "stop on error immediately and report with the raw log",
+    ("error_behavior", "retry_then_report"): "retry only transient failures once, then stop and report",
+    ("error_behavior", "self_heal"): "add recovery logic, run through to the end, then report the result",
+    ("verification", "always_run"): "actually run a copy rehearsal and a rollback check before applying",
+    ("verification", "on_risky"): "always run full verification and a rehearsal",
+    ("verification", "trust_static"): "declare done on static checks alone",
+    ("dependency_policy", "prefer_existing"): "solve it with existing dependencies only",
+    ("dependency_policy", "ask_first"): "always ask before installing any new tool",
+    ("dependency_policy", "free"): "install whatever tools are needed and proceed",
+    ("commit_style", "conventional"): "create commits but follow the repo convention",
+    ("commit_style", "narrative"): "write commit titles as narrative intent",
+    ("commit_style", "no_auto_commit"): "create no commits and leave changes in the working tree",
+}
+
+IRREVERSIBLE_CONDITION_PREFIX_EN = (
+    "However, for hard-to-reverse work like deletes, pushes, deploys, and migrations, "
+)
+
+#: 언어별 규칙 문안 테이블 - 이벤트 원장은 언어 중립이고 언어는 컴파일 시점 렌더 선택이다.
+RULE_LANG_TABLES: dict[str, tuple[dict[tuple[str, str], str], dict[tuple[str, str], str], str]] = {
+    "ko": (RULE_TEXT, IRREVERSIBLE_CLAUSE, IRREVERSIBLE_CONDITION_PREFIX),
+    "en": (RULE_TEXT_EN, IRREVERSIBLE_CLAUSE_EN, IRREVERSIBLE_CONDITION_PREFIX_EN),
+}
+
+DEFAULT_RULE_LANG = "ko"
+
 # XOUT.md 본문에 절대 실려서는 안 되는 인식론 어휘.
 EPISTEMIC_TOKENS: tuple[str, ...] = (
     "corroboration",
@@ -310,19 +367,34 @@ def _context_stream(
     return tuple(kept)
 
 
+def _lang_tables(
+    lang: str,
+) -> tuple[dict[tuple[str, str], str], dict[tuple[str, str], str], str]:
+    tables = RULE_LANG_TABLES.get(lang)
+    if tables is None:
+        raise CompileViolation(f"unsupported rule language: {lang!r}")
+    return tables
+
+
 def conditional_rule_text(
-    axis: str, routine_value: str, irreversible_value: str
+    axis: str,
+    routine_value: str,
+    irreversible_value: str,
+    lang: str = DEFAULT_RULE_LANG,
 ) -> str:
     """두 맥락의 생존값이 갈릴 때 - 평시 문장 + 되돌리기-어려운-작업 절."""
-    clause = IRREVERSIBLE_CLAUSE[(axis, irreversible_value)]
-    return f"{RULE_TEXT[(axis, routine_value)]} {IRREVERSIBLE_CONDITION_PREFIX}{clause}."
+    rule_text, clauses, prefix = _lang_tables(lang)
+    clause = clauses[(axis, irreversible_value)]
+    return f"{rule_text[(axis, routine_value)]} {prefix}{clause}."
 
 
 def compile_rules(
     events: Iterable[Any],
     catalog: AxisCatalog | None = None,
+    lang: str = DEFAULT_RULE_LANG,
 ) -> tuple[CompiledRule, ...]:
     """이벤트 스트림에서 8축 전부의 실행 룰을 파생한다(순수 함수, 항상 8개)."""
+    rule_text, _, _ = _lang_tables(lang)
     stream = tuple(events)
     active = dict(catalog) if catalog is not None else dict(DEFAULT_CATALOG)
     state = fold(stream, catalog)
@@ -345,12 +417,14 @@ def compile_rules(
             )
             if routine_value != irreversible_value:
                 value = routine_value
-                text = conditional_rule_text(axis, routine_value, irreversible_value)
+                text = conditional_rule_text(
+                    axis, routine_value, irreversible_value, lang
+                )
             else:
                 value = routine_value
-                text = RULE_TEXT.get((axis, value))
+                text = rule_text.get((axis, value))
         else:
-            text = RULE_TEXT.get((axis, value))
+            text = rule_text.get((axis, value))
         if text is None:
             raise CompileViolation(f"no executable rule text for {axis}={value}")
         pair_struck = axis in pair_struck_axes
@@ -536,6 +610,7 @@ def _write_outputs_unlocked(
     conflicts: Sequence[Mapping[str, Any]] = (),
     prereg_ref: str = DEFAULT_PREREG_REF,
     acknowledge_mismatch: bool = False,
+    lang: str = DEFAULT_RULE_LANG,
 ) -> WriteResult:
     """~/.claude/popper/ 안에만 XOUT.md + manifest.json + settings.xout.json을 착지시킨다."""
     target_dir = Path(base_dir) if base_dir is not None else default_base_dir()
@@ -546,7 +621,7 @@ def _write_outputs_unlocked(
         raise HashMismatch(mismatches)
 
     stream = tuple(events)
-    rules = compile_rules(stream, catalog)
+    rules = compile_rules(stream, catalog, lang)
     state = fold(stream, catalog)
 
     popper_md = render_xout_md(rules)
@@ -597,6 +672,7 @@ def write_outputs(
     conflicts: Sequence[Mapping[str, Any]] = (),
     prereg_ref: str = DEFAULT_PREREG_REF,
     acknowledge_mismatch: bool = False,
+    lang: str = DEFAULT_RULE_LANG,
 ) -> WriteResult:
     """누적 스트림 판독부터 세 파일 착지까지 프로세스 간 단일 트랜잭션으로 실행한다."""
     target_dir = Path(base_dir) if base_dir is not None else default_base_dir()
@@ -610,4 +686,5 @@ def write_outputs(
             conflicts=conflicts,
             prereg_ref=prereg_ref,
             acknowledge_mismatch=acknowledge_mismatch,
+            lang=lang,
         )

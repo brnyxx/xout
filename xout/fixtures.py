@@ -31,6 +31,9 @@ logger = logging.getLogger(__name__)
 
 CATALOG_VERSION = "v2"
 
+DEFAULT_LANG = "ko"
+SUPPORTED_LANGS: tuple[str, ...] = ("ko", "en")
+
 _SOURCE_FIXTURES_DIR = Path(__file__).resolve().parent.parent / "fixtures"
 _PACKAGED_FIXTURES_DIR = Path(__file__).resolve().parent / "_data" / "fixtures"
 FIXTURES_DIR = (
@@ -163,6 +166,29 @@ class RepoSkin:
 GENERIC_SKIN = RepoSkin(
     file="README.md", lang="텍스트", framework=_FALLBACK_FRAMEWORK, generic=True
 )
+
+#: 스킨 치환값 중 한국어인 것들의 언어별 번역 - 트랜스크립트 본문에 실린다.
+_SKIN_TRANSLATIONS: dict[str, dict[str, str]] = {
+    "en": {
+        "텍스트": "text",
+        "일반 프로젝트": "generic project",
+        "Go 모듈": "Go module",
+        "Python 프로젝트": "Python project",
+    },
+}
+
+
+def localize_skin(skin: RepoSkin, lang: str) -> RepoSkin:
+    """스킨의 한국어 치환값을 요청 언어로 바꾼다 - 미등록 언어/값은 그대로."""
+    table = _SKIN_TRANSLATIONS.get(lang)
+    if not table:
+        return skin
+    return RepoSkin(
+        file=skin.file,
+        lang=table.get(skin.lang, skin.lang),
+        framework=table.get(skin.framework, skin.framework),
+        generic=skin.generic,
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -342,9 +368,19 @@ def _load_scene(raw: Mapping[str, Any]) -> Scene:
     )
 
 
-def load_pack(fixtures_dir: Path | str | None = None) -> FixturePack:
-    """fixtures/ 의 정적 데이터 파일만으로 픽스처 팩을 적재한다."""
+def load_pack(
+    fixtures_dir: Path | str | None = None, lang: str = DEFAULT_LANG
+) -> FixturePack:
+    """fixtures/ 의 정적 데이터 파일만으로 픽스처 팩을 적재한다.
+
+    lang이 기본 언어가 아니면 하위 디렉토리 팩(fixtures/<lang>/)을 읽는다.
+    이벤트 원장은 축/값/fragment_id만 기록하므로 언어는 렌더 계층에만 존재한다.
+    """
+    if lang not in SUPPORTED_LANGS:
+        raise FixtureViolation(f"지원하지 않는 팩 언어: {lang!r}")
     base = Path(fixtures_dir) if fixtures_dir is not None else FIXTURES_DIR
+    if lang != DEFAULT_LANG:
+        base = base / lang
 
     manifest = _load_json(base / MANIFEST_FILE)
     if manifest.get("catalog_version") != CATALOG_VERSION:

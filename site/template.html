@@ -87,7 +87,7 @@
       </ul>
       <details class="demo-disclosure">
         <summary>{{demo_summary}}</summary>
-        <img src="{{asset_prefix}}assets/demo.gif" alt="{{demo_alt}}"
+        <img src="{{asset_prefix}}{{demo_gif}}" alt="{{demo_alt}}"
              width="960" height="608" loading="lazy">
       </details>
     </section>
@@ -136,7 +136,7 @@
       <div class="quickstart">
         <h3>{{quickstart_title}}</h3>
         <p>{{quickstart_body}}</p>
-        <div class="commands"><code>uvx xout</code><code>pip install xout</code><code>xout why</code></div>
+        <div class="commands"><code>{{quickstart_cmd}}</code><code>pip install xout</code><code>xout why</code></div>
         <p>{{quickstart_note}}</p>
       </div>
       <details class="verified-install">

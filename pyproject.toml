@@ -40,6 +40,7 @@ include = ["xout*"]
 [tool.setuptools.package-data]
 "xout" = [
     "_data/fixtures/*.json",
+    "_data/fixtures/en/*.json",
     "_data/ground_truth/*.sha256",
     "_data/ground_truth/*.txt",
     "_data/prereg/*.txt",

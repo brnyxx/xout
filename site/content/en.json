@@ -51,7 +51,7 @@
   "rail_result": "executable rules",
   "rail_caption": "The counter shows remaining candidates. XOUT.md and manifest.json show the behavior and evidence you actually chose - and `xout why` traces every rule back to your X's.",
   "rule_label": "Autonomy rule",
-  "rule_text": "Write a short plan, then act. For deletes, pushes, deploys, and migrations, get approval before acting.",
+  "rule_text": "Write a short plan first, then proceed immediately. However, for hard-to-reverse work like deletes, pushes, deploys, and migrations, always get approval before executing.",
   "outcome_label": "The outcome",
   "outcome_title": "Turn a recurring agent annoyance into a rule.",
   "outcome_intro": "Give the same request before and after enabling xout. The compiled rule changes the behavior your next Claude Code session is instructed to follow.",
@@ -99,5 +99,7 @@
   "footer_note": "Built for inspectable, local coding-agent behavior rules.",
   "hosting_note": "This static site has no analytics, cookies, storage, or remote runtime assets. GitHub Pages remains subject to",
   "hosting_link": "GitHub's privacy statement.",
-  "footer_repository": "Repository"
+  "footer_repository": "Repository",
+  "demo_gif": "assets/demo.en.gif",
+  "quickstart_cmd": "uvx xout --lang en"
 }

@@ -96,12 +96,13 @@ def test_readmes_are_bilingual_brand_first_and_lifecycle_complete() -> None:
     version = _script_module("check_release_version").validate(root=ROOT)
     english = (ROOT / "README.md").read_text(encoding="utf-8")
     korean = (ROOT / "README.ko.md").read_text(encoding="utf-8")
+    assert ".github/assets/demo.en.gif" in english
+    assert ".github/assets/demo.gif" in korean
     for readme in (english, korean):
         assert readme.count("<h1>xout</h1>") == 1
         assert f"v{version}" in readme
         assert ".github/assets/logo.svg" in readme
         assert ".github/assets/hero.svg" in readme
-        assert ".github/assets/demo.gif" in readme
         assert "uvx xout" in readme
         assert "xout undo" in readme
         assert "xout status" in readme
@@ -118,7 +119,7 @@ def test_readmes_are_bilingual_brand_first_and_lifecycle_complete() -> None:
     assert "[English](README.md)" in korean
     assert "X out the AI behavior you never want again." in english
     assert "다시 보고 싶지 않은 AI 행동에 X를 치세요." in korean
-    assert "Korean-first v1" in english
+    assert "--lang en" in english
     assert "labeled **guessed**" in english
     assert "**추정**으로 표시" in korean
     assert "preference convergence" not in english.lower()

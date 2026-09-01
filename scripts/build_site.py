@@ -47,6 +47,7 @@ ASSETS = (
     (Path("../.github/assets/hero.svg"), Path("assets/hero.svg")),
     (Path("../.github/assets/social-card.png"), Path("assets/social-card.png")),
     (Path("../.github/assets/demo.gif"), Path("assets/demo.gif")),
+    (Path("../.github/assets/demo.en.gif"), Path("assets/demo.en.gif")),
 )
 ARTIFACT_FILES = frozenset(
     {
@@ -60,6 +61,7 @@ ARTIFACT_FILES = frozenset(
         "assets/hero.svg",
         "assets/social-card.png",
         "assets/demo.gif",
+        "assets/demo.en.gif",
     }
 )
 PROHIBITED_TAGS = frozenset(
@@ -337,11 +339,12 @@ def _validate_assets(root: Path) -> None:
     width, height = struct.unpack(">II", png[16:24])
     if (width, height) != (1200, 630):
         raise SiteBuildError("INVALID_ARTIFACT_TREE:social-card-size")
-    demo = (root / "assets/demo.gif").read_bytes()
-    if len(demo) < 10 or demo[:6] not in {b"GIF87a", b"GIF89a"}:
-        raise SiteBuildError("INVALID_ARTIFACT_TREE:demo.gif")
-    if struct.unpack("<HH", demo[6:10]) != (960, 608):
-        raise SiteBuildError("INVALID_ARTIFACT_TREE:demo-size")
+    for gif_name in ("assets/demo.gif", "assets/demo.en.gif"):
+        demo = (root / gif_name).read_bytes()
+        if len(demo) < 10 or demo[:6] not in {b"GIF87a", b"GIF89a"}:
+            raise SiteBuildError(f"INVALID_ARTIFACT_TREE:{gif_name}")
+        if struct.unpack("<HH", demo[6:10]) != (960, 608):
+            raise SiteBuildError("INVALID_ARTIFACT_TREE:demo-size")
     for name in ("logo.svg", "hero.svg"):
         svg = (root / "assets" / name).read_text(encoding="utf-8").lower()
         if (

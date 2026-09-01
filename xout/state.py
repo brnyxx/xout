@@ -68,6 +68,7 @@ from xout.events import (
 from xout.events import strike as make_strike
 from xout.fixtures import (
     CONTEXT_ROUTINE,
+    DEFAULT_LANG,
     GENERIC_SKIN,
     SCENE_CONTEXTS,
     RenderedPair,
@@ -75,6 +76,7 @@ from xout.fixtures import (
     RepoSkin,
     contrast_span,
     load_pack,
+    localize_skin,
     refutation_for_fragment,
     render_all_pairs,
     scan_repo_skin,
@@ -107,7 +109,7 @@ logger = logging.getLogger(__name__)
 #: 콜드 오픈이 반드시 첫 순서에 세우는 대비 축.
 COLD_OPEN_AXIS = "autonomy"
 
-#: 화면에 노출되는 축 이름 - UI 텍스트는 전부 한국어다.
+#: 화면에 노출되는 축 이름 - 기본 언어는 한국어다.
 AXIS_LABELS: dict[str, str] = {
     "autonomy": "자율성",
     "commit_style": "커밋 스타일",
@@ -117,6 +119,22 @@ AXIS_LABELS: dict[str, str] = {
     "scope_adherence": "범위 준수",
     "verification": "완료 전 검증",
     "dependency_policy": "의존성 정책",
+}
+
+AXIS_LABELS_EN: dict[str, str] = {
+    "autonomy": "Autonomy",
+    "commit_style": "Commit style",
+    "test_discipline": "Test discipline",
+    "comment_doc": "Comments and docs",
+    "error_behavior": "Behavior on errors",
+    "scope_adherence": "Scope adherence",
+    "verification": "Verification before done",
+    "dependency_policy": "Dependency policy",
+}
+
+AXIS_LABELS_BY_LANG: dict[str, dict[str, str]] = {
+    "ko": AXIS_LABELS,
+    "en": AXIS_LABELS_EN,
 }
 
 #: 화면이 제공하는 유일한 입력 어포던스 - 긋기 대상 네 가지.
@@ -159,9 +177,9 @@ class StalePresentation(RuntimeError):
     """클라이언트가 보지 못한 페어/슬롯에 대한 긋기."""
 
 
-def axis_label(axis: str) -> str:
-    """축의 한국어 라벨 - 미등록 축은 원문 그대로 돌려준다."""
-    return AXIS_LABELS.get(axis, axis)
+def axis_label(axis: str, lang: str = "ko") -> str:
+    """축의 화면 라벨 - 미등록 축/언어는 원문 그대로 돌려준다."""
+    return AXIS_LABELS_BY_LANG.get(lang, AXIS_LABELS).get(axis, axis)
 
 
 @dataclass(frozen=True, slots=True)
@@ -435,6 +453,7 @@ class ColdOpenSession:
         "_landing",
         "_banner",
         "_conflicts_for",
+        "_lang",
     )
 
     def __init__(
@@ -454,9 +473,12 @@ class ColdOpenSession:
             [tuple[CompiledRule, ...]], Sequence[Mapping[str, Any]]
         ]
         | None = None,
+        lang: str = DEFAULT_LANG,
     ) -> None:
-        pack = load_pack(fixtures_dir)
+        self._lang = lang
+        pack = load_pack(fixtures_dir, lang=lang)
         skin: RepoSkin = GENERIC_SKIN if repo_root is None else scan_repo_skin(repo_root)
+        skin = localize_skin(skin, lang)
         pairs = ordered_pairs(render_all_pairs(pack, skin))
         if not pairs:
             raise SchemaViolation("픽스처 팩에서 페어를 하나도 렌더하지 못했다")
@@ -1040,12 +1062,13 @@ class ColdOpenSession:
                     events = self._all_events()
                 conflicts: Sequence[Mapping[str, Any]] = ()
                 if self._conflicts_for is not None:
-                    conflicts = self._conflicts_for(compile_rules(events))
+                    conflicts = self._conflicts_for(compile_rules(events, lang=self._lang))
                 result = write_outputs(
                     events,
                     base_dir=self._land_dir,
                     session_id=self._session_id,
                     conflicts=conflicts,
+                    lang=self._lang,
                 )
         except HashMismatch as e:
             records = tuple(dict(r) for r in e.records)
@@ -1072,7 +1095,7 @@ class ColdOpenSession:
     def _derive(self) -> Snapshot:
         events = self._all_events()
         counter = fold(events)
-        rules = compile_rules(events)
+        rules = compile_rules(events, lang=self._lang)
         presented = self._ensure_presentation()
         return Snapshot(
             session_id=self._session_id,
@@ -1099,13 +1122,12 @@ class ColdOpenSession:
                 return str(reason) if reason is not None else None
         return None
 
-    @staticmethod
-    def _pair_view(pair: RenderedPair) -> PairView:
+    def _pair_view(self, pair: RenderedPair) -> PairView:
         return PairView(
             pair_id=pair.pair_id,
             scene_id=pair.scene_id,
             axis=pair.axis,
-            axis_label=axis_label(pair.axis),
+            axis_label=axis_label(pair.axis, self._lang),
             left_value=pair.left_value,
             right_value=pair.right_value,
             left_text=pair.left.text,
@@ -1113,10 +1135,10 @@ class ColdOpenSession:
         )
 
 
-def _rule_view(rule: CompiledRule) -> RuleView:
+def _rule_view(rule: CompiledRule, lang: str = DEFAULT_LANG) -> RuleView:
     return RuleView(
         axis=rule.axis,
-        axis_label=axis_label(rule.axis),
+        axis_label=axis_label(rule.axis, lang),
         value=rule.value,
         text=rule.text,
         corroboration_grade=rule.corroboration_grade,
