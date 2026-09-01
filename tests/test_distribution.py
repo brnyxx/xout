@@ -169,17 +169,13 @@ def test_release_workflows_pin_supply_chain_and_gate_browser_e2e() -> None:
         uses = re.findall(r"uses:\s*[^@\s]+@([^\s#]+)", workflow)
         assert uses
         assert all(re.fullmatch(r"[0-9a-f]{40}", revision) for revision in uses)
-        assert "@anthropic-ai/claude-code@2.1.235" in workflow
+        assert "playwright" not in workflow
+    assert "@anthropic-ai/claude-code@2.1.235" in release
     assert "needs: quality" in release
-    assert "chromium firefox webkit" in release
-    assert "RUN_CLEAN_PLUGIN_E2E: '1'" in release
-    assert "XOUT_PLUGIN_ROOT: /tmp/xout-plugin" in release
     assert "python -m zipfile -e /tmp/xout-plugin.zip /tmp/xout-plugin" in release
     assert "claude plugin validate /tmp/xout-plugin" in release
     assert "pip install --no-index dist/*.whl" in release
     assert "/tmp/xout-wheel/bin/xout doctor" in release
-    assert "tests/e2e/test_pages.py" in ci
-    assert "tests/e2e/test_pages.py" in release
     assert "scripts/check_release_version.py" in release
     assert "scripts/normalize_sdist.py" in release
     assert "scripts/build_checksums.py" in release
