@@ -36,8 +36,8 @@ def test_plugin_marketplace_and_package_versions_match() -> None:
     marketplace = json.loads(MARKETPLACE_MANIFEST.read_text(encoding="utf-8"))
     entry = marketplace["plugins"][0]
 
-    assert marketplace["name"] == "popper-marketplace"
-    assert entry["name"] == plugin["name"] == "popper"
+    assert marketplace["name"] == "xout-marketplace"
+    assert entry["name"] == plugin["name"] == "xout"
     versions = version_contract.declared_versions(ROOT)
     assert len(set(versions.values())) == 1
     assert entry["version"] == plugin["version"] == versions["package"]
@@ -62,8 +62,8 @@ def test_plugin_archive_is_deterministic_and_self_contained(tmp_path: Path) -> N
         names = archive.namelist()
         assert names == sorted(names)
         assert ".claude-plugin/plugin.json" in names
-        assert "skills/popper/SKILL.md" in names
-        assert "scripts/popper_plugin.py" in names
+        assert "skills/xout/SKILL.md" in names
+        assert "scripts/xout_plugin.py" in names
         assert "xout/_data/prereg/prereg_sealed.txt" in names
         assert "xout/_data/ground_truth/ground_truth.txt" in names
         assert "LICENSE" in names
@@ -105,11 +105,11 @@ def test_readmes_are_bilingual_brand_first_and_lifecycle_complete() -> None:
         assert "uvx xout" in readme
         assert "xout undo" in readme
         assert "xout status" in readme
-        assert "/popper:popper open" in readme
+        assert "/xout:xout open" in readme
         assert "verify_checksums.py" in readme
-        assert f"popper-plugin-{version}.zip" in readme
+        assert f"xout-plugin-{version}.zip" in readme
         assert f"../../releases/tag/v{version}" in readme
-        assert f"popper-plugin-{version}" in readme
+        assert f"xout-plugin-{version}" in readme
         assert "zero runtime dependencies" not in readme
         assert "런타임 의존성 0개" not in readme
         assert "<repository-url>" not in readme
@@ -173,11 +173,11 @@ def test_release_workflows_pin_supply_chain_and_gate_browser_e2e() -> None:
     assert "needs: quality" in release
     assert "chromium firefox webkit" in release
     assert "RUN_CLEAN_PLUGIN_E2E: '1'" in release
-    assert "POPPER_PLUGIN_ROOT: /tmp/popper-plugin" in release
-    assert "python -m zipfile -e /tmp/popper-plugin.zip /tmp/popper-plugin" in release
-    assert "claude plugin validate /tmp/popper-plugin" in release
+    assert "XOUT_PLUGIN_ROOT: /tmp/xout-plugin" in release
+    assert "python -m zipfile -e /tmp/xout-plugin.zip /tmp/xout-plugin" in release
+    assert "claude plugin validate /tmp/xout-plugin" in release
     assert "pip install --no-index dist/*.whl" in release
-    assert "/tmp/popper-wheel/bin/popper doctor" in release
+    assert "/tmp/xout-wheel/bin/xout doctor" in release
     assert "tests/e2e/test_pages.py" in ci
     assert "tests/e2e/test_pages.py" in release
     assert "scripts/check_release_version.py" in release
@@ -211,7 +211,7 @@ def test_cross_platform_checksum_verifier_fails_closed(tmp_path: Path) -> None:
 def test_standalone_verifier_checks_partial_release_download(tmp_path: Path) -> None:
     builder = _script_module("build_checksums")
     version = _script_module("check_release_version").validate(root=ROOT)
-    plugin = tmp_path / f"popper-plugin-{version}.zip"
+    plugin = tmp_path / f"xout-plugin-{version}.zip"
     plugin.write_bytes(b"plugin")
     verifier = tmp_path / "verify_checksums.py"
     shutil.copyfile(ROOT / "scripts" / "verify_checksums.py", verifier)
@@ -305,9 +305,9 @@ def test_sdist_normalizer_is_deterministic_and_rejects_unsafe_members(
 
 
 def test_skill_distinguishes_servers_from_sync_diagnostics() -> None:
-    skill = (ROOT / "skills" / "popper" / "SKILL.md").read_text(encoding="utf-8")
+    skill = (ROOT / "skills" / "xout" / "SKILL.md").read_text(encoding="utf-8")
     assert "| (없음) 또는 `open` | 백그라운드+URL |" in skill
     assert "| `doctor` | 포그라운드 출력 |" in skill
     assert "조회·진단·소유권 명령(`status`, `sessions`, `doctor`, `enable`" in skill
-    assert '"${CLAUDE_PLUGIN_ROOT}/scripts/popper_plugin.py" enable --grant' in skill
+    assert '"${CLAUDE_PLUGIN_ROOT}/scripts/xout_plugin.py" enable --grant' in skill
     assert "python3 -m xout" not in skill

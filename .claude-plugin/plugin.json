@@ -1,8 +1,8 @@
 {
-  "name": "popper",
-  "displayName": "Popper",
-  "version": "1.3.1",
-  "description": "Cross out the Claude Code behavior you do not want; compile the survivor into local CLAUDE.md rules.",
+  "name": "xout",
+  "displayName": "xout",
+  "version": "1.0.0",
+  "description": "X out the Claude Code behavior you never want again; compile the survivor into local CLAUDE.md rules.",
   "author": {
     "name": "Brian Kim"
   },

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the bundled Popper package without changing the caller's cwd."""
+"""Run the bundled xout package without changing the caller's cwd."""
 
 from __future__ import annotations
 

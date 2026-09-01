@@ -14,7 +14,7 @@ ROOT_FILES = (
     "README.md",
     "README.ko.md",
     "pyproject.toml",
-    "scripts/popper_plugin.py",
+    "scripts/xout_plugin.py",
 )
 DIRECTORIES = (".claude-plugin", "skills", "xout")
 EXCLUDED_PARTS = {
@@ -88,7 +88,7 @@ def main() -> None:
     )
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
-    output = args.output or Path("dist") / f"popper-plugin-{declared_version(root)}.zip"
+    output = args.output or Path("dist") / f"xout-plugin-{declared_version(root)}.zip"
     build_archive(root, output)
     print(output)
 

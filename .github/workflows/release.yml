@@ -41,14 +41,14 @@ jobs:
           done
       - name: Build and validate the installable plugin archive
         run: |
-          python scripts/build_plugin_archive.py /tmp/popper-plugin.zip
-          mkdir /tmp/popper-plugin
-          python -m zipfile -e /tmp/popper-plugin.zip /tmp/popper-plugin
-          claude plugin validate /tmp/popper-plugin
+          python scripts/build_plugin_archive.py /tmp/xout-plugin.zip
+          mkdir /tmp/xout-plugin
+          python -m zipfile -e /tmp/xout-plugin.zip /tmp/xout-plugin
+          claude plugin validate /tmp/xout-plugin
       - name: Run clean installed-plugin lifecycle E2E
         env:
           BROWSER: chromium
-          POPPER_PLUGIN_ROOT: /tmp/popper-plugin
+          XOUT_PLUGIN_ROOT: /tmp/xout-plugin
           REQUIRE_BROWSER_E2E: '1'
           RUN_CLEAN_PLUGIN_E2E: '1'
         run: python -m pytest tests/e2e/test_clean_plugin_browser.py -q
@@ -79,17 +79,17 @@ jobs:
       - run: python -m build
       - run: python scripts/normalize_sdist.py dist/*.tar.gz
       - run: python -m twine check dist/*.whl dist/*.tar.gz
-      - run: python scripts/build_plugin_archive.py "dist/popper-plugin-${VERSION}.zip"
+      - run: python scripts/build_plugin_archive.py "dist/xout-plugin-${VERSION}.zip"
       - name: Verify the isolated release wheel lifecycle
         run: |
-          python -m venv /tmp/popper-wheel
-          /tmp/popper-wheel/bin/python -m pip install --no-index dist/*.whl
+          python -m venv /tmp/xout-wheel
+          /tmp/xout-wheel/bin/python -m pip install --no-index dist/*.whl
           (
             cd /tmp
-            /tmp/popper-wheel/bin/python -I -c "from importlib.metadata import version; import popper; print(version('popper'))"
-            /tmp/popper-wheel/bin/popper doctor --base-dir /tmp/popper-wheel-data --json > /tmp/popper-doctor.json
+            /tmp/xout-wheel/bin/python -I -c "from importlib.metadata import version; import xout; print(version('xout'))"
+            /tmp/xout-wheel/bin/xout doctor --base-dir /tmp/xout-wheel-data --json > /tmp/xout-doctor.json
           )
-          python -c "import json; assert json.load(open('/tmp/popper-doctor.json'))['healthy'] is True"
+          python -c "import json; assert json.load(open('/tmp/xout-doctor.json'))['healthy'] is True"
       - run: cp scripts/verify_checksums.py dist/verify_checksums.py
       - name: Create and verify checksums
         run: |

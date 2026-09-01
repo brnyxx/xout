@@ -22,30 +22,25 @@ That's it. Your browser opens. X things out for about 2 minutes. Your agent gets
 
 **No cloud. No telemetry. No LLM calls. One-line rollback.**
 
-> **Status:** the xout rename (v2.0) is in progress. Released artifacts up to v1.3.1 still use the previous name `popper`; until v2.0 ships on PyPI, use the install path in the collapsed section below.
+**v1.0.0 · Python 3.10–3.14 · MIT · zero third-party runtime packages**
 
 <details>
-<summary><strong>Running today on v1.3.1</strong> (release wheel, previous name)</summary>
+<summary><strong>Other install paths</strong> (pip, venv)</summary>
 
-macOS or Linux:
+```bash
+pip install xout
+xout
+```
+
+Or fully isolated:
 
 ```bash
 python3 -m venv .venv
-.venv/bin/python -m pip install \
-  https://github.com/brnyxx/xout/releases/download/v1.3.1/popper-1.3.1-py3-none-any.whl
-.venv/bin/popper doctor
-.venv/bin/popper open
+.venv/bin/python -m pip install xout
+.venv/bin/xout
 ```
 
-Windows PowerShell:
-
-```powershell
-py -3 -m venv .venv
-.venv\Scripts\python -m pip install `
-  https://github.com/brnyxx/xout/releases/download/v1.3.1/popper-1.3.1-py3-none-any.whl
-.venv\Scripts\popper doctor
-.venv\Scripts\popper open
-```
+Upgrading from Popper 1.x? Just run `xout` once: your data in `~/.claude/popper/` moves to `~/.claude/xout/`, and the owned import line is updated only when xout can prove it wrote it.
 
 </details>
 
@@ -77,7 +72,7 @@ After the fifteenth X, three files land under `~/.claude/xout/`:
 
 Rules you confirmed by X'ing are labeled **confirmed**; defaults xout guessed without asking you are honestly labeled **guessed** and queued for a quick re-pick. Nothing is ever activated without your explicit yes.
 
-*(On v1.3.1 the same three files land as `POPPER.md`, `manifest.json`, and `settings.popper.json` under `~/.claude/popper/`; v2.0 renames the paths and migrates them.)*
+*(Popper 1.x landed the same files as `POPPER.md` and `settings.popper.json` under `~/.claude/popper/`; xout migrates them automatically on first run.)*
 
 ## Commands
 
@@ -104,24 +99,24 @@ Append-only JSONL events, fsync, process locks, sealed fixture/session digests, 
 
 ## Claude Code plugin
 
-xout also runs inside Claude Code as `/xout` (v1.3.1: `/popper:popper ...`).
+xout also runs inside Claude Code: `/xout:xout open`, `/xout:xout status`, `/xout:xout undo`.
 
 <details>
-<summary><strong>Checksum-verified plugin install (v1.3.1)</strong></summary>
+<summary><strong>Checksum-verified plugin install</strong></summary>
 
-Download `popper-plugin-1.3.1.zip`, `SHA256SUMS`, and `verify_checksums.py` from the [v1.3.1 release](../../releases/tag/v1.3.1), keep all three in one directory, then:
+Download `xout-plugin-1.0.0.zip`, `SHA256SUMS`, and `verify_checksums.py` from the [v1.0.0 release](../../releases/tag/v1.0.0), keep all three in one directory, then:
 
 ```bash
 python3 verify_checksums.py SHA256SUMS \
-  --only popper-plugin-1.3.1.zip verify_checksums.py
-DEST="$HOME/.local/share/popper-plugin-1.3.1"
+  --only xout-plugin-1.0.0.zip verify_checksums.py
+DEST="$HOME/.local/share/xout-plugin-1.0.0"
 test ! -e "$DEST" || { echo "destination already exists: $DEST" >&2; exit 1; }
-python3 -m zipfile -e popper-plugin-1.3.1.zip "$DEST"
+python3 -m zipfile -e xout-plugin-1.0.0.zip "$DEST"
 claude plugin marketplace add "$DEST"
-claude plugin install popper@popper-marketplace
+claude plugin install xout@xout-marketplace
 ```
 
-Then in a fresh Claude Code session: `/popper:popper doctor`, `/popper:popper open`.
+Then in a fresh Claude Code session: `/xout:xout doctor`, `/xout:xout open`.
 
 </details>
 

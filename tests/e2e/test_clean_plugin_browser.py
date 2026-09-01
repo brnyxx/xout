@@ -26,7 +26,7 @@ def test_clean_plugin_browser(page, tmp_path: Path) -> None:
     env = {**os.environ, "HOME": str(home)}
     env.pop("CLAUDE_CONFIG_DIR", None)
     repo = Path(
-        os.environ.get("POPPER_PLUGIN_ROOT", Path(__file__).resolve().parents[2])
+        os.environ.get("XOUT_PLUGIN_ROOT", Path(__file__).resolve().parents[2])
     ).resolve()
     marketplace = "popper-marketplace"
     plugin_id = "popper@popper-marketplace"

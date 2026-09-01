@@ -22,30 +22,25 @@ uvx xout
 
 **클라우드 없음. 텔레메트리 없음. LLM 호출 없음. 롤백은 한 줄.**
 
-> **상태:** xout 리네임(v2.0)은 진행 중입니다. v1.3.1까지의 릴리스는 이전 이름 `popper`를 사용합니다. v2.0의 PyPI 배포 전까지는 아래 접힌 섹션의 설치 경로를 사용하세요.
+**v1.0.0 · Python 3.10–3.14 · MIT · 서드파티 런타임 패키지 0개**
 
 <details>
-<summary><strong>지금 v1.3.1로 실행하기</strong> (릴리스 wheel, 이전 이름)</summary>
+<summary><strong>다른 설치 경로</strong> (pip, venv)</summary>
 
-macOS 또는 Linux:
+```bash
+pip install xout
+xout
+```
+
+완전 격리를 원하면:
 
 ```bash
 python3 -m venv .venv
-.venv/bin/python -m pip install \
-  https://github.com/brnyxx/xout/releases/download/v1.3.1/popper-1.3.1-py3-none-any.whl
-.venv/bin/popper doctor
-.venv/bin/popper open
+.venv/bin/python -m pip install xout
+.venv/bin/xout
 ```
 
-Windows PowerShell:
-
-```powershell
-py -3 -m venv .venv
-.venv\Scripts\python -m pip install `
-  https://github.com/brnyxx/xout/releases/download/v1.3.1/popper-1.3.1-py3-none-any.whl
-.venv\Scripts\popper doctor
-.venv\Scripts\popper open
-```
+Popper 1.x에서 올라오는 경우? `xout`을 한 번 실행하면 됩니다: `~/.claude/popper/`의 데이터가 `~/.claude/xout/`으로 이동하고, 소유된 import 한 줄은 xout이 직접 썼다고 증명 가능할 때만 갱신됩니다.
 
 </details>
 
@@ -75,7 +70,7 @@ py -3 -m venv .venv
 
 X로 직접 확정한 규칙은 **확정**, xout이 묻지 않고 추정한 기본값은 정직하게 **추정**으로 표시되고 다시 고르기 대기열에 들어갑니다. 명시적 동의 없이 활성화되는 것은 없습니다.
 
-*(v1.3.1에서는 같은 세 파일이 `POPPER.md`, `manifest.json`, `settings.popper.json`으로 `~/.claude/popper/`에 착지합니다. v2.0이 경로를 리네임하고 마이그레이션합니다.)*
+*(Popper 1.x에서는 같은 파일이 `POPPER.md`, `settings.popper.json`으로 `~/.claude/popper/`에 착지했습니다. xout이 첫 실행 시 자동으로 마이그레이션합니다.)*
 
 ## 명령어
 
@@ -102,24 +97,24 @@ append-only JSONL 이벤트, fsync, 프로세스 락, 봉인된 픽스처/세션
 
 ## Claude Code 플러그인
 
-xout은 Claude Code 안에서 `/xout`으로도 실행됩니다 (v1.3.1: `/popper:popper ...`).
+xout은 Claude Code 안에서도 실행됩니다: `/xout:xout open`, `/xout:xout status`, `/xout:xout undo`.
 
 <details>
-<summary><strong>체크섬 검증 플러그인 설치 (v1.3.1)</strong></summary>
+<summary><strong>체크섬 검증 플러그인 설치</strong></summary>
 
-[v1.3.1 릴리스](../../releases/tag/v1.3.1)에서 `popper-plugin-1.3.1.zip`, `SHA256SUMS`, `verify_checksums.py`를 받아 한 디렉토리에 두고:
+[v1.0.0 릴리스](../../releases/tag/v1.0.0)에서 `xout-plugin-1.0.0.zip`, `SHA256SUMS`, `verify_checksums.py`를 받아 한 디렉토리에 두고:
 
 ```bash
 python3 verify_checksums.py SHA256SUMS \
-  --only popper-plugin-1.3.1.zip verify_checksums.py
-DEST="$HOME/.local/share/popper-plugin-1.3.1"
+  --only xout-plugin-1.0.0.zip verify_checksums.py
+DEST="$HOME/.local/share/xout-plugin-1.0.0"
 test ! -e "$DEST" || { echo "destination already exists: $DEST" >&2; exit 1; }
-python3 -m zipfile -e popper-plugin-1.3.1.zip "$DEST"
+python3 -m zipfile -e xout-plugin-1.0.0.zip "$DEST"
 claude plugin marketplace add "$DEST"
-claude plugin install popper@popper-marketplace
+claude plugin install xout@xout-marketplace
 ```
 
-이후 새 Claude Code 세션에서 `/popper:popper doctor`, `/popper:popper open`.
+이후 새 Claude Code 세션에서 `/xout:xout doctor`, `/xout:xout open`.
 
 </details>
 
