@@ -26,7 +26,7 @@ That's it. The whole session runs right in your terminal. X things out for about
 
 <img src=".github/assets/demo.en.gif" alt="A real xout terminal session progressing through fifteen cross-outs, compiling eight conditional rules, and applying them with one keystroke" width="860">
 
-<sub>That recording is a real session, not a mockup: every pair and rule on screen was produced by the actual engine (`scripts/record_tui_demo.py` drives a live `ColdOpenSession`).</sub>
+<sub>Nothing above is staged - the recorder photographs a live session, so every pair and rule on screen is the engine's real output.</sub>
 
 **No cloud. No telemetry. No LLM calls. One-line rollback.**
 
@@ -111,15 +111,15 @@ Eight axes, measured across three scenes. Five axes are measured in **both** con
 | Test discipline | bugfix + feature | - | cross-checked |
 | Comments and docs | bugfix | - | style axis |
 
-## How it compares
+## One more pair
 
-|  | Hand-written CLAUDE.md / interview tools | xout |
-|---|---|---|
-| How preferences are captured | You state them - and normative pressure skews stated answers | Revealed by choice: you cross out one of two concrete behaviors |
-| Where rules come from | Written from memory, no provenance | Compiled from your strikes - `xout why` traces every rule to its evidence |
-| Routine vs risky work | One rule fits all situations | Rules fork on the routine/irreversible boundary - only when your X's actually diverged |
-| Rollback | Hand-edit the file and hope | One receipt-proofed line; `xout undo` removes exactly it |
-| **When rules go stale** | They silently drift until the agent annoys you again | Stale rules get re-struck in a 2-minute session; unstable ones are flagged for recheck |
+You already know how this works. Two behaviors, one X:
+
+> (1) ~~You write CLAUDE.md from memory. The rules have no provenance, apply one-size-fits-all to a bugfix and a production migration alike, and drift silently until the agent annoys you again.~~
+>
+> (2) You cross out behaviors you have actually seen and hated. Every rule traces to your X's, forks on the routine/irreversible boundary only where your X's diverged, rolls back by one receipt-proofed line, and gets re-struck in two minutes when it goes stale.
+
+That X is the whole product.
 
 ## Commands
 
@@ -136,34 +136,38 @@ Eight axes, measured across three scenes. Five axes are measured in **both** con
 
 - **Local only.** No LLM calls, no telemetry, no cookies, no network during a session.
 - **Crash-safe.** Append-only ledger with atomic writes: interrupt anywhere, resume anywhere, land exactly once.
-
-  <details><summary><b>[PROOF]</b></summary>
-
-  - **Setup** — the test suite kills sessions mid-strike, replays the ledger from disk, and opens concurrent sessions against the same store.
-  - **Result** — replay reconstructs the identical state every time, duplicate sessions are rejected, and landing happens exactly once; 406 tests run on every commit across Python 3.10-3.14 and three OSes.
-  - **So** — "interrupt anywhere" is a tested property, not a promise.
-
-  </details>
-
 - **Reversible.** Activation is one owned import line; `xout undo` removes only what xout can prove it wrote.
-
-  <details><summary><b>[PROOF]</b></summary>
-
-  - **Setup** — before touching `~/.claude/CLAUDE.md`, xout records a receipt: the file's prefix hash and the exact byte where its one line was inserted.
-  - **Result** — `xout undo` re-verifies that receipt before removing anything; if the file changed around the line, it refuses rather than guessing.
-  - **So** — rollback is proof-gated. xout cannot delete a line it cannot prove it wrote.
-
-  </details>
-
 - **Honest.** A kept behavior is "not crossed out yet," never "proven right." Guessed defaults are labeled as guesses.
 
-  <details><summary><b>[PROOF]</b></summary>
+xout demands evidence from every rule, so its own claims file receipts in the same shape:
 
-  - **Setup** — we dogfood xout on itself. While building the English pack, `xout why` turned out to print `rule: None` - it read the wrong manifest key.
-  - **Result** — the bug is documented in the [changelog](CHANGELOG.md), and the fix landed with a regression test in the same commit.
-  - **So** — a tool whose whole pitch is "every rule carries receipts" keeps receipts on its own defects too.
+```text
+claim: interrupt anywhere, resume anywhere, land exactly once
+evidence:
+  - the suite kills sessions mid-strike and replays the ledger from disk -
+    the reconstructed state is identical every time
+  - duplicate sessions are rejected; landing is atomic behind content hashes
+  - the full suite (400+ tests) on every commit, Python 3.10-3.14,
+    macOS/Linux/Windows
+```
 
-  </details>
+```text
+claim: xout cannot delete a line it cannot prove it wrote
+evidence:
+  - before touching ~/.claude/CLAUDE.md it records a receipt - the file's
+    prefix hash and the exact byte where its one line landed
+  - xout undo re-verifies that receipt first; if the file changed around
+    the line, it refuses instead of guessing
+```
+
+```text
+claim: honesty applies to xout's own defects
+evidence:
+  - while dogfooding the English pack, we caught xout why printing
+    "rule: None" - it read the wrong manifest key
+  - the defect is on the record in CHANGELOG.md; the fix landed with a
+    regression test in the same commit
+```
 
 <details>
 <summary><strong>The engineering behind those claims</strong></summary>
@@ -220,6 +224,6 @@ CI covers Python 3.10-3.14 on macOS, Linux, and Windows. Releases ship wheel, sd
 
 ## Credits
 
-Built on the [Agent Skills](https://github.com/vercel-labs/skills) ecosystem (MIT) - its `SKILL.md` architecture and one-command install, in the skill-authoring lineage of [mattpocock/skills](https://github.com/mattpocock/skills) (MIT). Not a fork - the falsification engine underneath (append-only event ledger, pure-fold compiler, sealed preregistration) is xout's own.
+The `/xout` skill installs through the open [Agent Skills](https://github.com/vercel-labs/skills) ecosystem (MIT) and follows the `SKILL.md` conventions that [mattpocock/skills](https://github.com/mattpocock/skills) (MIT) established. Everything beneath the skill - the append-only event ledger, the pure-fold compiler, the sealed preregistration - is original to xout.
 
 MIT © 2026 Brian Kim.
