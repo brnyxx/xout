@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "xout"
-version = "1.0.0"
+version = "1.0.1"
 description = "X out the AI behavior you never want again — cross out wrong agent behavior and keep the rule"
 readme = "README.md"
 requires-python = ">=3.10"

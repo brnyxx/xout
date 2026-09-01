@@ -5,12 +5,12 @@
   },
   "metadata": {
     "description": "xout — X out the AI behavior you never want again",
-    "version": "1.0.0"
+    "version": "1.0.1"
   },
   "plugins": [
     {
       "name": "xout",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "source": "./"
     }
   ]

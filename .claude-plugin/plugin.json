@@ -1,7 +1,7 @@
 {
   "name": "xout",
   "displayName": "xout",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "X out the Claude Code behavior you never want again; compile the survivor into local CLAUDE.md rules.",
   "author": {
     "name": "Brian Kim"

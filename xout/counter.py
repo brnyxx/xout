@@ -27,13 +27,15 @@ class CounterViolation(ValueError):
     """카탈로그 밖의 축/값이거나 해석 불가능한 페이로드."""
 
 
+#: 값 순서 = 채굴 prior (index 0이 현장 최빈값). 순서의 근거는 docs/mined-prior.md -
+#: 고스타 프로젝트 100+개의 규칙 파일/시스템프롬프트 실측 조사다.
 DEFAULT_CATALOG: dict[str, tuple[str, str, str]] = {
     # 자율성
     "autonomy": ("ask_first", "propose_then_act", "act_then_report"),
     # 커밋정책
-    "commit_style": ("conventional", "narrative", "no_auto_commit"),
+    "commit_style": ("no_auto_commit", "conventional", "narrative"),
     # 테스트규율
-    "test_discipline": ("test_first", "test_after", "on_request"),
+    "test_discipline": ("test_after", "test_first", "on_request"),
     # 주석문서화
     "comment_doc": ("minimal", "docstring_only", "thorough"),
     # 에러시행동

@@ -30,7 +30,7 @@ uvx xout
 
 **클라우드 없음. 텔레메트리 없음. LLM 호출 없음. 롤백은 한 줄.**
 
-**v1.0.0 · Python 3.10–3.14 · MIT · 서드파티 런타임 패키지 0개**
+**v1.0.1 · Python 3.10–3.14 · MIT · 서드파티 런타임 패키지 0개**
 
 <details>
 <summary><strong>다른 설치 경로</strong> (pip, venv)</summary>
@@ -109,6 +109,8 @@ X로 직접 확정한 규칙은 **확정**, xout이 묻지 않고 추정한 기�
 | 테스트 규율 | 버그픽스 + 기능 추가 | - | 교차 검증 |
 | 주석과 문서화 | 버그픽스 | - | 스타일 축 |
 
+이 8축도, 추정 기본값도 허공에서 만들지 않았습니다. 1만~24만+ 스타 프롬프트/에이전트 프로젝트 100여 개를 조사했습니다 - codex/gemini-cli/Devin이 실제로 출하하는 시스템프롬프트, rust/node/pytorch/transformers의 AGENTS.md, 커뮤니티 룰 컬렉션까지 - 그리고 영수증을 남겼습니다: 원문 인용, 실측 스타 수, 축별 집계 전부가 [`docs/mined-prior.md`](docs/mined-prior.md)에 있습니다. 기본값 8개 중 6개는 현장 최빈값과 일치했고, 2개는 달라서 교정했습니다. 당신의 환경도 출처가 됩니다: `xout mine`이 이미 갖고 있는 규칙 파일을 file:line 영수증과 함께 읽어줍니다.
+
 ## 마지막 페어 하나
 
 이제 어떻게 하는지 아실 겁니다. 두 행동, X 하나:
@@ -128,6 +130,7 @@ X로 직접 확정한 규칙은 **확정**, xout이 묻지 않고 추정한 기�
 | `xout status` | 규칙 8줄과 활성화 여부 표시 | 없음 | - |
 | `xout undo` | 소유한 import 한 줄 제거 - 완전한 롤백 | 소유한 한 줄 | - |
 | `xout enable --grant` | 활성화: 소유 `@import` 한 줄 추가 | 소유한 한 줄 | 명시적 |
+| `xout mine [경로]` | 이미 있는 CLAUDE.md/AGENTS.md/.cursorrules를 축 관측으로 읽기 - file:line 영수증 동반 | 없음 | - |
 | `xout pair` / `xout strike` | 에이전트/스크립트용 헤드리스 JSON 세션 | 소유 디렉토리만 | - |
 
 ## 믿을 수 있는 이유
@@ -186,14 +189,14 @@ npx skills@latest add brnyxx/xout
 <details>
 <summary><strong>체크섬 검증 플러그인 설치</strong></summary>
 
-[v1.0.0 릴리스](../../releases/tag/v1.0.0)에서 `xout-plugin-1.0.0.zip`, `SHA256SUMS`, `verify_checksums.py`를 받아 한 디렉토리에 두고:
+[v1.0.1 릴리스](../../releases/tag/v1.0.1)에서 `xout-plugin-1.0.1.zip`, `SHA256SUMS`, `verify_checksums.py`를 받아 한 디렉토리에 두고:
 
 ```bash
 python3 verify_checksums.py SHA256SUMS \
-  --only xout-plugin-1.0.0.zip verify_checksums.py
-DEST="$HOME/.local/share/xout-plugin-1.0.0"
+  --only xout-plugin-1.0.1.zip verify_checksums.py
+DEST="$HOME/.local/share/xout-plugin-1.0.1"
 test ! -e "$DEST" || { echo "destination already exists: $DEST" >&2; exit 1; }
-python3 -m zipfile -e xout-plugin-1.0.0.zip "$DEST"
+python3 -m zipfile -e xout-plugin-1.0.1.zip "$DEST"
 claude plugin marketplace add "$DEST"
 claude plugin install xout@xout-marketplace
 ```

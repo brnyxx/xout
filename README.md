@@ -30,7 +30,7 @@ That's it. The whole session runs right in your terminal. X things out for about
 
 **No cloud. No telemetry. No LLM calls. One-line rollback.**
 
-**v1.0.0 · Python 3.10–3.14 · MIT · zero third-party runtime packages**
+**v1.0.1 · Python 3.10–3.14 · MIT · zero third-party runtime packages**
 
 <details>
 <summary><strong>Other install paths</strong> (pip, venv)</summary>
@@ -111,6 +111,8 @@ Eight axes, measured across three scenes. Five axes are measured in **both** con
 | Test discipline | bugfix + feature | - | cross-checked |
 | Comments and docs | bugfix | - | style axis |
 
+These eight axes weren't invented in a vacuum, and neither were the defaults. We surveyed 100+ high-star (10k-240k+) prompt and agent projects - shipped system prompts of codex/gemini-cli/Devin, the AGENTS.md files of rust/node/pytorch/transformers, community rules collections - and kept receipts: verbatim quotes, verified star counts, per-axis tallies, all in [`docs/mined-prior.md`](docs/mined-prior.md). Six of eight defaults matched the field's mode; two didn't and were corrected. And your own environment is a source too: `xout mine` reads the rule files you already have, with file:line receipts.
+
 ## One more pair
 
 You already know how this works. Two behaviors, one X:
@@ -130,6 +132,7 @@ That X is the whole product.
 | `xout status` | Show your 8 rules and whether they are active | nothing | - |
 | `xout undo` | Remove the one import line xout owns - full rollback | one owned line | - |
 | `xout enable --grant` | Activate: add one owned `@import` line | one owned line | explicit |
+| `xout mine [paths]` | Read your existing CLAUDE.md/AGENTS.md/.cursorrules into axis observations, with file:line receipts | nothing | - |
 | `xout pair` / `xout strike` | Headless JSON session for agents and scripts | own dir only | - |
 
 ## Why you can trust it
@@ -189,14 +192,14 @@ npx skills@latest add brnyxx/xout
 <details>
 <summary><strong>Checksum-verified plugin install</strong></summary>
 
-Download `xout-plugin-1.0.0.zip`, `SHA256SUMS`, and `verify_checksums.py` from the [v1.0.0 release](../../releases/tag/v1.0.0), keep all three in one directory, then:
+Download `xout-plugin-1.0.1.zip`, `SHA256SUMS`, and `verify_checksums.py` from the [v1.0.1 release](../../releases/tag/v1.0.1), keep all three in one directory, then:
 
 ```bash
 python3 verify_checksums.py SHA256SUMS \
-  --only xout-plugin-1.0.0.zip verify_checksums.py
-DEST="$HOME/.local/share/xout-plugin-1.0.0"
+  --only xout-plugin-1.0.1.zip verify_checksums.py
+DEST="$HOME/.local/share/xout-plugin-1.0.1"
 test ! -e "$DEST" || { echo "destination already exists: $DEST" >&2; exit 1; }
-python3 -m zipfile -e xout-plugin-1.0.0.zip "$DEST"
+python3 -m zipfile -e xout-plugin-1.0.1.zip "$DEST"
 claude plugin marketplace add "$DEST"
 claude plugin install xout@xout-marketplace
 ```

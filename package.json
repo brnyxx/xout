@@ -1,6 +1,6 @@
 {
   "name": "xout-skills",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "X out the AI behavior you never want again. Cross out the wrong one of two concrete agent behaviors; the survivors compile into local CLAUDE.md rules with evidence, activation consent, and one-line rollback.",
   "keywords": [
     "agent",

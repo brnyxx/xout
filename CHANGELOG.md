@@ -5,6 +5,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and xout follows [Semantic Versioning](https://semver.org/) with a deliberately
 slow cadence: minor versions ship every 6-12 months, patches only for defects.
 
+## [1.0.1] - 2026-09-01
+
+### Added
+- `xout mine [paths]` - read-only mining of local rule files (`CLAUDE.md`,
+  `AGENTS.md`, `.cursorrules`, `.cursor/rules/`, copilot instructions,
+  `GEMINI.md`) into axis observations, every one carrying a file:line receipt.
+- `docs/mined-prior.md` - the receipts behind the catalog's mined prior: a
+  survey of 100+ high-star (10k-240k+) prompt/agent projects, with verbatim
+  quotes, verified star counts, and per-axis frequency verdicts.
+
+### Changed
+- The mined prior for two axes now matches what the field actually writes
+  (see `docs/mined-prior.md`): `commit_style` defaults to `no_auto_commit`
+  (previously `conventional`) and `test_discipline` defaults to `test_after`
+  (previously `test_first`). Six of eight priors were confirmed as-is. Value
+  sets, measurement, and your own strikes are unaffected - only the honest
+  guess for axes you have not yet been asked about changed.
+
 ## [1.0.0] - 2026-09-01
 
 First release under the xout name. xout is the successor to Popper 1.x -
@@ -41,4 +59,5 @@ same falsification engine, new name, new measurement design.
 ### Fixed
 - `xout why` printed `rule: None` - it read the wrong manifest key.
 
+[1.0.1]: https://github.com/brnyxx/xout/releases/tag/v1.0.1
 [1.0.0]: https://github.com/brnyxx/xout/releases/tag/v1.0.0
