@@ -12,7 +12,7 @@
 
 [퀵스타트](#동작-방식) · [모든 규칙은 증거를 댑니다](#모든-규칙은-자기-증거를-댑니다) · [지도](#지도) · [명령어](#명령어) · [믿을 수 있는 이유](#믿을-수-있는-이유)
 
-<sub>Read in: [English](README.md) · 한국어 · [소개 사이트](https://brnyxx.github.io/xout/)</sub>
+<sub>Read in: [English](README.md) · 한국어 · [소개 사이트](https://brnyxx.github.io/xout/ko/)</sub>
 
 </div>
 
