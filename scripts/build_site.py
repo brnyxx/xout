@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build and validate Popper's deterministic bilingual GitHub Pages site."""
+"""Build and validate xout's deterministic bilingual GitHub Pages site."""
 
 from __future__ import annotations
 

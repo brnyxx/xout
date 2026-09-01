@@ -101,9 +101,9 @@
         <article><h3>{{outcome_after_title}}</h3><p>{{outcome_after}}</p></article>
       </div>
       <div class="files-grid">
-        <article><h3>POPPER.md</h3><p>{{outcome_popper}}</p></article>
+        <article><h3>XOUT.md</h3><p>{{outcome_xout}}</p></article>
         <article><h3>manifest.json</h3><p>{{outcome_manifest}}</p></article>
-        <article><h3>settings.popper.json</h3><p>{{outcome_settings}}</p></article>
+        <article><h3>settings.xout.json</h3><p>{{outcome_settings}}</p></article>
       </div>
       <p class="activation-note">{{outcome_activation}}</p>
       <p class="axes-note">{{outcome_axes}}</p>
@@ -136,14 +136,14 @@
       <div class="quickstart">
         <h3>{{quickstart_title}}</h3>
         <p>{{quickstart_body}}</p>
-        <div class="commands"><code>python3 -m venv .venv</code><code>.venv/bin/python -m pip install {{repository_url}}/releases/download/v{{version}}/popper-{{version}}-py3-none-any.whl</code><code>.venv/bin/popper doctor</code><code>.venv/bin/popper open</code></div>
+        <div class="commands"><code>python3 -m venv .venv</code><code>.venv/bin/python -m pip install {{repository_url}}/releases/download/v{{version}}/xout-{{version}}-py3-none-any.whl</code><code>.venv/bin/xout doctor</code><code>.venv/bin/xout open</code></div>
         <p>{{quickstart_note}}</p>
       </div>
       <details class="verified-install">
         <summary>{{plugin_install_summary}}</summary>
         <ol class="steps">
-          <li><h3>{{step_one_title}}</h3><p>{{step_one_body}}</p><div class="commands"><code>python3 verify_checksums.py SHA256SUMS --only popper-plugin-{{version}}.zip verify_checksums.py</code><code>test ! -e "$HOME/.local/share/popper-plugin-{{version}}"</code><code>python3 -m zipfile -e popper-plugin-{{version}}.zip "$HOME/.local/share/popper-plugin-{{version}}"</code></div></li>
-          <li><h3>{{step_two_title}}</h3><p>{{step_two_body}}</p><div class="commands"><code>claude plugin marketplace add "$HOME/.local/share/popper-plugin-{{version}}"</code><code>claude plugin install popper@popper-marketplace</code></div></li>
+          <li><h3>{{step_one_title}}</h3><p>{{step_one_body}}</p><div class="commands"><code>python3 verify_checksums.py SHA256SUMS --only xout-plugin-{{version}}.zip verify_checksums.py</code><code>test ! -e "$HOME/.local/share/xout-plugin-{{version}}"</code><code>python3 -m zipfile -e xout-plugin-{{version}}.zip "$HOME/.local/share/xout-plugin-{{version}}"</code></div></li>
+          <li><h3>{{step_two_title}}</h3><p>{{step_two_body}}</p><div class="commands"><code>claude plugin marketplace add "$HOME/.local/share/xout-plugin-{{version}}"</code><code>claude plugin install xout@xout-marketplace</code></div></li>
           <li><h3>{{step_three_title}}</h3><p>{{step_three_body}}</p><div class="commands"><code>{{open_command}}</code><code>{{enable_command}}</code><code>{{status_command}}</code></div></li>
         </ol>
       </details>

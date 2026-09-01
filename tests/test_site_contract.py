@@ -209,14 +209,14 @@ def test_rendered_routes_have_matching_structure_links_and_seo(tmp_path: Path) -
     assert "6,561 (3⁸; 8 axes, 3 values each)" in english
     assert "6,561 (3⁸; 8축, 축당 3값)" in korean
     assert "4,374" in english + korean
-    assert "/popper:popper enable" in english and "/popper:popper enable" in korean
+    assert "/xout:xout enable" in english and "/xout:xout enable" in korean
     assert (
         "verify_checksums.py SHA256SUMS --only "
-        f"popper-plugin-{builder.project_version()}.zip" in english
+        f"xout-plugin-{builder.project_version()}.zip" in english
     )
     assert (
         f"/releases/download/v{builder.project_version()}/"
-        f"popper-{builder.project_version()}-py3-none-any.whl" in english
+        f"xout-{builder.project_version()}-py3-none-any.whl" in english
     )
     assert 'class="storyboard" aria-hidden="true"' in english
     assert "Korean-first v1" in english
