@@ -50,11 +50,31 @@ Upgrading from Popper 1.x? Just run `xout` once: your data in `~/.claude/popper/
 
 ## How it works
 
-1. **You X out** the behavior you hate. Each pair compares two real agent behaviors: ask first vs act first, strict scope vs proactive cleanup, test first vs test after, and so on.
-2. **xout compiles** the surviving choices into 8 executable rule lines, written atomically under `~/.claude/xout/` with evidence and provenance.
+1. **You X out** the behavior you hate, across three real scenes: a routine bugfix, a new feature, and a risky production migration. Each pair shows two concrete agent behaviors - ask first vs act first, standard library vs install-a-package, rehearse the migration vs trust a re-read.
+2. **xout compiles** the survivors into 8 executable rules, written atomically under `~/.claude/xout/` with evidence and provenance. And when your X's diverge between routine and irreversible work, the rule compiles **with that condition attached**:
+
+   > 짧은 계획을 먼저 적고 곧바로 이어서 실행한다. **단, 삭제, push, 배포, 마이그레이션처럼 되돌리기 어려운 작업에서는 실행 전에 반드시 승인을 받는다.**
+
+   That condition is not a template. It exists because you X'd differently in the migration scene. No interview-based tool can produce it.
 3. **You apply with one keystroke.** The completion screen asks "apply now?" - saying yes adds exactly one owned `@import` line to `~/.claude/CLAUDE.md`. `xout undo` removes only that line.
 
 Repeat the request that used to annoy you in a fresh Claude Code session and watch the rule hold. When it ever feels stale, `xout` again.
+
+## Every rule can prove itself
+
+`xout why` traces any rule back to the exact X's that created it:
+
+```text
+$ xout why autonomy
+[자율성]
+규칙: 짧은 계획을 먼저 적고 곧바로 이어서 실행한다. 단, ... 승인을 받는다.
+상태: 판별시험 통과 / 출처: 당신의 X
+근거:
+  - 일상 작업 장면(scn-bugfix)에서 ask_first에 X (세션 a3f2c9d1)
+  - 되돌리기 어려운 작업 장면(scn-risky)에서 act_then_report에 X (세션 a3f2c9d1)
+```
+
+A rule you can't trace is a rule you can't trust. Every xout rule carries its receipts.
 
 > **Korean-first v1:** the session UI and generated rule text are currently Korean. An English runtime pack is planned; this README describes the product honestly either way.
 
@@ -72,14 +92,31 @@ Rules you confirmed by X'ing are labeled **confirmed**; defaults xout guessed wi
 
 *(Popper 1.x landed the same files as `POPPER.md` and `settings.popper.json` under `~/.claude/popper/`; xout migrates them automatically on first run.)*
 
+## The map
+
+Eight axes, measured across three scenes. Five axes are measured in **both** contexts, so they can fork on the routine/irreversible boundary - with evidence.
+
+| Axis | Routine scenes | Irreversible scene | Can fork |
+|---|---|---|---|
+| Autonomy | bugfix | migration | yes |
+| Error behavior | bugfix | migration | yes |
+| Verification before done | feature | migration | yes |
+| Dependency policy | feature | migration | yes |
+| Commit policy | feature | migration | yes |
+| Scope adherence | bugfix + feature | - | cross-checked |
+| Test discipline | bugfix + feature | - | cross-checked |
+| Comments and docs | bugfix | - | style axis |
+
 ## Commands
 
-| Command | What it does |
-|---|---|
-| `xout` | Start (or automatically resume) a session; self-checks before opening |
-| `xout undo` | Remove the one import line xout owns - full rollback |
-| `xout status` | Show your 8 rules and whether they are active |
-| `xout dev ...` | Power tools: export, validate, re-pick, backup, session inspection |
+| Command | What it does | Writes to | Consent |
+|---|---|---|---|
+| `xout` | Start (or automatically resume) a session | own dir only | - |
+| `xout why [axis]` | Trace a rule back to the X's that created it | nothing | - |
+| `xout status` | Show your 8 rules and whether they are active | nothing | - |
+| `xout undo` | Remove the one import line xout owns - full rollback | one owned line | - |
+| `xout enable --grant` | Activate: add one owned `@import` line | one owned line | explicit |
+| `xout pair` / `xout strike` | Headless JSON session for agents and scripts | own dir only | - |
 
 ## Why you can trust it
 
@@ -91,7 +128,7 @@ Rules you confirmed by X'ing are labeled **confirmed**; defaults xout guessed wi
 <details>
 <summary><strong>The engineering behind those claims</strong></summary>
 
-Every strike is an append-only JSONL event with fsync; landing is atomic with content hashes; sessions replay deterministically; duplicate sessions are rejected; manual edits are detected before landing. The 15 strikes narrow a 6,561-agent hypothesis space (3 values across 8 axes) down to one - and the survivor is only \"not falsified yet,\" never \"proven right.\" The sealed preregistration lives in [`docs/prereg/prereg_sealed.json`](docs/prereg/prereg_sealed.json); the frozen axis catalog lives in [`docs/axis_locality_table.md`](docs/axis_locality_table.md). The eight-axis catalog is deliberately frozen: xout is a local behavior compiler, not a prompt manager, cloud profile, or agent orchestrator.
+Every strike is an append-only JSONL event with fsync; landing is atomic with content hashes; sessions replay deterministically; duplicate sessions are rejected; manual edits are detected before landing. Pair scheduling judges discriminative power per context, so routine strikes never starve the risky scene; a session is voided unless at least five axes carry real strike evidence. The 15 strikes narrow a 6,561-agent hypothesis space (3 values across 8 axes) down to one - and the survivor is only \"not falsified yet,\" never \"proven right.\" The sealed preregistration lives in [`docs/prereg/prereg_sealed.json`](docs/prereg/prereg_sealed.json); the frozen axis catalog lives in [`docs/axis_locality_table.md`](docs/axis_locality_table.md). The eight-axis catalog is deliberately frozen: xout is a local behavior compiler, not a prompt manager, cloud profile, or agent orchestrator.
 
 </details>
 
