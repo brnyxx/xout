@@ -55,6 +55,7 @@ from xout.fixtures import (
     load_pack,
 )
 from xout.migrate import migrate_legacy_home
+from xout.mine import mine, summarize
 from xout.doctor import app_version, run_doctor
 from xout.exporter import EXPORT_FORMATS, render_export, write_export
 from xout.judgment import acknowledge, emit_condition_met, fold_judgment
@@ -641,6 +642,66 @@ _WHY_MSG: dict[str, dict[str, str]] = {
 }
 
 
+_MINE_MSG = {
+    "ko": {
+        "none": "관측 없음 - 스캔한 규칙 파일에서 이 축을 겨눈 줄을 찾지 못했다.",
+        "header": "로컬 채굴 보고 (읽기전용, 휴리스틱) - 관측 {count}건",
+        "hint": "세션에서 X를 칠 때 이 관측과 교차 확인해라: xout open",
+        "no_files": "규칙 파일을 찾지 못했다 (CLAUDE.md / AGENTS.md / .cursorrules 류)",
+    },
+    "en": {
+        "none": "no observation - no scanned line targets this axis.",
+        "header": "local mining report (read-only, heuristic) - {count} observations",
+        "hint": "cross-check these against your strikes: xout open",
+        "no_files": "no rule files found (CLAUDE.md / AGENTS.md / .cursorrules etc.)",
+    },
+}
+
+
+def cmd_mine(args: argparse.Namespace) -> int:
+    """로컬 규칙 파일에서 축 관측을 채굴한다 - 아무것도 쓰지 않는다."""
+    lang = _args_lang(args)
+    roots = [Path(root) for root in (args.roots or ["."])]
+    observations = mine(roots)
+    if args.json_output:
+        print(
+            json.dumps(
+                {
+                    "observations": [obs.to_dict() for obs in observations],
+                    "summary": summarize(observations),
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return 0
+    msg = _MINE_MSG.get(lang, _MINE_MSG["ko"])
+    if not observations:
+        print(msg["no_files"] if not any(
+            Path(root).exists() for root in (args.roots or ["."])
+        ) else msg["header"].format(count=0))
+    else:
+        print(msg["header"].format(count=len(observations)))
+    counts = summarize(observations)
+    by_axis: dict[str, list] = {}
+    for obs in observations:
+        by_axis.setdefault(obs.axis, []).append(obs)
+    for axis in sorted(counts):
+        print()
+        print(f"[{axis_label(axis, lang)}]")
+        found = by_axis.get(axis, [])
+        if not found:
+            print(f"  {msg['none']}")
+            continue
+        for obs in found[:6]:
+            print(f"  - {obs.value}  {obs.path}:{obs.line_no}  \"{obs.line}\"")
+        if len(found) > 6:
+            print(f"  ... +{len(found) - 6}")
+    print()
+    print(msg["hint"])
+    return 0
+
+
 def cmd_why(args: argparse.Namespace) -> int:
     """규칙 -> 그 규칙을 만든 X의 증거 사슬을 소급한다."""
     base = Path(args.base_dir)
@@ -1184,6 +1245,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="미완료 일반 세션이 있어도 새 세션을 연다",
     )
     p_open.set_defaults(func=cmd_open)
+
+    p_mine = sub.add_parser(
+        "mine",
+        help="로컬 규칙 파일(CLAUDE.md/AGENTS.md/.cursorrules)에서 축 관측을 채굴 (읽기전용)",
+    )
+    _add_common(p_mine)
+    p_mine.add_argument("roots", nargs="*", help="스캔할 루트 (기본: 현재 디렉토리)")
+    p_mine.add_argument("--json", dest="json_output", action="store_true")
+    p_mine.set_defaults(func=cmd_mine)
 
     p_why = sub.add_parser(
         "why", help="규칙이 어떤 X에서 나왔는지 증거를 소급해 보여준다"
