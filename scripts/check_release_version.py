@@ -48,11 +48,15 @@ def declared_versions(root: Path = ROOT) -> dict[str, str]:
     metadata = marketplace.get("metadata")
     if not isinstance(metadata, Mapping):
         raise VersionContractError("INVALID_MARKETPLACE_METADATA")
+    npm = json.loads((root / "package.json").read_text(encoding="utf-8"))
+    if not isinstance(npm, Mapping):
+        raise VersionContractError("INVALID_NPM_MANIFEST")
     versions = {
         "package": package_version(root / "pyproject.toml"),
         "plugin": str(plugin.get("version", "")),
         "marketplace": str(plugins[0].get("version", "")),
         "marketplace_metadata": str(metadata.get("version", "")),
+        "npm": str(npm.get("version", "")),
     }
     if not all(versions.values()):
         raise VersionContractError("EMPTY_DECLARED_VERSION")

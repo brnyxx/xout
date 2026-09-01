@@ -10,7 +10,9 @@
 
 [![PyPI](https://img.shields.io/pypi/v/xout)](https://pypi.org/project/xout/) [![CI](https://github.com/brnyxx/xout/actions/workflows/ci.yml/badge.svg)](https://github.com/brnyxx/xout/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-[한국어](README.ko.md) · [Live explanation](https://brnyxx.github.io/xout/)
+[Quickstart](#how-it-works) · [Every rule proves itself](#every-rule-can-prove-itself) · [The map](#the-map) · [Commands](#commands) · [Why trust it](#why-you-can-trust-it)
+
+<sub>Read in: English · [한국어](README.ko.md) · [Live explanation](https://brnyxx.github.io/xout/)</sub>
 
 </div>
 
@@ -122,8 +124,34 @@ Eight axes, measured across three scenes. Five axes are measured in **both** con
 
 - **Local only.** No LLM calls, no telemetry, no cookies, no network during a session.
 - **Crash-safe.** Append-only ledger with atomic writes: interrupt anywhere, resume anywhere, land exactly once.
+
+  <details><summary><b>[PROOF]</b></summary>
+
+  - **Setup** — the test suite kills sessions mid-strike, replays the ledger from disk, and opens concurrent sessions against the same store.
+  - **Result** — replay reconstructs the identical state every time, duplicate sessions are rejected, and landing happens exactly once; 406 tests run on every commit across Python 3.10-3.14 and three OSes.
+  - **So** — "interrupt anywhere" is a tested property, not a promise.
+
+  </details>
+
 - **Reversible.** Activation is one owned import line; `xout undo` removes only what xout can prove it wrote.
+
+  <details><summary><b>[PROOF]</b></summary>
+
+  - **Setup** — before touching `~/.claude/CLAUDE.md`, xout records a receipt: the file's prefix hash and the exact byte where its one line was inserted.
+  - **Result** — `xout undo` re-verifies that receipt before removing anything; if the file changed around the line, it refuses rather than guessing.
+  - **So** — rollback is proof-gated. xout cannot delete a line it cannot prove it wrote.
+
+  </details>
+
 - **Honest.** A kept behavior is "not crossed out yet," never "proven right." Guessed defaults are labeled as guesses.
+
+  <details><summary><b>[PROOF]</b></summary>
+
+  - **Setup** — we dogfood xout on itself. While building the English pack, `xout why` turned out to print `rule: None` - it read the wrong manifest key.
+  - **Result** — the bug is documented in the [changelog](CHANGELOG.md), and the fix landed with a regression test in the same commit.
+  - **So** — a tool whose whole pitch is "every rule carries receipts" keeps receipts on its own defects too.
+
+  </details>
 
 <details>
 <summary><strong>The engineering behind those claims</strong></summary>

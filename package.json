@@ -1,0 +1,48 @@
+{
+  "name": "xout-skills",
+  "version": "1.0.0",
+  "description": "X out the AI behavior you never want again. Cross out the wrong one of two concrete agent behaviors; the survivors compile into local CLAUDE.md rules with evidence, activation consent, and one-line rollback.",
+  "keywords": [
+    "agent",
+    "coding-agents",
+    "agent-skills",
+    "skills",
+    "claude-code",
+    "codex",
+    "agent-agnostic",
+    "behavior",
+    "preferences",
+    "falsification",
+    "ab-testing",
+    "pairwise",
+    "claude-md",
+    "agents-md",
+    "rules",
+    "configuration",
+    "local-first",
+    "no-telemetry",
+    "event-sourcing",
+    "append-only",
+    "rollback",
+    "consent",
+    "tui",
+    "korean",
+    "i18n"
+  ],
+  "author": "Brian Kim (https://github.com/brnyxx)",
+  "license": "MIT",
+  "homepage": "https://github.com/brnyxx/xout#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brnyxx/xout.git"
+  },
+  "bugs": {
+    "url": "https://github.com/brnyxx/xout/issues"
+  },
+  "files": [
+    "skills/",
+    "README.md",
+    "README.ko.md",
+    "LICENSE"
+  ]
+}

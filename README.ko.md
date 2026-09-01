@@ -10,7 +10,9 @@
 
 [![PyPI](https://img.shields.io/pypi/v/xout)](https://pypi.org/project/xout/) [![CI](https://github.com/brnyxx/xout/actions/workflows/ci.yml/badge.svg)](https://github.com/brnyxx/xout/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-[English](README.md) · [소개 사이트](https://brnyxx.github.io/xout/)
+[퀵스타트](#동작-방식) · [모든 규칙은 증거를 댑니다](#모든-규칙은-자기-증거를-댑니다) · [지도](#지도) · [명령어](#명령어) · [믿을 수 있는 이유](#믿을-수-있는-이유)
+
+<sub>Read in: [English](README.md) · 한국어 · [소개 사이트](https://brnyxx.github.io/xout/)</sub>
 
 </div>
 
@@ -120,8 +122,34 @@ X로 직접 확정한 규칙은 **확정**, xout이 묻지 않고 추정한 기�
 
 - **로컬 온리.** 세션 중 LLM 호출, 텔레메트리, 쿠키, 네트워크 없음.
 - **크래시 안전.** append-only 원장과 원자적 쓰기: 어디서 끊겨도 재개되고, 정확히 한 번만 착지.
+
+  <details><summary><b>[증거]</b></summary>
+
+  - **설정** — 테스트 스위트는 긋기 도중 세션을 죽이고, 디스크의 원장을 재생하고, 같은 저장소에 동시 세션을 연다.
+  - **결과** — 재생은 매번 동일한 상태를 복원하고, 중복 세션은 거부되며, 착지는 정확히 한 번 일어난다. 406개 테스트가 Python 3.10-3.14 x 3개 OS에서 매 커밋마다 돈다.
+  - **그래서** — "어디서 끊겨도 된다"는 약속이 아니라 테스트된 속성이다.
+
+  </details>
+
 - **되돌릴 수 있음.** 활성화는 소유된 import 한 줄뿐이고, `xout undo`는 xout이 썼다고 증명 가능한 것만 제거.
+
+  <details><summary><b>[증거]</b></summary>
+
+  - **설정** — `~/.claude/CLAUDE.md`에 손대기 전에 영수증을 남긴다: 파일 앞부분의 해시와 한 줄이 삽입된 정확한 바이트 위치.
+  - **결과** — `xout undo`는 제거 전에 그 영수증을 재검증하고, 그 줄 주변이 바뀌었으면 추측하는 대신 거부한다.
+  - **그래서** — 롤백은 증명 게이트를 통과해야 한다. xout은 자기가 썼다고 증명 못 하는 줄을 지울 수 없다.
+
+  </details>
+
 - **정직함.** 살아남은 행동은 "아직 X를 안 맞았을 뿐"이지 "옳다고 증명된 것"이 아닙니다. 추정 기본값은 추정이라고 표시합니다.
+
+  <details><summary><b>[증거]</b></summary>
+
+  - **설정** — xout을 xout 자신에 도그푸딩한다. 영문 팩을 만들다 `xout why`가 `규칙: None`을 출력하는 것을 발견했다 - manifest의 잘못된 키를 읽고 있었다.
+  - **결과** — 결함은 [체인지로그](CHANGELOG.md)에 기록됐고, 수정은 회귀 테스트와 같은 커밋으로 착지했다.
+  - **그래서** — "모든 규칙은 영수증을 갖는다"가 전부인 도구는 자기 결함에도 영수증을 남긴다.
+
+  </details>
 
 <details>
 <summary><strong>이 주장들을 받치는 엔지니어링</strong></summary>
