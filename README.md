@@ -8,7 +8,7 @@
 
 <img src=".github/assets/hero.svg" alt="Fix the bug becomes an A/B behavior test: Should I start is X'd out, Fixed and tests pass survives, and Act first report after becomes the rule" width="920">
 
-[한국어](README.ko.md) · [Live explanation](https://brnyxx.github.io/popper/)
+[한국어](README.ko.md) · [Live explanation](https://brnyxx.github.io/xout/)
 
 </div>
 
@@ -32,7 +32,7 @@ macOS or Linux:
 ```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install \
-  https://github.com/brnyxx/popper/releases/download/v1.3.1/popper-1.3.1-py3-none-any.whl
+  https://github.com/brnyxx/xout/releases/download/v1.3.1/popper-1.3.1-py3-none-any.whl
 .venv/bin/popper doctor
 .venv/bin/popper open
 ```
@@ -42,7 +42,7 @@ Windows PowerShell:
 ```powershell
 py -3 -m venv .venv
 .venv\Scripts\python -m pip install `
-  https://github.com/brnyxx/popper/releases/download/v1.3.1/popper-1.3.1-py3-none-any.whl
+  https://github.com/brnyxx/xout/releases/download/v1.3.1/popper-1.3.1-py3-none-any.whl
 .venv\Scripts\popper doctor
 .venv\Scripts\popper open
 ```

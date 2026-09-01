@@ -97,14 +97,15 @@ def test_readmes_are_bilingual_brand_first_and_lifecycle_complete() -> None:
     english = (ROOT / "README.md").read_text(encoding="utf-8")
     korean = (ROOT / "README.ko.md").read_text(encoding="utf-8")
     for readme in (english, korean):
-        assert readme.count("<h1>Popper</h1>") == 1
+        assert readme.count("<h1>xout</h1>") == 1
         assert f"v{version}" in readme
         assert ".github/assets/logo.svg" in readme
         assert ".github/assets/hero.svg" in readme
         assert ".github/assets/demo.gif" in readme
+        assert "uvx xout" in readme
+        assert "xout undo" in readme
+        assert "xout status" in readme
         assert "/popper:popper open" in readme
-        assert "/popper:popper enable" in readme
-        assert "/popper:popper status" in readme
         assert "verify_checksums.py" in readme
         assert f"popper-plugin-{version}.zip" in readme
         assert f"../../releases/tag/v{version}" in readme
@@ -115,20 +116,15 @@ def test_readmes_are_bilingual_brand_first_and_lifecycle_complete() -> None:
         assert "example.test" not in readme
     assert "[한국어](README.ko.md)" in english
     assert "[English](README.md)" in korean
-    assert "A local CLAUDE.md behavior compiler." in english
-    assert "로컬 CLAUDE.md 행동 컴파일러." in korean
+    assert "X out the AI behavior you never want again." in english
+    assert "다시 보고 싶지 않은 AI 행동에 X를 치세요." in korean
     assert "Korean-first v1" in english
-    assert "한국어 우선 v1" in korean
-    assert "mined-prior defaults" in english
-    assert "마이닝된 사전 기본값" in korean
+    assert "labeled **guessed**" in english
+    assert "**추정**으로 표시" in korean
     assert "preference convergence" not in english.lower()
     assert "선호 수렴" not in korean
-    assert english.index("## The whole product in one example") < english.index(
-        "## Try it as a local console tool"
-    )
-    assert korean.index("## 제품 전체를 한 가지 예로 이해하기") < korean.index(
-        "## 로컬 콘솔 도구로 바로 써 보기"
-    )
+    assert english.index("## How it works") < english.index("## Commands")
+    assert korean.index("## 동작 방식") < korean.index("## 명령어")
     for source, readme in (
         (ROOT / "README.md", english),
         (ROOT / "README.ko.md", korean),

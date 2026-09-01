@@ -264,7 +264,7 @@ def test_brand_assets_are_local_deterministic_and_social_ready(tmp_path: Path) -
         "FIXED. TESTS PASS.",
         "ACT FIRST.",
         "REPORT AFTER.",
-        "CLAUDE.md BEHAVIOR COMPILER",
+        "X OUT THE AI BEHAVIOR YOU NEVER WANT AGAIN",
     ):
         assert message in hero
 

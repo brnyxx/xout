@@ -8,7 +8,7 @@
 
 <img src=".github/assets/hero.svg" alt="버그 고쳐줘가 A/B 행동 테스트가 되는 그림: 시작할까요?에 X가 그어지고, 고쳤고 테스트 통과가 살아남아 먼저 실행하고 나중에 보고한다는 규칙이 된다" width="920">
 
-[English](README.md) · [소개 사이트](https://brnyxx.github.io/popper/)
+[English](README.md) · [소개 사이트](https://brnyxx.github.io/xout/)
 
 </div>
 
@@ -32,7 +32,7 @@ macOS 또는 Linux:
 ```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install \
-  https://github.com/brnyxx/popper/releases/download/v1.3.1/popper-1.3.1-py3-none-any.whl
+  https://github.com/brnyxx/xout/releases/download/v1.3.1/popper-1.3.1-py3-none-any.whl
 .venv/bin/popper doctor
 .venv/bin/popper open
 ```
@@ -42,7 +42,7 @@ Windows PowerShell:
 ```powershell
 py -3 -m venv .venv
 .venv\Scripts\python -m pip install `
-  https://github.com/brnyxx/popper/releases/download/v1.3.1/popper-1.3.1-py3-none-any.whl
+  https://github.com/brnyxx/xout/releases/download/v1.3.1/popper-1.3.1-py3-none-any.whl
 .venv\Scripts\popper doctor
 .venv\Scripts\popper open
 ```
