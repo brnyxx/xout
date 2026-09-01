@@ -9,6 +9,7 @@ import pytest
 from xout.compiler import (
     CATALOG_VERSION,
     EPISTEMIC_TOKENS,
+    IRREVERSIBLE_CONDITION_PREFIX,
     GRADE_DISCRIMINATED,
     GRADE_INDISCRIMINATE,
     GRADE_LABELS,
@@ -190,31 +191,115 @@ def test_compile_is_a_pure_replay(mixed_events) -> None:
 # ---------------------------------------------------------------------------
 
 
+def _sections(body: str) -> dict[str, list[str]]:
+    """XOUT.md를 '## ' 헤딩 단위로 자른다 - 헤딩 이전은 'head'."""
+    out: dict[str, list[str]] = {"head": []}
+    current = "head"
+    for line in body.splitlines():
+        if line.startswith("## "):
+            current = line
+            out[current] = []
+        else:
+            out[current].append(line)
+    return out
+
+
 def test_popper_md_contains_exactly_eight_executable_rules(mixed_events) -> None:
+    from xout.compiler import XOUT_DOC
+
     rules = compile_rules(mixed_events)
     body = render_xout_md(rules)
+    doc = XOUT_DOC["ko"]
     lines = body.splitlines()
     assert lines[0] == "# xout Rules"
     assert lines[1] == ""
-    bullets = lines[2:]
-    assert len(bullets) == 8
+    assert lines[2] == doc["preamble"]
+    sections = _sections(body)
+    routine = [line for line in sections[doc["routine"]] if line.startswith("- ")]
+    assert len(routine) == 8
     executable_texts = set(RULE_TEXT.values())
-    for bullet in bullets:
-        assert bullet.startswith("- ")
-        assert bullet[2:] in executable_texts
+    for bullet in routine:
+        text = bullet[2:].split(" (" + doc["rejected"] + ": ")[0]
+        assert text in executable_texts, bullet
     assert body.endswith("\n")
 
 
+def test_popper_md_rejected_alternatives_come_from_strikes(mixed_events) -> None:
+    from xout.compiler import XOUT_DOC
+
+    rules = compile_rules(mixed_events)
+    body = render_xout_md(rules)
+    marker = XOUT_DOC["ko"]["rejected"] + ": "
+    for rule in rules:
+        line = next(
+            l for l in body.splitlines()
+            if l.startswith("- " + RULE_TEXT[(rule.axis, rule.value)])
+        )
+        expected = [
+            v for v in rule.eliminated if v not in {rule.value, rule.irreversible_value}
+        ]
+        if expected:
+            assert line.endswith(f"({marker}{', '.join(expected)})"), line
+        else:
+            assert marker not in line
+
+
+def test_popper_md_conditions_are_defined_once_in_their_own_section(
+    mixed_events,
+) -> None:
+    from xout.compiler import IRREVERSIBLE_CLAUSE, XOUT_DOC
+
+    doc = XOUT_DOC["ko"]
+    rules = compile_rules(mixed_events)
+    body = render_xout_md(rules)
+    conditional = [r for r in rules if r.irreversible_value]
+    assert body.count(IRREVERSIBLE_CONDITION_PREFIX) == 0
+    sections = _sections(body)
+    if not conditional:
+        assert doc["irreversible"] not in sections
+        return
+    section = sections[doc["irreversible"]]
+    assert doc["intro"] in section
+    assert "**" in doc["intro"]  # 강조 장치 + 애매할 때의 판단 규칙
+    bullets = [line for line in section if line.startswith("- ")]
+    assert len(bullets) == len(conditional)
+    from xout.state import axis_label
+
+    for rule, bullet in zip(conditional, bullets):
+        clause = IRREVERSIBLE_CLAUSE[(rule.axis, rule.irreversible_value)]
+        assert bullet == f"- {axis_label(rule.axis, 'ko')}: {clause}."
+
+
+def test_popper_md_has_no_conditional_section_without_divergence() -> None:
+    from xout.compiler import XOUT_DOC
+
+    body = render_xout_md(compile_rules(()))
+    assert XOUT_DOC["ko"]["irreversible"] not in body
+
+
 def test_popper_md_has_zero_epistemic_annotation_lines(mixed_events) -> None:
+    from xout.compiler import XOUT_DOC
+
+    doc = XOUT_DOC["ko"]
+    allowed = {doc["preamble"], doc["routine"], doc["irreversible"], doc["intro"], ""}
     for stream in ((), mixed_events):
         body = render_xout_md(compile_rules(stream))
         lowered = body.lower()
         for token in EPISTEMIC_TOKENS:
             assert token.lower() not in lowered, f"인식론 어휘 유출: {token}"
-        # 헤더/공백/불릿 외의 줄(주석 라인)은 존재하지 않는다.
-        for line in body.splitlines()[2:]:
-            assert line.startswith("- ")
+        # 헤더/골격/불릿 외의 줄(주석 라인)은 존재하지 않는다.
+        for line in body.splitlines()[1:]:
+            assert line.startswith("- ") or line in allowed, line
         assert "<!--" not in body
+
+
+@pytest.mark.parametrize("lang", ("ko", "en", "ja", "zh"))
+def test_popper_md_skeleton_is_free_of_epistemic_tokens(lang: str) -> None:
+    from xout.compiler import XOUT_DOC
+
+    joined = " ".join(XOUT_DOC[lang].values()).lower()
+    for token in EPISTEMIC_TOKENS:
+        assert token.lower() not in joined, (lang, token)
 
 
 # ---------------------------------------------------------------------------

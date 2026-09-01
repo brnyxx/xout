@@ -339,6 +339,7 @@ class CompiledRule:
     provenance: tuple[str, ...] = ()
     pair_struck: bool = False
     demoted: bool = False
+    irreversible_value: str | None = None
 
     @property
     def rule_id(self) -> str:
@@ -363,6 +364,7 @@ class CompiledRule:
             "refutation_provenance": list(self.provenance),
             "pair_struck": self.pair_struck,
             "demoted_to_untested": self.demoted,
+            "irreversible_value": self.irreversible_value,
         }
 
 
@@ -534,6 +536,7 @@ def compile_rules(
         value = select_value(axis, surviving)
         routine_axis = routine_state.axis(axis)
         irreversible_axis = irreversible_state.axis(axis)
+        divergent: str | None = None
         if routine_axis.eliminated and irreversible_axis.eliminated:
             routine_value = select_value(axis, tuple(routine_axis.surviving))
             irreversible_value = select_value(
@@ -541,6 +544,7 @@ def compile_rules(
             )
             if routine_value != irreversible_value:
                 value = routine_value
+                divergent = irreversible_value
                 text = conditional_rule_text(
                     axis, routine_value, irreversible_value, lang
                 )
@@ -571,16 +575,78 @@ def compile_rules(
                 provenance=tuple(provenance.get(axis, ())),
                 pair_struck=pair_struck,
                 demoted=bool(axis_state.demoted),
+                irreversible_value=divergent,
             )
         )
     return tuple(rules)
 
 
-def render_xout_md(rules: Sequence[CompiledRule]) -> str:
-    """실행 가능한 룰만 렌더한다 - 인식론 주석 0줄."""
-    lines = ["# xout Rules", ""]
-    lines.extend(f"- {rule.text}" for rule in rules)
+#: XOUT.md의 고정 골격 - 프리앰블(우선순위), 두 섹션, 애매할 때의 판단 규칙.
+#: 에이전트가 읽는 문서라 인식론 어휘는 쓰지 않는다 (EPISTEMIC_TOKENS 가드).
+XOUT_DOC: dict[str, dict[str, str]] = {
+    "ko": {
+        "preamble": "당신이 일하는 사람의 고정 선호다. 구체적인 대안 두 개를 보고 본인이 직접 고른 것이다. 프로젝트 자체의 CLAUDE.md나 AGENTS.md와 정면으로 충돌하면 프로젝트 쪽이 이기고, 그 외에는 이 규칙을 따른다.",
+        "routine": "## 일상 작업",
+        "irreversible": "## 되돌리기 어려운 작업",
+        "intro": "삭제, push, 배포, 마이그레이션, 그리고 명령 하나로 되돌릴 수 없는 모든 작업. **중요: 되돌리기 어려운 작업인지 애매하면 어려운 쪽으로 취급한다.** 이 작업에서는 아래 줄이 위 섹션의 같은 항목을 대체한다.",
+        "rejected": "사용자가 지운 것",
+    },
+    "en": {
+        "preamble": "Standing preferences of the person you are working for, chosen by them between two concrete alternatives. A project's own CLAUDE.md or AGENTS.md wins on a direct conflict; otherwise follow these.",
+        "routine": "## Routine work",
+        "irreversible": "## Hard-to-reverse work",
+        "intro": "Deletes, pushes, deploys, migrations, and anything else one command cannot undo. **IMPORTANT: when unsure whether work is hard to reverse, treat it as hard to reverse.** For this work the lines below replace their counterparts above.",
+        "rejected": "the user rejected",
+    },
+    "ja": {
+        "preamble": "あなたが一緒に働く人の固定された好みです。具体的な二つの選択肢を見て本人が選んだものです。プロジェクト自身の CLAUDE.md や AGENTS.md と正面から衝突する場合はプロジェクト側が優先し、それ以外はこの規則に従ってください。",
+        "routine": "## 日常作業",
+        "irreversible": "## 取り消しにくい作業",
+        "intro": "削除、push、デプロイ、マイグレーション、そしてコマンド一つでは元に戻せないすべての作業。**重要: 取り消しにくい作業かどうか迷ったら、取り消しにくい側として扱う。** この作業では下の行が上のセクションの同じ項目を置き換える。",
+        "rejected": "ユーザーが消したもの",
+    },
+    "zh": {
+        "preamble": "这是与你共事的人的固定偏好，由本人在两个具体备选之间亲自选定。若与项目自身的 CLAUDE.md 或 AGENTS.md 正面冲突，以项目为准；其余情况遵循这些规则。",
+        "routine": "## 日常工作",
+        "irreversible": "## 难以撤销的工作",
+        "intro": "删除、push、部署、迁移，以及任何一条命令无法撤销的工作。**重要：拿不准是否难以撤销时，按难以撤销处理。** 对这类工作，下面的条目替换上一节中的对应条目。",
+        "rejected": "用户划掉的",
+    },
+}
+
+
+def render_xout_md(rules: Sequence[CompiledRule], lang: str = DEFAULT_RULE_LANG) -> str:
+    """에이전트가 읽는 문서 - 우선순위 프리앰블, 일상/되돌리기-어려운 두 섹션, 인식론 주석 0줄.
+
+    조건은 한 번만 정의하고 규칙마다 반복하지 않는다. 각 규칙에는 사용자가
+    실제로 지운 대안을 짧게 붙여 규칙이 무엇을 배제하는지 알린다.
+    """
+    doc = XOUT_DOC.get(lang) or XOUT_DOC[DEFAULT_RULE_LANG]
+    rule_text, clauses, _ = _lang_tables(lang)
+    _, full_stop = SENTENCE_STYLE.get(lang, SENTENCE_STYLE[DEFAULT_RULE_LANG])
+    lines = ["# xout Rules", "", doc["preamble"], "", doc["routine"], ""]
+    for rule in rules:
+        text = rule_text[(rule.axis, rule.value)]
+        rejected = rejected_values(rule)
+        if rejected:
+            text = f"{text} ({doc['rejected']}: {', '.join(rejected)})"
+        lines.append(f"- {text}")
+    conditional = [rule for rule in rules if rule.irreversible_value]
+    if conditional:
+        from xout.state import axis_label  # 순환 import 회피 - 호출 시점에만
+
+        lines.extend(["", doc["irreversible"], "", doc["intro"], ""])
+        for rule in conditional:
+            clause = clauses[(rule.axis, rule.irreversible_value)]
+            clause = clause[:1].upper() + clause[1:]
+            lines.append(f"- {axis_label(rule.axis, lang)}: {clause}{full_stop}")
     return "\n".join(lines) + "\n"
+
+
+def rejected_values(rule: CompiledRule) -> tuple[str, ...]:
+    """규칙 본문에 붙는 '사용자가 지운 것' - 두 맥락 어디에서도 살아남지 못한 값만."""
+    kept = {rule.value, rule.irreversible_value}
+    return tuple(v for v in rule.eliminated if v not in kept)
 
 
 def render_settings(rules: Sequence[CompiledRule]) -> str:
@@ -748,7 +814,7 @@ def _write_outputs_unlocked(
     rules = compile_rules(stream, catalog, lang)
     state = fold(stream, catalog)
 
-    popper_md = render_xout_md(rules)
+    popper_md = render_xout_md(rules, lang)
     settings = render_settings(rules)
     manifest = build_manifest(
         rules,

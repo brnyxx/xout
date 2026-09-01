@@ -16,6 +16,25 @@ slow cadence: minor versions ship every 6-12 months, patches only for defects.
   in the READMEs and on the site, plus an under-the-hood ledger diagram in
   the READMEs.
 - `README.ja.md` and `README.zh.md`.
+- `xout probe` - opt-in, outside any session: sends each measured scene as
+  an A/B question to an external runner (default `claude -p`) twice, bare
+  and with the landed `XOUT.md` in front, and writes a receipt under
+  `~/.claude/xout/probes/` saying per axis whether the rule held and whether
+  it moved the choice. The ledger is never touched.
+- `xout conflicts [paths]` - lines in a project's CLAUDE.md/AGENTS.md/
+  .cursorrules that ask for a different value than your rules, with file:line.
+  The session completion screen shows them before asking to apply.
+
+### Changed
+- `XOUT.md` is now written for the agent that reads it: a one-paragraph
+  preamble (whose preferences these are, project rules win on a direct
+  conflict), a "routine work" section, and a "hard-to-reverse work" section
+  that defines the condition once instead of repeating it per rule, with an
+  emphasized tie-breaker ("when unsure, treat it as hard to reverse"). Each
+  rule carries the alternatives the user actually X'd out. Rule sentences
+  themselves are unchanged; `manifest.json` gains `irreversible_value`.
+- Japanese and Chinese conditional rules end with `。` instead of an ASCII
+  period, and `xout why` grade labels are localized for both.
 
 ## [1.0.1] - 2026-09-01
 

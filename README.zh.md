@@ -106,13 +106,34 @@ $ xout why autonomy --lang zh
 
 > `--lang en`、`--lang ja` 和 `--lang zh` 会让整个会话（行为对、规则和屏幕文字）以该语言运行；不带参数时默认是韩语。日语和中文目前已在 `main` 分支上，将随下一个版本发布。无论哪种语言，事件账本本身都是语言无关的。
 
+## 真的管用吗？
+
+`xout probe` 把这个问题直接丢给智能体本人。对每个测量过的场景，它向外部运行器（默认 `claude -p`）把同一道 A/B 题问两次：一次不带规则，一次把落地的 `XOUT.md` 放在前面，然后逐条记录规则是否保持、是否改变了选择。这是对一份落地档案实际跑的一次记录（Claude Code 2.1.257，默认模型，未做任何修改）：
+
+```text
+$ xout probe --lang en
+Probing 15 cases x 2 (bare / with XOUT.md) - runner: claude -p --output-format text
+  [Scope adherence] scn-bugfix: strict -> adjacent_fix_ok  (rule: adjacent_fix_ok)  moved
+  [Test discipline] scn-bugfix: test_first -> test_first  (rule: test_after)  missed
+  [Comments and docs] scn-bugfix: minimal -> minimal  (rule: minimal)  held
+  [Test discipline] scn-feature: test_first -> test_after  (rule: test_after)  moved
+  [Behavior on errors] scn-risky: retry_then_report -> stop_and_report  (rule: stop_and_report)  moved
+  [Dependency policy] scn-risky: prefer_existing -> prefer_existing  (rule: ask_first)  missed
+  ... 9 more, all held
+
+rule held 13/15 · rule moved the choice 4 · matched without rules 9 · unparsed 0
+receipt: ~/.claude/xout/probes/probe-20260901T231554.json
+```
+
+该这样读它。9 个选择在没有规则时就已经一致，说明模型的默认值在这些地方与这份档案相同。4 个被规则改变了。2 个不符：修 bug 时智能体坚持先写失败的测试，在高风险场景里把"优先用现有依赖"当成已经满足了"安装前先问"。不符的部分才有用：它点名了该打磨的那条规则，而一次探针只要一分钟，改完就能验证。探针不是什么：强制 A/B 的回答衡量的是指示之下的意图，不是长智能体循环里的实际行为，而且这只是一个模型上的一次运行。回执保留了全部原始回答，任何人都能重读。
+
 ## 你会得到什么
 
 第十五个 X 之后，三个文件会落入 `~/.claude/xout/`：
 
 | 文件 | 是什么 |
 |---|---|
-| `XOUT.md` | 供 Claude Code 使用的 8 行可执行规则 |
+| `XOUT.md` | 为读它的智能体而写的 8 条可执行规则：一段前言（这是谁的偏好、正面冲突时以项目规则为准）、日常工作一节、以及只定义一次条件并强调拿不准时如何判断的难以撤销工作一节。每条规则都标出你用 X 划掉的备选 |
 | `manifest.json` | 规则取值、置信度标签、来源以及内容哈希 |
 | `settings.xout.json` | 一份可供审阅的设置提案 |
 
@@ -157,6 +178,8 @@ $ xout why autonomy --lang zh
 | `xout undo` | 删除 xout 拥有的那一行 import，完整回滚 | 一行自有内容 | - |
 | `xout enable --grant` | 激活：加入一行由 xout 拥有的 `@import` | 一行自有内容 | 明确同意 |
 | `xout mine [paths]` | 把你已有的 CLAUDE.md / AGENTS.md / .cursorrules 读成各轴的观察值，附 file:line 凭据 | 无 | - |
+| `xout conflicts [paths]` | 报告项目规则文件中与你的规则要求不同值的行，附 file:line | 无 | - |
+| `xout probe` | 向外部运行器（默认 `claude -p`）把同一道 A/B 题问两次：不带规则一次、带上 `XOUT.md` 一次，并把每条规则是否保持写成回执 | 仅自有目录（`probes/`） | 需明确开启 |
 | `xout pair` / `xout strike` | 面向智能体和脚本的无头 JSON 会话 | 仅自有目录 | - |
 
 ## 为什么值得信任

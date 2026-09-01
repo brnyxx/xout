@@ -242,12 +242,14 @@ class RuleView:
     text: str
     corroboration_grade: str = ""
     value_source: str = ""
+    irreversible_value: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "axis": self.axis,
             "axis_label": self.axis_label,
             "value": self.value,
+            "irreversible_value": self.irreversible_value,
             "text": self.text,
             "corroboration_grade": self.corroboration_grade,
             "value_source": self.value_source,
@@ -1167,4 +1169,5 @@ def _rule_view(rule: CompiledRule, lang: str = DEFAULT_LANG) -> RuleView:
         text=rule.text,
         corroboration_grade=rule.corroboration_grade,
         value_source=rule.value_source,
+        irreversible_value=rule.irreversible_value,
     )

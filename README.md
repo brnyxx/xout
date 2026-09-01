@@ -105,13 +105,34 @@ A rule you can't trace is a rule you can't trust. Every xout rule carries its re
 
 > `--lang en`, `--lang ja`, and `--lang zh` run the whole session in that language (pairs, rules, and screen text); the default without the flag is Korean. Japanese and Chinese are on `main` today and ship with the next release. The event ledger is language-neutral either way.
 
+## Does it actually work?
+
+`xout probe` puts the question to the agent itself. For every measured scene it asks an external runner (default `claude -p`) the same A/B twice - once bare, once with your landed `XOUT.md` in front - and receipts whether each rule held and whether it moved the choice. One real run against a landed profile (Claude Code 2.1.257, default model, no edits):
+
+```text
+$ xout probe --lang en
+Probing 15 cases x 2 (bare / with XOUT.md) - runner: claude -p --output-format text
+  [Scope adherence] scn-bugfix: strict -> adjacent_fix_ok  (rule: adjacent_fix_ok)  moved
+  [Test discipline] scn-bugfix: test_first -> test_first  (rule: test_after)  missed
+  [Comments and docs] scn-bugfix: minimal -> minimal  (rule: minimal)  held
+  [Test discipline] scn-feature: test_first -> test_after  (rule: test_after)  moved
+  [Behavior on errors] scn-risky: retry_then_report -> stop_and_report  (rule: stop_and_report)  moved
+  [Dependency policy] scn-risky: prefer_existing -> prefer_existing  (rule: ask_first)  missed
+  ... 9 more, all held
+
+rule held 13/15 · rule moved the choice 4 · matched without rules 9 · unparsed 0
+receipt: ~/.claude/xout/probes/probe-20260901T231554.json
+```
+
+Read it the way it is meant. Nine choices already matched without rules, so the model's defaults agree with this profile there. Four were moved by the rules. Two missed: the agent kept writing the failing test first on a bugfix, and treated "favor existing dependencies" as already satisfying "ask before installing" in the risky scene. Misses are the useful part - they name the rule sentence to sharpen, and a probe takes a minute, so you can check the fix. What a probe is not: a forced A/B answer measures stated intent under the instructions, not behavior deep inside an agent loop, and this is one run on one model. The receipt keeps every raw answer so anyone can re-read it.
+
 ## What you get
 
 After the fifteenth X, three files land under `~/.claude/xout/`:
 
 | File | What it is |
 |---|---|
-| `XOUT.md` | 8 executable rule lines for Claude Code |
+| `XOUT.md` | 8 executable rules, written for the agent that reads them: a one-paragraph preamble (whose preferences these are, project rules win on a direct conflict), a routine section, and a hard-to-reverse section that defines the condition once with an emphasized tie-breaker. Each rule names the alternatives you X'd out |
 | `manifest.json` | Rule value, confidence label, source, and content hashes |
 | `settings.xout.json` | A reviewable settings proposal |
 
@@ -156,6 +177,8 @@ That X is the whole product.
 | `xout undo` | Remove the one import line xout owns - full rollback | one owned line | - |
 | `xout enable --grant` | Activate: add one owned `@import` line | one owned line | explicit |
 | `xout mine [paths]` | Read your existing CLAUDE.md/AGENTS.md/.cursorrules into axis observations, with file:line receipts | nothing | - |
+| `xout conflicts [paths]` | Lines in a project's rule files that ask for a different value than your rules, with file:line | nothing | - |
+| `xout probe` | Ask an external runner (default `claude -p`) the same A/B twice, bare and with your `XOUT.md`, and receipt whether each rule held | own dir only (`probes/`) | opt-in |
 | `xout pair` / `xout strike` | Headless JSON session for agents and scripts | own dir only | - |
 
 ## Why you can trust it

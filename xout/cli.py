@@ -21,6 +21,8 @@ import argparse
 import json
 import logging
 import os
+import shlex
+import subprocess
 import sys
 from datetime import datetime, timezone
 from functools import wraps
@@ -31,6 +33,7 @@ from xout.backup import create_backup, inspect_backup
 from xout.compiler import (
     GRADE_LABELS_BY_LANG,
     MANIFEST_JSON,
+    XOUT_MD,
     CompiledRule as CompilerRule,
     HashMismatch,
     compile_rules,
@@ -53,9 +56,23 @@ from xout.fixtures import (
     SCENE_CONTEXTS,
     SUPPORTED_LANGS,
     load_pack,
+    localize_skin,
+    scan_repo_skin,
 )
 from xout.migrate import migrate_legacy_home
-from xout.mine import mine, summarize
+from xout.mine import Conflict, find_conflicts, mine, summarize
+from xout.probe import (
+    DEFAULT_RUNNER,
+    DEFAULT_TIMEOUT,
+    ProbeError,
+    ProbeOutcome,
+    RuleSpec,
+    build_cases,
+    build_prompt,
+    probe,
+    subprocess_runner,
+    write_receipt,
+)
 from xout.doctor import app_version, run_doctor
 from xout.exporter import EXPORT_FORMATS, render_export, write_export
 from xout.judgment import acknowledge, emit_condition_met, fold_judgment
@@ -594,6 +611,10 @@ def _run_tui(session: ColdOpenSession, base: Path, lang: str = DEFAULT_LANG) -> 
     print(msg["complete"])
     for rule in snap.rules:
         print(f"  - {rule.text}")
+    conflicts = find_conflicts(mine([Path.cwd()]), _rules_by_axis(snap.rules))
+    if conflicts:
+        print()
+        _print_conflicts(conflicts, lang)
     if snap.landing is not None:
         logger.info(msg["landed"], base)
     try:
@@ -689,6 +710,245 @@ _WHY_MSG: dict[str, dict[str, str]] = {
         "line": "  - 在{context}场景({scene})给 {values} 打了 X (会话 {session})",
     },
 }
+
+
+_CONFLICT_MSG = {
+    "ko": {
+        "header": "프로젝트 규칙과 갈리는 줄 {count}건 (정면 충돌이면 프로젝트가 이긴다):",
+        "none": "프로젝트 규칙 파일 중 당신의 규칙과 갈리는 줄이 없다.",
+        "no_rules": "컴파일된 규칙이 없다 - 먼저 xout을 돌려라.",
+        "line": "  - [{axis}] 프로젝트는 {observed}, 당신의 규칙은 {rule}  {path}:{line_no}  \"{text}\"",
+    },
+    "en": {
+        "header": "{count} project rule line(s) disagree with your rules (the project wins on a direct conflict):",
+        "none": "No project rule file disagrees with your rules.",
+        "no_rules": "No compiled rules yet - run xout first.",
+        "line": "  - [{axis}] project says {observed}, your rule says {rule}  {path}:{line_no}  \"{text}\"",
+    },
+    "ja": {
+        "header": "プロジェクトの規則と食い違う行 {count}件 (正面衝突ならプロジェクトが優先):",
+        "none": "プロジェクトの規則ファイルにあなたの規則と食い違う行はない。",
+        "no_rules": "コンパイルされた規則がない - 先に xout を実行する。",
+        "line": "  - [{axis}] プロジェクトは {observed}、あなたの規則は {rule}  {path}:{line_no}  \"{text}\"",
+    },
+    "zh": {
+        "header": "与项目规则相左的行 {count} 条 (正面冲突时以项目为准):",
+        "none": "项目规则文件中没有与你的规则相左的行。",
+        "no_rules": "还没有编译好的规则 - 先运行 xout。",
+        "line": "  - [{axis}] 项目要求 {observed}，你的规则是 {rule}  {path}:{line_no}  \"{text}\"",
+    },
+}
+
+
+def _rules_by_axis(rules: Sequence[CompilerRule]) -> dict[str, tuple[str, str | None]]:
+    return {rule.axis: (rule.value, rule.irreversible_value) for rule in rules}
+
+
+def _manifest_rules_by_axis(
+    manifest: dict[str, Any],
+) -> dict[str, tuple[str, str | None]]:
+    out: dict[str, tuple[str, str | None]] = {}
+    for entry in manifest.get("rules", []):
+        axis, value = entry.get("axis"), entry.get("value")
+        if isinstance(axis, str) and isinstance(value, str):
+            out[axis] = (value, entry.get("irreversible_value"))
+    return out
+
+
+def _print_conflicts(conflicts: list[Conflict], lang: str, limit: int = 8) -> None:
+    msg = _CONFLICT_MSG.get(lang, _CONFLICT_MSG["ko"])
+    if not conflicts:
+        print(msg["none"])
+        return
+    print(msg["header"].format(count=len(conflicts)))
+    for conflict in conflicts[:limit]:
+        print(
+            msg["line"].format(
+                axis=axis_label(conflict.axis, lang),
+                observed=conflict.observed_value,
+                rule=conflict.rule_value,
+                path=conflict.path,
+                line_no=conflict.line_no,
+                text=conflict.line,
+            )
+        )
+    if len(conflicts) > limit:
+        print(f"  ... +{len(conflicts) - limit}")
+
+
+def cmd_conflicts(args: argparse.Namespace) -> int:
+    """컴파일된 규칙과 로컬 프로젝트 규칙 파일이 갈리는 줄을 보고한다 - 읽기전용."""
+    lang = _args_lang(args)
+    manifest = _load_manifest(Path(args.base_dir))
+    if manifest is None:
+        if args.json_output:
+            print(json.dumps({"error": "no_rules"}))
+        else:
+            print(_CONFLICT_MSG.get(lang, _CONFLICT_MSG["ko"])["no_rules"])
+        return 1
+    roots = [Path(root) for root in (args.roots or ["."])]
+    conflicts = find_conflicts(mine(roots), _manifest_rules_by_axis(manifest))
+    if args.json_output:
+        print(
+            json.dumps(
+                {"conflicts": [conflict.to_dict() for conflict in conflicts]},
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return 0
+    _print_conflicts(conflicts, lang)
+    return 0
+
+
+_PROBE_MSG = {
+    "ko": {
+        "no_rules": "착지된 규칙이 없다 - 먼저 xout을 돌려라.",
+        "runner_missing": "러너를 시작할 수 없다: {error}",
+        "start": "탐침 {n}건 x 2회 (규칙 없이 / XOUT.md 앞세워) - 러너: {runner}",
+        "line": "  [{axis}] {scene}: {bare} -> {ruled}  (규칙: {survivor})  {verdict}",
+        "held": "유지",
+        "moved": "이동",
+        "missed": "불일치",
+        "unparsed": "판독 불가",
+        "summary": "규칙 유지 {held}/{cases} · 규칙이 선택을 움직임 {moved} · 규칙 없이도 일치 {bare} · 판독 불가 {unparsed}",
+        "receipt": "영수증: {path}",
+        "dry": "탐침 {n}건 준비됨 (러너 호출 없음)",
+    },
+    "en": {
+        "no_rules": "No landed rules yet - run xout first.",
+        "runner_missing": "Cannot start the runner: {error}",
+        "start": "Probing {n} cases x 2 (bare / with XOUT.md) - runner: {runner}",
+        "line": "  [{axis}] {scene}: {bare} -> {ruled}  (rule: {survivor})  {verdict}",
+        "held": "held",
+        "moved": "moved",
+        "missed": "missed",
+        "unparsed": "unparsed",
+        "summary": "rule held {held}/{cases} · rule moved the choice {moved} · matched without rules {bare} · unparsed {unparsed}",
+        "receipt": "receipt: {path}",
+        "dry": "{n} cases prepared (runner not called)",
+    },
+    "ja": {
+        "no_rules": "着地した規則がない - 先に xout を実行する。",
+        "runner_missing": "ランナーを起動できない: {error}",
+        "start": "探針 {n}件 x 2回 (規則なし / XOUT.md 付き) - ランナー: {runner}",
+        "line": "  [{axis}] {scene}: {bare} -> {ruled}  (規則: {survivor})  {verdict}",
+        "held": "維持",
+        "moved": "移動",
+        "missed": "不一致",
+        "unparsed": "判読不能",
+        "summary": "規則維持 {held}/{cases} · 規則が選択を動かした {moved} · 規則なしでも一致 {bare} · 判読不能 {unparsed}",
+        "receipt": "レシート: {path}",
+        "dry": "探針 {n}件を準備 (ランナー未呼び出し)",
+    },
+    "zh": {
+        "no_rules": "还没有落地的规则 - 先运行 xout。",
+        "runner_missing": "无法启动运行器: {error}",
+        "start": "探针 {n} 例 x 2 次 (无规则 / 带 XOUT.md) - 运行器: {runner}",
+        "line": "  [{axis}] {scene}: {bare} -> {ruled}  (规则: {survivor})  {verdict}",
+        "held": "保持",
+        "moved": "移动",
+        "missed": "不符",
+        "unparsed": "无法判读",
+        "summary": "规则保持 {held}/{cases} · 规则改变了选择 {moved} · 无规则也一致 {bare} · 无法判读 {unparsed}",
+        "receipt": "回执: {path}",
+        "dry": "已准备 {n} 例 (未调用运行器)",
+    },
+}
+
+
+def _probe_verdict(outcome: ProbeOutcome, msg: Mapping[str, str]) -> str:
+    if outcome.bare_value is None or outcome.ruled_value is None:
+        return msg["unparsed"]
+    if outcome.moved:
+        return msg["moved"]
+    return msg["held"] if outcome.held else msg["missed"]
+
+
+def cmd_probe(args: argparse.Namespace) -> int:
+    """착지된 XOUT.md가 실제 에이전트의 선택을 움직이는지 외부 러너로 잰다 - 옵트인."""
+    lang = _args_lang(args)
+    msg = _PROBE_MSG.get(lang, _PROBE_MSG["ko"])
+    base = Path(args.base_dir)
+    manifest = _load_manifest(base)
+    xout_path = base / XOUT_MD
+    if manifest is None or not xout_path.is_file():
+        print(json.dumps({"error": "no_rules"}) if args.json_output else msg["no_rules"])
+        return 1
+    rules = {
+        entry["axis"]: RuleSpec(
+            value=entry["value"],
+            irreversible_value=entry.get("irreversible_value"),
+            eliminated=tuple(entry.get("eliminated_values", [])),
+        )
+        for entry in manifest.get("rules", [])
+        if isinstance(entry.get("axis"), str) and isinstance(entry.get("value"), str)
+    }
+    pack = load_pack(lang=lang)
+    skin = localize_skin(scan_repo_skin(Path.cwd()), lang)
+    cases = build_cases(pack, rules, skin, axes=args.axes or None)
+    if args.quick:
+        seen: set[str] = set()
+        cases = tuple(c for c in cases if not (c.axis in seen or seen.add(c.axis)))
+    if args.dry_run:
+        if args.json_output:
+            print(
+                json.dumps(
+                    {
+                        "cases": [
+                            {"scene_id": c.scene_id, "axis": c.axis, "survivor": c.survivor,
+                             "alternative": c.alternative, "shown_as_a": c.first}
+                            for c in cases
+                        ],
+                        "prompt_sample": build_prompt(cases[0], lang, None) if cases else "",
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                )
+            )
+        else:
+            print(msg["dry"].format(n=len(cases)))
+        return 0
+    command = shlex.split(args.runner)
+    try:
+        runner = subprocess_runner(command, timeout=args.timeout)
+    except ProbeError as exc:
+        print(json.dumps({"error": str(exc)}) if args.json_output else msg["runner_missing"].format(error=exc))
+        return 2
+    if not args.json_output:
+        print(msg["start"].format(n=len(cases), runner=args.runner))
+
+    def on_outcome(outcome: ProbeOutcome) -> None:
+        if args.json_output:
+            return
+        print(
+            msg["line"].format(
+                axis=axis_label(outcome.case.axis, lang),
+                scene=outcome.case.scene_id,
+                bare=outcome.bare_value or "?",
+                ruled=outcome.ruled_value or "?",
+                survivor=outcome.case.survivor,
+                verdict=_probe_verdict(outcome, msg),
+            )
+        )
+
+    try:
+        report = probe(
+            cases, xout_path.read_text(encoding="utf-8"), runner, lang, command, on_outcome
+        )
+    except (ProbeError, subprocess.TimeoutExpired) as exc:
+        print(json.dumps({"error": str(exc)}) if args.json_output else msg["runner_missing"].format(error=exc))
+        return 2
+    receipt = write_receipt(base, report)
+    if args.json_output:
+        payload = report.to_dict()
+        payload["receipt_path"] = str(receipt)
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 0
+    print()
+    print(msg["summary"].format(bare=report.summary["bare_matched"], **report.summary))
+    print(msg["receipt"].format(path=receipt))
+    return 0
 
 
 _MINE_MSG = {
@@ -1315,6 +1575,32 @@ def build_parser() -> argparse.ArgumentParser:
     p_mine.add_argument("roots", nargs="*", help="스캔할 루트 (기본: 현재 디렉토리)")
     p_mine.add_argument("--json", dest="json_output", action="store_true")
     p_mine.set_defaults(func=cmd_mine)
+
+    p_conflicts = sub.add_parser(
+        "conflicts",
+        help="컴파일된 규칙과 프로젝트 규칙 파일이 갈리는 줄을 보고 (읽기전용)",
+    )
+    p_conflicts.add_argument("roots", nargs="*", help="스캔할 루트 (기본: 현재 디렉토리)")
+    p_conflicts.add_argument("--json", dest="json_output", action="store_true")
+    _add_common(p_conflicts)
+    p_conflicts.set_defaults(func=cmd_conflicts)
+
+    p_probe = sub.add_parser(
+        "probe",
+        help="착지된 XOUT.md가 에이전트의 선택을 움직이는지 외부 러너로 잰다 (옵트인, 세션 밖)",
+    )
+    p_probe.add_argument(
+        "--runner",
+        default=" ".join(DEFAULT_RUNNER),
+        help="프롬프트를 마지막 인자로 받아 stdout에 답하는 명령 (기본: claude -p --output-format text)",
+    )
+    p_probe.add_argument("--axes", nargs="*", help="이 축만 탐침")
+    p_probe.add_argument("--quick", action="store_true", help="축당 한 장면만")
+    p_probe.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT)
+    p_probe.add_argument("--dry-run", dest="dry_run", action="store_true", help="러너 호출 없이 준비된 탐침만 보고")
+    p_probe.add_argument("--json", dest="json_output", action="store_true")
+    _add_common(p_probe)
+    p_probe.set_defaults(func=cmd_probe)
 
     p_why = sub.add_parser(
         "why", help="규칙이 어떤 X에서 나왔는지 증거를 소급해 보여준다"

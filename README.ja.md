@@ -106,13 +106,34 @@ $ xout why autonomy --lang ja
 
 > `--lang en`、`--lang ja`、`--lang zh` を指定すると、セッション全体 (ペア、ルール、画面のテキスト) がその言語で進みます。フラグなしのデフォルトは韓国語です。日本語と中国語は現在 `main` にあり、次のリリースで同梱されます。いずれの場合もイベント台帳は言語に依存しません。
 
+## 本当に効くのか
+
+`xout probe` はその問いをエージェント本人に投げます。測定した場面ごとに外部ランナー (既定 `claude -p`) へ同じ A/B を 2 回尋ねます。1 回は規則なし、もう 1 回は着地した `XOUT.md` を前に置いて。そしてルールごとに維持されたか、選択が動いたかをレシートに残します。着地したプロファイルで実際に 1 回走らせた記録です (Claude Code 2.1.257、既定モデル、手を加えていません):
+
+```text
+$ xout probe --lang en
+Probing 15 cases x 2 (bare / with XOUT.md) - runner: claude -p --output-format text
+  [Scope adherence] scn-bugfix: strict -> adjacent_fix_ok  (rule: adjacent_fix_ok)  moved
+  [Test discipline] scn-bugfix: test_first -> test_first  (rule: test_after)  missed
+  [Comments and docs] scn-bugfix: minimal -> minimal  (rule: minimal)  held
+  [Test discipline] scn-feature: test_first -> test_after  (rule: test_after)  moved
+  [Behavior on errors] scn-risky: retry_then_report -> stop_and_report  (rule: stop_and_report)  moved
+  [Dependency policy] scn-risky: prefer_existing -> prefer_existing  (rule: ask_first)  missed
+  ... 9 more, all held
+
+rule held 13/15 · rule moved the choice 4 · matched without rules 9 · unparsed 0
+receipt: ~/.claude/xout/probes/probe-20260901T231554.json
+```
+
+読み方はこうです。9 件は規則なしでも既に一致していたので、そこではモデルの既定がこのプロファイルと同じです。4 件は規則が選択を動かしました。2 件は不一致です。バグ修正ではエージェントは失敗するテストを先に書くことにこだわり、危険な場面では「既存の依存関係を優先」を「インストール前に確認」と同じものとして扱いました。不一致こそ役に立つ部分です。どのルール文を研ぐべきかを名指しし、探針は 1 分で走るので直した後すぐ確かめられます。探針でないもの: 強制 A/B の答えは指示のもとでの意図を測るのであって、長いエージェントループの中の振る舞いではなく、これは 1 モデルで 1 回走らせた記録です。レシートは生の回答をすべて保持しているので誰でも読み直せます。
+
 ## 得られるもの
 
 15 回目の X のあと、`~/.claude/xout/` 配下に 3 つのファイルが着地します:
 
 | ファイル | 内容 |
 |---|---|
-| `XOUT.md` | Claude Code 向けの実行可能なルール 8 行 |
+| `XOUT.md` | 読むエージェントのために書かれた実行ルール 8 本: 誰の好みか、正面衝突ならプロジェクトの規則が優先することを述べる 1 段落の前書き、日常作業のセクション、条件を一度だけ定義し迷ったときの判断を強調した取り消しにくい作業のセクション。各ルールにはあなたが X で消した選択肢が添えられます |
 | `manifest.json` | ルールの値、確信度ラベル、出所、コンテンツハッシュ |
 | `settings.xout.json` | レビュー可能な設定の提案 |
 
@@ -157,6 +178,8 @@ $ xout why autonomy --lang ja
 | `xout undo` | xout が所有する 1 行の import を取り除く。完全なロールバック | 所有する 1 行 | - |
 | `xout enable --grant` | 有効化: 所有する `@import` 行を 1 行追加する | 所有する 1 行 | 明示的 |
 | `xout mine [paths]` | 既存の CLAUDE.md/AGENTS.md/.cursorrules を読み、file:line のレシートつきで軸ごとの観測に変換する | なし | - |
+| `xout conflicts [paths]` | プロジェクトの規則ファイルのうち、あなたのルールと異なる値を求める行を file:line つきで報告 | なし | - |
+| `xout probe` | 外部ランナー (既定 `claude -p`) に同じ A/B を規則なし / `XOUT.md` 付きで 2 回尋ね、ルールごとに維持されたかをレシートに残す | 所有ディレクトリ (`probes/`) のみ | オプトイン |
 | `xout pair` / `xout strike` | エージェントやスクリプト向けのヘッドレス JSON セッション | 自身のディレクトリのみ | - |
 
 ## 信頼できる理由

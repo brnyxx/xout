@@ -55,6 +55,12 @@ append-only 이벤트 원장 위에서 일어난다.
 - 사용자 CLAUDE.md 활성화는 위 launcher의 `enable --grant`로만 하며
   @import 한 줄만 추가된다. 사용자가 명시적으로 동의할 때만 실행한다.
 - 롤백도 위 launcher의 `undo`만 사용한다 (그 한 줄만 제거).
+- 적용 전에 `conflicts [경로]`로 프로젝트 규칙 파일(CLAUDE.md/AGENTS.md/
+  .cursorrules)과 갈리는 줄을 file:line으로 보여줄 수 있다. 정면 충돌은
+  프로젝트가 이긴다고 XOUT.md 프리앰블이 이미 말한다.
+- 규칙이 실제로 선택을 움직이는지는 `probe`가 잰다 - 외부 러너(기본
+  `claude -p`)를 세션 밖에서 호출하는 옵트인 명령이라 사용자가 요청할
+  때만 실행하고, 영수증은 `~/.claude/xout/probes/`에만 남는다.
 
 ## 하지 말 것
 

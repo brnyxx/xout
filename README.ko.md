@@ -105,13 +105,34 @@ $ xout why autonomy
 
 > `--lang en`, `--lang ja`, `--lang zh`를 붙이면 페어, 규칙, 화면 문구까지 세션 전체가 그 언어로 진행됩니다. 플래그가 없으면 한국어입니다. 일본어와 중국어는 지금 `main`에 있고 다음 릴리스에 실립니다. 이벤트 원장은 어느 쪽이든 언어 중립입니다.
 
+## 실제로 먹히나?
+
+`xout probe`는 그 질문을 에이전트 본인에게 던집니다. 측정한 장면마다 외부 러너(기본 `claude -p`)에 같은 A/B를 두 번 묻습니다. 한 번은 규칙 없이, 한 번은 착지된 `XOUT.md`를 앞세워서. 그리고 규칙별로 유지됐는지, 선택을 움직였는지 영수증으로 남깁니다. 착지된 프로필로 실제 돌린 한 번의 기록입니다(Claude Code 2.1.257, 기본 모델, 손대지 않음):
+
+```text
+$ xout probe --lang en
+Probing 15 cases x 2 (bare / with XOUT.md) - runner: claude -p --output-format text
+  [Scope adherence] scn-bugfix: strict -> adjacent_fix_ok  (rule: adjacent_fix_ok)  moved
+  [Test discipline] scn-bugfix: test_first -> test_first  (rule: test_after)  missed
+  [Comments and docs] scn-bugfix: minimal -> minimal  (rule: minimal)  held
+  [Test discipline] scn-feature: test_first -> test_after  (rule: test_after)  moved
+  [Behavior on errors] scn-risky: retry_then_report -> stop_and_report  (rule: stop_and_report)  moved
+  [Dependency policy] scn-risky: prefer_existing -> prefer_existing  (rule: ask_first)  missed
+  ... 9 more, all held
+
+rule held 13/15 · rule moved the choice 4 · matched without rules 9 · unparsed 0
+receipt: ~/.claude/xout/probes/probe-20260901T231554.json
+```
+
+읽는 법은 이렇습니다. 9개는 규칙 없이도 이미 일치했으니 그 부분은 모델의 기본값이 이 프로필과 같은 겁니다. 4개는 규칙이 선택을 움직였습니다. 2개는 불일치입니다. 버그픽스에서 에이전트는 실패하는 테스트를 먼저 쓰기를 고집했고 위험 장면에서는 "기존 의존성 우선"을 "설치 전 확인"과 같은 것으로 취급했습니다. 불일치가 쓸모 있는 부분입니다. 어느 규칙 문장을 날카롭게 다듬어야 하는지 알려주고 탐침은 1분이면 도니 고친 뒤 바로 확인할 수 있습니다. 탐침이 아닌 것: 강제 A/B 답은 지시 아래에서의 의도를 재는 것이지 긴 에이전트 루프 안의 행동이 아니고 이건 모델 하나에서 한 번 돌린 기록입니다. 영수증은 원문 답변을 전부 담고 있어 누구든 다시 읽을 수 있습니다.
+
 ## 얻는 것
 
 15번째 X 이후 `~/.claude/xout/`에 세 파일이 착지합니다:
 
 | 파일 | 내용 |
 |---|---|
-| `XOUT.md` | Claude Code용 실행 가능한 규칙 8줄 |
+| `XOUT.md` | 읽는 에이전트를 위해 쓴 실행 규칙 8줄: 누구의 선호이며 정면 충돌 시 프로젝트 규칙이 이긴다는 한 문단 프리앰블, 일상 작업 섹션, 조건을 한 번만 정의하고 애매할 때의 판단을 강조한 되돌리기 어려운 작업 섹션. 각 규칙에는 당신이 X로 지운 대안이 적힙니다 |
 | `manifest.json` | 규칙 값, 확신 라벨, 출처, 콘텐츠 해시 |
 | `settings.xout.json` | 검토 가능한 설정 제안 |
 
@@ -156,6 +177,8 @@ X로 직접 확정한 규칙은 **확정**, xout이 묻지 않고 추정한 기�
 | `xout undo` | 소유한 import 한 줄 제거 - 완전한 롤백 | 소유한 한 줄 | - |
 | `xout enable --grant` | 활성화: 소유 `@import` 한 줄 추가 | 소유한 한 줄 | 명시적 |
 | `xout mine [경로]` | 이미 있는 CLAUDE.md/AGENTS.md/.cursorrules를 축 관측으로 읽기 - file:line 영수증 동반 | 없음 | - |
+| `xout conflicts [경로]` | 프로젝트 규칙 파일에서 당신의 규칙과 다른 값을 요구하는 줄을 file:line으로 보고 | 없음 | - |
+| `xout probe` | 외부 러너(기본 `claude -p`)에 같은 A/B를 규칙 없이/`XOUT.md`를 앞세워 두 번 묻고 규칙별 유지 여부를 영수증으로 남김 | 소유 디렉토리(`probes/`)만 | 옵트인 |
 | `xout pair` / `xout strike` | 에이전트/스크립트용 헤드리스 JSON 세션 | 소유 디렉토리만 | - |
 
 ## 믿을 수 있는 이유

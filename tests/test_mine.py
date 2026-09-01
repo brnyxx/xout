@@ -109,3 +109,83 @@ def test_cli_mine_empty_root(capsys, tmp_path: Path) -> None:
     )
     out = capsys.readouterr().out
     assert "관측" in out or "observation" in out
+
+
+# ---------------------------------------------------------------------------
+# 프로젝트 규칙 파일과의 충돌 - 두 맥락 어느 쪽 생존값도 아닌 관측만
+# ---------------------------------------------------------------------------
+
+
+def test_find_conflicts_respects_both_context_survivors() -> None:
+    from xout.mine import Observation, find_conflicts
+
+    observations = [
+        Observation("autonomy", "ask_first", "CLAUDE.md", 3, "Always ask for approval before editing."),
+        Observation("autonomy", "act_then_report", "CLAUDE.md", 4, "Act first."),
+        Observation("commit_style", "narrative", "AGENTS.md", 9, "narrative commit"),
+        Observation("scope_adherence", "strict", "AGENTS.md", 1, "stay in scope"),
+    ]
+    rules = {
+        "autonomy": ("act_then_report", "ask_first"),  # 조건부: 두 값 모두 생존
+        "commit_style": ("conventional", None),
+    }
+    conflicts = find_conflicts(observations, rules)
+    assert [(c.axis, c.observed_value, c.rule_value, c.line_no) for c in conflicts] == [
+        ("commit_style", "narrative", "conventional", 9)
+    ]
+    assert conflicts[0].to_dict()["path"] == "AGENTS.md"
+
+
+_AUTONOMY_LINES = {
+    "ask_first": "Always ask for approval before editing.",
+    "propose_then_act": "Write the plan first, then act.",
+    "act_then_report": "Act first, then report.",
+}
+
+
+def test_conflicts_command_reports_file_line_against_landed_rules(
+    capsys, tmp_path: Path
+) -> None:
+    import json
+
+    from xout.cli import main
+    from xout.compiler import MANIFEST_JSON
+    from xout.state import ColdOpenSession
+    from xout.store import EventStore
+
+    base = tmp_path / "base"
+    session = ColdOpenSession(store=EventStore(base), land_dir=base, lang="en")
+    while True:
+        snap = session.snapshot()
+        if snap.session_complete or snap.pair is None:
+            break
+        session.strike("left", expected_pair_id=snap.pair.pair_id)
+    manifest = json.loads((base / MANIFEST_JSON).read_text(encoding="utf-8"))
+    autonomy = next(r for r in manifest["rules"] if r["axis"] == "autonomy")
+    kept = {autonomy["value"], autonomy.get("irreversible_value")}
+    disagreeing = next(v for v in _AUTONOMY_LINES if v not in kept)
+    project = tmp_path / "project"
+    project.mkdir()
+    (project / "CLAUDE.md").write_text(
+        "# rules\n" + _AUTONOMY_LINES[disagreeing] + "\n", encoding="utf-8"
+    )
+
+    assert main(["conflicts", str(project), "--base-dir", str(base), "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    hit = [c for c in payload["conflicts"] if c["axis"] == "autonomy"]
+    assert hit and hit[0]["observed_value"] == disagreeing
+    assert hit[0]["line"] == 2 and hit[0]["path"].endswith("CLAUDE.md")
+
+    (project / "CLAUDE.md").write_text(
+        "# rules\n" + _AUTONOMY_LINES[autonomy["value"]] + "\n", encoding="utf-8"
+    )
+    assert main(["conflicts", str(project), "--base-dir", str(base), "--lang", "en"]) == 0
+    out = capsys.readouterr().out
+    assert "disagree" not in out or "No project rule file disagrees" in out
+
+
+def test_conflicts_command_without_rules_exits_one(capsys, tmp_path: Path) -> None:
+    from xout.cli import main
+
+    assert main(["conflicts", str(tmp_path), "--base-dir", str(tmp_path / "nothing"), "--lang", "en"]) == 1
+    assert "run xout first" in capsys.readouterr().out

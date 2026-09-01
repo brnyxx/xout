@@ -16,7 +16,7 @@ import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator
+from typing import Iterator, Mapping
 
 from xout.counter import DEFAULT_CATALOG
 
@@ -299,3 +299,48 @@ def summarize(observations: list[Observation]) -> dict[str, dict[str, int]]:
     for observation in observations:
         counts[observation.axis][observation.value] += 1
     return counts
+
+
+@dataclass(frozen=True, slots=True)
+class Conflict:
+    """프로젝트 규칙 파일의 한 줄이 컴파일된 규칙과 다른 값을 요구하는 지점."""
+
+    axis: str
+    rule_value: str
+    observed_value: str
+    path: str
+    line_no: int
+    line: str
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "axis": self.axis,
+            "rule_value": self.rule_value,
+            "observed_value": self.observed_value,
+            "path": self.path,
+            "line": self.line_no,
+            "text": self.line,
+        }
+
+
+def find_conflicts(
+    observations: list[Observation],
+    rules: Mapping[str, tuple[str, str | None]],
+) -> list[Conflict]:
+    """관측값이 두 맥락(일상/되돌리기 어려운 작업) 어느 쪽 생존값도 아니면 충돌이다.
+
+    rules: 축 -> (일상 생존값, 되돌리기-어려운-작업 생존값 또는 None).
+    프로젝트 규칙이 이기는 것은 XOUT.md 프리앰블이 이미 말한다 - 여기서는
+    어디가 갈리는지 file:line으로 보여 주기만 한다.
+    """
+    conflicts: list[Conflict] = []
+    for obs in observations:
+        kept = rules.get(obs.axis)
+        if kept is None:
+            continue
+        if obs.value in {value for value in kept if value}:
+            continue
+        conflicts.append(
+            Conflict(obs.axis, kept[0], obs.value, obs.path, obs.line_no, obs.line)
+        )
+    return conflicts

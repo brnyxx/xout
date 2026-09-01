@@ -19,7 +19,9 @@ cannot enforce by itself.
    Quality goes up; the catalog does not grow.
 5. **Zero runtime dependencies, zero LLM calls in a session.** The engine is
    stdlib-only. The measurement instrument must not depend on the thing it
-   measures.
+   measures. The one deliberate exception lives outside sessions: `xout probe`
+   is opt-in, calls an external runner the user names, and writes only a
+   receipt under the owned directory.
 6. **Consent gates every write outside the owned directory.** The only file
    xout touches outside `~/.claude/xout/` is one `@import` line in
    `~/.claude/CLAUDE.md`, receipt-proofed for rollback.
@@ -45,8 +47,11 @@ cannot enforce by itself.
   `chore:`). Bug fixes start from a failing reproduction test.
 - Versions are cut by maintainers only, slowly: minors every 6-12 months,
   patches for defects. Never bump a version inside a feature change.
-- User-facing copy never uses epistemic vocabulary in `XOUT.md` output
-  (falsification, hypothesis, grade live in the manifest, not the rules) -
-  guarded by the EPISTEMIC_TOKENS test.
+- User-facing copy never uses epistemic vocabulary in `XOUT.md` output or
+  probe prompts (falsification, hypothesis, grade live in the manifest, not
+  the rules) - guarded by the EPISTEMIC_TOKENS tests.
+- `XOUT.md` has a fixed skeleton per language (`XOUT_DOC`): preamble, routine
+  section, hard-to-reverse section with the condition defined once. Rule
+  sentences come from the rule tables; the skeleton never restates them.
 - Release rail: tag `vX.Y.Z` -> CI validates the version contract -> builds
   wheel/sdist/plugin ZIP with SHA256SUMS and provenance.
