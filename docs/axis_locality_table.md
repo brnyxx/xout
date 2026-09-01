@@ -1,42 +1,46 @@
-# 8축 국소성 판정표 (locality decision table)
+# 8축 x 3장면 판정표 (scene coverage table)
 
-catalog_version: v1
-status: 픽스처 저작 이전에 확정. 이 표가 fixtures/ 저작 형태를 결정한다.
+catalog_version: v2
+status: 픽스처 v2 저작 이전에 확정. 이 표가 fixtures/scenes.json 저작 형태를 결정한다.
+(v1의 전역/국소 이원 구조는 은퇴했다 - response_language, verbosity 축은 v2 카탈로그에서
+제거됐고, 구버전 이벤트의 해당 긋기는 재생 시 관용 처리된다.)
 
 ## 판정 기준
 
-- **국소(local) = 슬롯화**: 축의 값 차이가 트랜스크립트의 *특정 지점 한 곳*에서만 관측된다.
-  같은 skeleton을 공유하고 그 축의 슬롯 조각만 3변형으로 교체하면 대비가 성립한다.
-  배경 7축은 채굴 최빈값(카탈로그 튜플 index 0)으로 고정된다.
-- **전역(global) = 통짜**: 축의 값 차이가 문장 전체에 번져서 어느 한 조각으로 오려낼 수 없다.
-  슬롯 교체로는 대비가 성립하지 않으므로 값마다 트랜스크립트 3본을 통째로 저작한다.
+- **모든 축은 슬롯화된다**: 축의 값 차이가 트랜스크립트의 특정 지점 한 곳에서만
+  관측된다. 같은 skeleton을 공유하고 그 축의 슬롯 조각만 3변형으로 교체하면
+  대비가 성립한다. 배경 슬롯은 채굴 최빈값(카탈로그 튜플 index 0)으로 고정된다.
+- **맥락 클래스**: 장면은 routine(일상 작업) 또는 irreversible(되돌리기 어려운 작업)
+  중 하나에 속한다. 두 맥락에서 모두 측정되는 축(교차 축)은 맥락별 생존값이 갈릴 때
+  조건부 규칙으로 컴파일된다. 조건은 추정이 아니라 긋기 증거에서만 나온다.
 
-판별 질문: "이 축의 값을 바꿀 때, 바뀌는 문자 구간이 연속된 한 덩어리인가?"
-아니오이면 전역이다.
+## 장면 구성
 
-## 판정표
+| 장면 | 맥락 | 판별 축 (5) |
+|---|---|---|
+| scn-bugfix (페이지네이션 수정) | routine | autonomy, scope_adherence, test_discipline, comment_doc, error_behavior |
+| scn-feature (CSV 내보내기 추가) | routine | scope_adherence, test_discipline, dependency_policy, verification, commit_style |
+| scn-risky (스키마 마이그레이션) | irreversible | autonomy, error_behavior, verification, dependency_policy, commit_style |
 
-| # | axis | 한국어 | 값 3종 (index 0 = 채굴 최빈값) | 판정 | 대비가 걸리는 지점 | 근거 |
-|---|------|--------|--------------------------------|------|--------------------|------|
-| 1 | `response_language` | 응답언어 | korean / english / mirror_user | **전역(통짜)** | 응답 전체 | 값이 바뀌면 모든 문장이 다시 쓰인다. 잘라낼 조각이 없다 |
-| 2 | `verbosity` | 장황함 | terse / balanced / explanatory | **전역(통짜)** | 응답 전체 | 값 차이가 조각 개수와 문장 길이 자체를 바꾼다. 슬롯 경계가 값마다 달라진다 |
-| 3 | `autonomy` | 자율성 | ask_first / propose_then_act / act_then_report | 국소(슬롯) | 착수 선언 1문장 | 나머지 본문은 동일하고 "물을지/알리고 할지/하고 보고할지"만 갈린다 |
-| 4 | `commit_style` | 커밋스타일 | conventional / narrative / no_auto_commit | 국소(슬롯) | 커밋 줄 | 커밋 제목 한 줄에 국한된다 |
-| 5 | `test_discipline` | 테스트규율 | test_first / test_after / on_request | 국소(슬롯) | 테스트 언급 1문장 | 수정 본문은 그대로이고 테스트를 언제 썼는지만 갈린다 |
-| 6 | `comment_doc` | 주석문서화 | minimal / docstring_only / thorough | 국소(슬롯) | 패치 코드블록 | 코드블록 한 덩어리 안에서만 변한다 |
-| 7 | `error_behavior` | 에러시행동 | stop_and_report / retry_then_report / self_heal | 국소(슬롯) | 예외 처리 서술 1문장 | 실패 시 행동 문장 하나에 국한된다 |
-| 8 | `scope_adherence` | 범위준수 | strict / adjacent_fix_ok / proactive | 국소(슬롯) | 범위 선언 1문장 | 인접 수정을 건드렸는지 한 문장에 국한된다 |
+## 축 커버리지
 
-## 귀결
+| 축 | routine | irreversible | 교차(조건부 가능) |
+|---|---|---|---|
+| autonomy | scn-bugfix | scn-risky | O |
+| error_behavior | scn-bugfix | scn-risky | O |
+| verification | scn-feature | scn-risky | O |
+| dependency_policy | scn-feature | scn-risky | O |
+| commit_style | scn-feature | scn-risky | O |
+| scope_adherence | scn-bugfix, scn-feature | - | X (routine 교차 검증) |
+| test_discipline | scn-bugfix, scn-feature | - | X (routine 교차 검증) |
+| comment_doc | scn-bugfix | - | X (단일 장면 - 맥락 불변 스타일 축) |
 
-- 전역 2축 (`response_language`, `verbosity`) -> `fixtures/global_wholes.json`, 축당 통짜 3본.
-- 국소 6축 -> `fixtures/scene_skeleton.json` 공통 skeleton 1본 + `fixtures/axis_slots.json` 축당 대비 슬롯 3변형.
-- 저작 상한 준수: 국소 6축 x 3변형 = 18조각(짧은 문장/코드블록) + 전역 2축 x 3본 = 6본.
-  시나리오 1개(S_scn=1) 기준 LLM 저작 호출 10회 내, 재생성 버퍼 포함 20회 내에 든다.
-- 첫 페어는 `autonomy`(자율성) 축으로 고정한다. 국소 축이므로 콜드 오픈 10초 계약을 해치지 않는다.
+## 스케줄링 계약
 
-## 이 표가 없으면 깨지는 것
-
-전역 축을 슬롯으로 잘못 저작하면 좌우가 같은 skeleton을 공유하게 되어
-"응답언어를 바꿨는데 문장 구조는 그대로"인 비현실 페어가 만들어진다.
-그 페어에서의 긋기는 축에 귀속되지 못하고 판별력을 잃는다.
+- 페어 목록은 라운드 교차 순서다: 라운드 r = 각 (장면, 축)의 r번째 값 조합.
+  세션은 자연히 장면1 -> 장면2 -> 장면3 순서로 흐른다.
+- 판별력 판정은 **페어가 속한 맥락의 생존값 기준**이다. routine에서 지워진 값이
+  irreversible 페어의 판별력을 죽이지 않는다 (맥락 간 오염 금지).
+- 세션 유효성은 판별 증거가 남은 축 수로 판정한다(봉인 하한 5축). 다중 장면
+  설계에서 완전 판별(생존 1값)은 맥락 간 값 분화에 달려 있어 세션 품질의
+  지표가 아니다.
