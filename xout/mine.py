@@ -248,6 +248,26 @@ def _iter_rule_files(root: Path) -> Iterator[Path]:
             yield from _emit(path)
 
 
+def _without_owned_text(text: str) -> str:
+    """xout이 직접 쓴 소유 블록과 @import 줄을 비운다 - 줄 번호는 유지.
+
+    자기 산출물을 다시 채굴하면 자기 규칙이 중복·모순으로 보고된다.
+    """
+    from xout.targets import find_block  # targets는 mine을 import하지 않는다
+
+    while True:
+        match = find_block(text)
+        if match is None:
+            break
+        blanked = "".join("\n" if ch == "\n" else " " for ch in match.group(0))
+        text = text[: match.start()] + blanked + text[match.end():]
+    lines = text.split("\n")
+    return "\n".join(
+        "" if line.lstrip().startswith("@") and ("XOUT.md" in line or "POPPER.md" in line) else line
+        for line in lines
+    )
+
+
 def _observe_file(path: Path, display: str) -> list[Observation]:
     try:
         text = path.read_text(encoding="utf-8", errors="replace")
@@ -255,7 +275,7 @@ def _observe_file(path: Path, display: str) -> list[Observation]:
         logger.warning("규칙 파일을 읽지 못했다: %s", path, exc_info=True)
         return []
     found: list[Observation] = []
-    for line_no, raw in enumerate(text.splitlines(), start=1):
+    for line_no, raw in enumerate(_without_owned_text(text).splitlines(), start=1):
         line = raw.strip()
         if not line or len(line) > _MAX_LINE_CHARS:
             continue

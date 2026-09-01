@@ -189,3 +189,18 @@ def test_conflicts_command_without_rules_exits_one(capsys, tmp_path: Path) -> No
 
     assert main(["conflicts", str(tmp_path), "--base-dir", str(tmp_path / "nothing"), "--lang", "en"]) == 1
     assert "run xout first" in capsys.readouterr().out
+
+
+def test_mine_skips_xout_owned_blocks_and_import_line(tmp_path: Path) -> None:
+    """xout이 직접 쓴 블록/import 줄을 다시 채굴해 자기 규칙을 중복·모순으로 보고하면 안 된다."""
+    from xout.targets import render_block
+
+    project = tmp_path / "p"
+    project.mkdir()
+    own = render_block("# xout Rules\n\n- Always ask for approval before editing.\n- Act first, then report. (the user rejected: prefer_existing)\n")
+    (project / "AGENTS.md").write_text(
+        "Write the plan first, then act.\n\n" + own + "\n\nnarrative commit\n@~/.claude/xout/XOUT.md\n",
+        encoding="utf-8",
+    )
+    observations = mine([project])
+    assert [(o.value, o.line_no) for o in observations] == [("propose_then_act", 1), ("narrative", 11)]
