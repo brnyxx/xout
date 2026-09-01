@@ -1,9 +1,14 @@
 {
-  "catalog_version": "v1",
-  "pack_id": "popper-fixture-pack",
+  "catalog_version": "v2",
+  "pack_id": "xout-fixture-pack",
   "provenance": "render-then-freeze",
-  "scenario_count": 1,
-  "scene_ids": ["scn-pagination-fix"],
-  "global_axes": ["response_language", "verbosity"],
-  "files": ["scene_skeleton.json", "axis_slots.json", "global_wholes.json"]
+  "scenario_count": 3,
+  "scene_ids": [
+    "scn-bugfix",
+    "scn-feature",
+    "scn-risky"
+  ],
+  "files": [
+    "scenes.json"
+  ]
 }

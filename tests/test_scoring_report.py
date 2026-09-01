@@ -43,32 +43,34 @@ OUT_OF_CATALOG_TEXT = "커밋 메시지와 PR 본문에 이모지를 쓰지 않�
 
 # (label_id, rule_text, draft_axis, draft_value, confirmed_axis, confirmed_value)
 LABEL_SPECS = (
-    ("gt-001", "모든 응답과 설명은 반드시 한국어로 작성한다.",
-     "response_language", "korean", "response_language", "korean"),
-    ("gt-002", "결론과 코드만 제시하고 장황한 부연 설명은 생략한다.",
-     "verbosity", "terse", "verbosity", "terse"),
+    ("gt-001", "새 패키지보다 기존 의존성을 우선한다.",
+     "dependency_policy", "prefer_existing", "dependency_policy", "prefer_existing"),
+    ("gt-002", "완료를 선언하기 전에 테스트를 실제로 돌려 확인한다.",
+     "verification", "always_run", "verification", "always_run"),
     ("gt-003", "코드를 고치기 전에는 계획을 먼저 보여주고 승인을 받는다.",
      "autonomy", "ask_first", "autonomy", "ask_first"),
     ("gt-004", "커밋 메시지는 conventional prefix로 시작한다.",
      "commit_style", "conventional", "commit_style", "conventional"),
     ("gt-005", OUT_OF_CATALOG_TEXT,
      "commit_style", "narrative", None, None),
+    ("gt-006", "모든 응답과 설명은 반드시 한국어로 작성한다.",
+     "response_language", "korean", "response_language", "korean"),
 )
 
 RESTORED_RULES = (
-    {"axis": "response_language", "value": "korean",
-     "corroboration_grade": "discriminated", "catalog_version": "v1"},
-    {"axis": "verbosity", "value": "balanced",
-     "corroboration_grade": "discriminated", "catalog_version": "v1"},
+    {"axis": "dependency_policy", "value": "prefer_existing",
+     "corroboration_grade": "discriminated", "catalog_version": "v2"},
+    {"axis": "verification", "value": "on_risky",
+     "corroboration_grade": "discriminated", "catalog_version": "v2"},
     {"axis": "autonomy", "value": "ask_first",
-     "corroboration_grade": "untested", "catalog_version": "v1"},
+     "corroboration_grade": "untested", "catalog_version": "v2"},
     {"axis": "commit_style", "value": "no_auto_commit",
-     "corroboration_grade": "discriminated", "catalog_version": "v1"},
+     "corroboration_grade": "discriminated", "catalog_version": "v2"},
 )
 
 CORRECTIONS = (
     {"axis": "commit_style", "cell": CELL_CORRECTED,
-     "conflict_id": "commit_style::user-commit::v1", "in_core_denominator": False},
+     "conflict_id": "commit_style::user-commit::v2", "in_core_denominator": False},
 )
 
 
@@ -146,16 +148,17 @@ class TestFiveCellClassification:
             CELL_RESTORED: 1,
             CELL_MIS_RESTORED: 1,
             CELL_UNDISCRIMINATED: 1,
-            CELL_UNMAPPABLE: 1,
+            CELL_UNMAPPABLE: 2,
             CELL_CORRECTED: 1,
         }
 
     def test_cells_carry_axis_and_values(self, report) -> None:
         by_axis = {row["axis"]: row for row in report.cells}
-        assert by_axis["response_language"]["cell"] == CELL_RESTORED
-        assert by_axis["verbosity"]["cell"] == CELL_MIS_RESTORED
-        assert by_axis["verbosity"]["handwritten_value"] == "terse"
-        assert by_axis["verbosity"]["restored_value"] == "balanced"
+        assert by_axis["dependency_policy"]["cell"] == CELL_RESTORED
+        assert by_axis["response_language"]["cell"] == CELL_UNMAPPABLE
+        assert by_axis["verification"]["cell"] == CELL_MIS_RESTORED
+        assert by_axis["verification"]["handwritten_value"] == "always_run"
+        assert by_axis["verification"]["restored_value"] == "on_risky"
         assert by_axis["autonomy"]["cell"] == CELL_UNDISCRIMINATED
         assert by_axis["commit_style"]["cell"] == CELL_CORRECTED
         assert by_axis[None]["cell"] == CELL_UNMAPPABLE
@@ -187,7 +190,7 @@ class TestCorrectedCellExclusion:
         assert len(report.corrected) == 1
         row = report.corrected[0]
         assert row["axis"] == "commit_style"
-        assert row["conflict_id"] == "commit_style::user-commit::v1"
+        assert row["conflict_id"] == "commit_style::user-commit::v2"
         assert row["in_core_denominator"] is False
         assert row["handwritten_value"] == "conventional"
         assert row["restored_value"] == "no_auto_commit"
@@ -214,7 +217,7 @@ class TestAccuracyAndCoverage:
 
     def test_accuracy_denominator_never_counts_unmappable(self, report) -> None:
         unmappable = [row for row in report.cells if row["cell"] == CELL_UNMAPPABLE]
-        assert len(unmappable) == 1
+        assert len(unmappable) == 2
         assert report.accuracy["denominator"] + len(unmappable) + len(report.corrected) == len(
             report.cells
         )
@@ -223,8 +226,8 @@ class TestAccuracyAndCoverage:
         assert report.coverage["mapped_axes"] == [
             "autonomy",
             "commit_style",
-            "response_language",
-            "verbosity",
+            "dependency_policy",
+            "verification",
         ]
         assert report.coverage["mapped_axis_total"] == 4
         assert report.coverage["catalog_axis_total"] == len(DEFAULT_CATALOG)
@@ -238,9 +241,9 @@ class TestLlmReviewDisagreement:
 
     def test_disagreement_ratio_recorded(self, report) -> None:
         record = report.llm_review_disagreement
-        assert record["total_labels"] == 5
+        assert record["total_labels"] == 6
         assert record["disagreements"] == 1
-        assert record["ratio"] == pytest.approx(1 / 5)
+        assert record["ratio"] == pytest.approx(1 / 6)
 
     def test_disagreement_rows_carry_both_labels(self, report) -> None:
         (row,) = report.llm_review_disagreement["rows"]
@@ -259,16 +262,18 @@ class TestOutOfCatalogRefutationLog:
             for line in log_path.read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
-        assert len(lines) == 1
+        assert len(lines) == 2
         entry = lines[0]
         assert entry["record"] == OUT_OF_CATALOG_RECORD
         assert entry["rule_text"] == OUT_OF_CATALOG_TEXT
         assert entry["label_id"] == "gt-005"
-        assert entry["catalog_version"] == "v1"
         assert entry["ground_truth_hash"].startswith("sha256:")
+        legacy = lines[1]
+        assert legacy["label_id"] == "gt-006"
+        assert legacy["legacy_axis"] == "response_language"
 
     def test_report_keeps_out_of_catalog_rows(self, report) -> None:
-        assert len(report.out_of_catalog) == 1
+        assert len(report.out_of_catalog) == 2
         assert report.out_of_catalog[0]["rule_text"] == OUT_OF_CATALOG_TEXT
 
     def test_log_is_append_only_across_runs(self, ground_truth_path: Path, tmp_path: Path) -> None:
@@ -283,7 +288,7 @@ class TestOutOfCatalogRefutationLog:
                 refutation_log_path=log, now=NOW,
             )
         lines = [line for line in log.read_text(encoding="utf-8").splitlines() if line.strip()]
-        assert len(lines) == 2
+        assert len(lines) == 4
 
 
 class TestSealRefusal:
@@ -299,7 +304,7 @@ class TestSealRefusal:
         expected = ground_truth_file_hash(ground_truth_path)
         body = ground_truth_path.read_text(encoding="utf-8")
         ground_truth_path.write_text(
-            body.replace('"value": "terse"', '"value": "balanced"'), encoding="utf-8"
+            body.replace('"value": "always_run"', '"value": "on_risky"'), encoding="utf-8"
         )
         with pytest.raises(SealViolation):
             load_ground_truth(ground_truth_path, expected_file_hash=expected)
@@ -311,8 +316,8 @@ class TestSealRefusal:
         # 초안 봉인 해시 재계산이 어긋나 봉인 위반으로 거부된다.
         body = ground_truth_path.read_text(encoding="utf-8")
         tampered = body.replace(
-            '"llm_draft": {"axis": "verbosity", "value": "terse"}',
-            '"llm_draft": {"axis": "verbosity", "value": "balanced"}',
+            '"llm_draft": {"axis": "verification", "value": "always_run"}',
+            '"llm_draft": {"axis": "verification", "value": "on_risky"}',
         )
         assert tampered != body
         ground_truth_path.write_text(tampered, encoding="utf-8")
@@ -340,19 +345,19 @@ class TestVersionParameterization:
     """리포트는 (catalog_version, metric_spec_version)으로 파라미터화된다."""
 
     def test_versions_are_stamped_in_report(self, report) -> None:
-        assert report.catalog_version == "v1"
+        assert report.catalog_version == "v2"
         assert report.metric_spec_version
         payload = report.to_dict()
-        assert payload["catalog_version"] == "v1"
+        assert payload["catalog_version"] == "v2"
         assert payload["metric_spec_version"] == report.metric_spec_version
 
-    def test_catalog_version_mismatch_refused(self, ground_truth_path: Path) -> None:
+    def test_catalog_version_mismatch_refused(self, tmp_path: Path) -> None:
+        target = write_ground_truth(tmp_path / "gt-v0.jsonl", catalog_version="v0")
         gt = load_ground_truth(
-            ground_truth_path,
-            expected_file_hash=ground_truth_file_hash(ground_truth_path),
+            target, expected_file_hash=ground_truth_file_hash(target)
         )
         with pytest.raises(ScoringViolation):
-            score_restoration(gt, RESTORED_RULES, catalog_version="v2", now=NOW)
+            score_restoration(gt, RESTORED_RULES, now=NOW)
 
     def test_restored_rule_catalog_stamp_mismatch_refused(
         self, ground_truth_path: Path
@@ -403,11 +408,16 @@ class TestSealedExampleArtifact:
         )
         counts = result.cell_counts()
         # 복원 룰이 없으면 매핑축은 전부 미판별, 장외 문장은 unmappable로만 남는다
+        legacy = ("response_language", "verbosity")
         assert counts[CELL_UNDISCRIMINATED] == sum(
-            1 for label in gt.labels if label.mappable
+            1
+            for label in gt.labels
+            if label.mappable and label.confirmed_axis not in legacy
         )
         assert counts[CELL_UNMAPPABLE] == sum(
-            1 for label in gt.labels if not label.mappable
+            1
+            for label in gt.labels
+            if not label.mappable or label.confirmed_axis in legacy
         )
         assert counts[CELL_RESTORED] == 0
         assert counts[CELL_MIS_RESTORED] == 0

@@ -70,18 +70,18 @@ def _flip_probe(axis: str) -> Event:
 
 
 def _conflict_row() -> dict:
-    manual = ManualRule(rule_id="rule-9", axis="response_language", value="english", text="영어로 답한다")
+    manual = ManualRule(rule_id="rule-9", axis="dependency_policy", value="free", text="필요한 패키지는 바로 설치한다")
     compiled = ConflictCompiledRule(
-        rule_id="v1:response_language:korean",
-        axis="response_language",
-        value="korean",
-        text="한국어로 답한다",
+        rule_id="v1:dependency_policy:prefer_existing",
+        axis="dependency_policy",
+        value="prefer_existing",
+        text="새 패키지보다 기존 의존성을 우선한다",
         corroboration_grade="untested",
         value_source="mined-prior",
     )
     entry = ConflictEntry(
-        conflict_id=conflict_id("response_language", "rule-9", "v1"),
-        axis="response_language",
+        conflict_id=conflict_id("dependency_policy", "rule-9", "v1"),
+        axis="dependency_policy",
         catalog_version="v1",
         manual=manual,
         compiled=compiled,
@@ -92,7 +92,7 @@ def _conflict_row() -> dict:
 @pytest.fixture()
 def manifest() -> dict:
     """실제 컴파일러 경로로 만든 manifest - 불안정 1 + untested-prior 7 + 충돌 1."""
-    rules = compile_rules((_flip_probe("verbosity"),))
+    rules = compile_rules((_flip_probe("verification"),))
     documents = {XOUT_MD: render_xout_md(rules), SETTINGS_JSON: render_settings(rules)}
     return build_manifest(
         rules,
@@ -213,8 +213,8 @@ def test_queue_total_order_unstable_then_untested_then_conflict(manifest: dict) 
     # 클래스 안에서는 manifest가 매긴 order를 유지한다.
     untested = [t for t in ordered if t.klass == "untested-prior"]
     assert [t.source_order for t in untested] == sorted(t.source_order for t in untested)
-    assert ordered[0].axis == "verbosity"
-    assert ordered[-1].conflict_id == "response_language::rule-9::v1"
+    assert ordered[0].axis == "verification"
+    assert ordered[-1].conflict_id == "dependency_policy::rule-9::v1"
 
 
 def test_plan_targets_are_the_head_of_the_ordered_queue(manifest: dict) -> None:

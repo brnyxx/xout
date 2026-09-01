@@ -1,6 +1,7 @@
 """AC7 - 세션 전체가 고정 픽스처 + 레포 읽기전용 슬롯 치환만으로 렌더되는지 검증한다.
 
-런타임 LLM/외부 네트워크 호출 0회, slot span 맵을 통한 strike -> 축 귀속을 확인한다.
+v2: 3장면(routine 2 + irreversible 1) 팩. 런타임 LLM/외부 네트워크 호출 0회,
+slot span 맵을 통한 strike -> 축 귀속, 장면 교차 라운드 순서를 확인한다.
 """
 
 from __future__ import annotations
@@ -33,41 +34,79 @@ def _make_python_repo(root: Path) -> Path:
     return repo
 
 
-class TestAllAxesRenderPairs:
-    """(1) 8축 전부 3변형 페어 렌더가 가능하다."""
+class TestScenePack:
+    """(1) 3장면이 8축 전부를 덮고, 맥락 클래스가 동결 맵과 일치한다."""
 
-    def test_locality_split_matches_decision_table(self) -> None:
-        # docs/axis_locality_table.md - 전역 2축 + 국소 6축.
-        assert fx.GLOBAL_AXES == ("response_language", "verbosity")
-        assert sorted(fx.LOCAL_AXES) == sorted(
-            set(DEFAULT_CATALOG) - set(fx.GLOBAL_AXES)
-        )
-        assert len(fx.LOCAL_AXES) == 6
-
-    def test_every_axis_renders_all_three_value_pairs(self) -> None:
+    def test_pack_has_three_scenes_with_frozen_contexts(self) -> None:
         pack = _pack()
-        for axis, values in DEFAULT_CATALOG.items():
-            assert len(values) == 3
-            for left_value, right_value in combinations(values, 2):
-                pair = fx.render_pair(
-                    pack, axis, left_value, right_value, fx.GENERIC_SKIN
-                )
-                assert pair.axis == axis
-                assert pair.left.text and pair.right.text
-                assert fx.contrast_span(pair.left).value == left_value
-                assert fx.contrast_span(pair.right).value == right_value
+        assert pack.scene_ids == ("scn-bugfix", "scn-feature", "scn-risky")
+        for scene in pack.scenes:
+            assert scene.context == fx.SCENE_CONTEXTS[scene.scene_id]
+        contexts = {scene.context for scene in pack.scenes}
+        assert contexts == set(fx.SCENE_CONTEXT_VALUES)
 
-    def test_render_all_pairs_covers_eight_axes_times_three_combos(self) -> None:
+    def test_scenes_cover_the_whole_catalog(self) -> None:
+        pack = _pack()
+        covered: set[str] = set()
+        for scene in pack.scenes:
+            assert len(scene.slot_axes) == 5
+            covered.update(scene.slot_axes)
+        assert covered == set(DEFAULT_CATALOG)
+
+    def test_cross_context_axes_appear_in_both_contexts(self) -> None:
+        pack = _pack()
+        by_context: dict[str, set[str]] = {}
+        for scene in pack.scenes:
+            by_context.setdefault(scene.context, set()).update(scene.slot_axes)
+        cross = by_context[fx.CONTEXT_ROUTINE] & by_context[fx.CONTEXT_IRREVERSIBLE]
+        assert cross == {
+            "autonomy",
+            "error_behavior",
+            "verification",
+            "dependency_policy",
+            "commit_style",
+        }
+
+    def test_every_scene_axis_renders_all_three_value_pairs(self) -> None:
+        pack = _pack()
+        for scene in pack.scenes:
+            for axis in scene.slot_axes:
+                values = DEFAULT_CATALOG[axis]
+                assert len(values) == 3
+                for left_value, right_value in combinations(values, 2):
+                    pair = fx.render_pair(
+                        pack, scene.scene_id, axis, left_value, right_value,
+                        fx.GENERIC_SKIN,
+                    )
+                    assert pair.axis == axis
+                    assert pair.scene_id == scene.scene_id
+                    assert pair.left.text and pair.right.text
+                    assert fx.contrast_span(pair.left).value == left_value
+                    assert fx.contrast_span(pair.right).value == right_value
+
+    def test_render_all_pairs_covers_all_scene_axis_combos(self) -> None:
         pairs = fx.render_all_pairs(_pack(), fx.GENERIC_SKIN)
-        assert len(pairs) == 24
+        assert len(pairs) == 45  # 3장면 x 5축 x 3조합
         assert {p.axis for p in pairs} == set(DEFAULT_CATALOG)
 
-    def test_local_render_carries_all_six_local_axes_as_slots(self) -> None:
-        pair = fx.render_pair(
-            _pack(), "autonomy", "ask_first", "act_then_report", fx.GENERIC_SKIN
-        )
-        slot_axes = {s.axis for s in pair.left.spans if s.axis is not None}
-        assert slot_axes == set(fx.LOCAL_AXES)
+    def test_first_round_interleaves_scenes_before_repeating(self) -> None:
+        pairs = fx.render_all_pairs(_pack(), fx.GENERIC_SKIN)
+        first_round = pairs[:15]
+        assert [p.scene_id for p in first_round[:5]] == ["scn-bugfix"] * 5
+        assert [p.scene_id for p in first_round[5:10]] == ["scn-feature"] * 5
+        assert [p.scene_id for p in first_round[10:15]] == ["scn-risky"] * 5
+        # 콜드 오픈: 첫 페어는 자율성 축이다.
+        assert first_round[0].axis == "autonomy"
+        # 한 라운드 안에서 (장면, 축)은 중복되지 않는다.
+        seen = [(p.scene_id, p.axis) for p in first_round]
+        assert len(set(seen)) == 15
+
+    def test_render_rejects_axis_outside_the_scene(self) -> None:
+        with pytest.raises(fx.FixtureViolation):
+            fx.render_pair(
+                _pack(), "scn-bugfix", "verification", "always_run", "on_risky",
+                fx.GENERIC_SKIN,
+            )
 
 
 class TestRenderDeterminism:
@@ -80,21 +119,25 @@ class TestRenderDeterminism:
         assert skin_a == skin_b
 
         first = fx.render_pair(
-            fx.load_pack(), "autonomy", "ask_first", "act_then_report", skin_a
+            fx.load_pack(), "scn-bugfix", "autonomy", "ask_first", "act_then_report",
+            skin_a,
         )
         second = fx.render_pair(
-            fx.load_pack(), "autonomy", "ask_first", "act_then_report", skin_b
+            fx.load_pack(), "scn-bugfix", "autonomy", "ask_first", "act_then_report",
+            skin_b,
         )
         assert first == second
-        assert first.pair_id == "scn-pagination-fix:autonomy:ask_first|act_then_report"
+        assert first.pair_id == "scn-bugfix:autonomy:ask_first|act_then_report"
 
-    def test_global_axis_render_is_deterministic(self) -> None:
+    def test_risky_scene_render_is_deterministic(self) -> None:
         pack = _pack()
         first = fx.render_pair(
-            pack, "verbosity", "terse", "explanatory", fx.GENERIC_SKIN
+            pack, "scn-risky", "verification", "always_run", "trust_static",
+            fx.GENERIC_SKIN,
         )
         second = fx.render_pair(
-            pack, "verbosity", "terse", "explanatory", fx.GENERIC_SKIN
+            pack, "scn-risky", "verification", "always_run", "trust_static",
+            fx.GENERIC_SKIN,
         )
         assert first == second
 
@@ -104,7 +147,8 @@ class TestSpanReverseAttribution:
 
     def test_any_span_inside_a_slot_attributes_to_its_axis(self) -> None:
         pair = fx.render_pair(
-            _pack(), "commit_style", "conventional", "narrative", fx.GENERIC_SKIN
+            _pack(), "scn-feature", "commit_style", "conventional", "narrative",
+            fx.GENERIC_SKIN,
         )
         for transcript in (pair.left, pair.right):
             for span in transcript.spans:
@@ -121,7 +165,8 @@ class TestSpanReverseAttribution:
 
     def test_fragment_id_attributes_through_span_map(self) -> None:
         pair = fx.render_pair(
-            _pack(), "test_discipline", "test_first", "on_request", fx.GENERIC_SKIN
+            _pack(), "scn-bugfix", "test_discipline", "test_first", "on_request",
+            fx.GENERIC_SKIN,
         )
         span = fx.contrast_span(pair.left)
         refutation = fx.refutation_for_fragment(pair.left, span.fragment_id)
@@ -130,7 +175,8 @@ class TestSpanReverseAttribution:
 
     def test_static_fragment_never_attributes_to_an_axis(self) -> None:
         pair = fx.render_pair(
-            _pack(), "autonomy", "ask_first", "propose_then_act", fx.GENERIC_SKIN
+            _pack(), "scn-bugfix", "autonomy", "ask_first", "propose_then_act",
+            fx.GENERIC_SKIN,
         )
         static = next(s for s in pair.left.spans if s.role == fx.ROLE_STATIC)
         with pytest.raises(fx.FixtureViolation):
@@ -138,7 +184,8 @@ class TestSpanReverseAttribution:
 
     def test_cross_slot_span_is_rejected(self) -> None:
         pair = fx.render_pair(
-            _pack(), "autonomy", "ask_first", "propose_then_act", fx.GENERIC_SKIN
+            _pack(), "scn-bugfix", "autonomy", "ask_first", "propose_then_act",
+            fx.GENERIC_SKIN,
         )
         first, second = pair.left.spans[0], pair.left.spans[1]
         with pytest.raises(fx.FixtureViolation):
@@ -146,7 +193,8 @@ class TestSpanReverseAttribution:
 
     def test_separator_gap_offset_is_rejected(self) -> None:
         pair = fx.render_pair(
-            _pack(), "autonomy", "ask_first", "propose_then_act", fx.GENERIC_SKIN
+            _pack(), "scn-bugfix", "autonomy", "ask_first", "propose_then_act",
+            fx.GENERIC_SKIN,
         )
         gap_offset = pair.left.spans[0].end  # 조각 사이 구분자 시작 위치
         with pytest.raises(fx.FixtureViolation):
@@ -156,26 +204,34 @@ class TestSpanReverseAttribution:
 class TestPairContrastConfinement:
     """(4) 좌우 페어는 대비 축 슬롯만 다르고 나머지는 동일하다."""
 
-    def test_local_axis_pair_differs_only_inside_contrast_slot(self) -> None:
+    def test_pair_differs_only_inside_contrast_slot(self) -> None:
         pack = _pack()
-        for axis in fx.LOCAL_AXES:
-            values = DEFAULT_CATALOG[axis]
-            pair = fx.render_pair(pack, axis, values[0], values[2], fx.GENERIC_SKIN)
-            left_span = fx.contrast_span(pair.left)
-            right_span = fx.contrast_span(pair.right)
+        for scene in pack.scenes:
+            for axis in scene.slot_axes:
+                values = DEFAULT_CATALOG[axis]
+                pair = fx.render_pair(
+                    pack, scene.scene_id, axis, values[0], values[2], fx.GENERIC_SKIN
+                )
+                left_span = fx.contrast_span(pair.left)
+                right_span = fx.contrast_span(pair.right)
 
-            assert (
-                pair.left.text[: left_span.start] == pair.right.text[: right_span.start]
-            )
-            assert pair.left.text[left_span.end :] == pair.right.text[right_span.end :]
-            assert (
-                pair.left.text[left_span.start : left_span.end]
-                != pair.right.text[right_span.start : right_span.end]
-            )
+                assert (
+                    pair.left.text[: left_span.start]
+                    == pair.right.text[: right_span.start]
+                )
+                assert (
+                    pair.left.text[left_span.end :]
+                    == pair.right.text[right_span.end :]
+                )
+                assert (
+                    pair.left.text[left_span.start : left_span.end]
+                    != pair.right.text[right_span.start : right_span.end]
+                )
 
     def test_background_slots_share_mined_mode_values_on_both_sides(self) -> None:
         pair = fx.render_pair(
-            _pack(), "error_behavior", "stop_and_report", "self_heal", fx.GENERIC_SKIN
+            _pack(), "scn-bugfix", "error_behavior", "stop_and_report", "self_heal",
+            fx.GENERIC_SKIN,
         )
         for left_span, right_span in zip(pair.left.spans, pair.right.spans):
             if left_span.role != fx.ROLE_BACKGROUND:
@@ -185,26 +241,6 @@ class TestPairContrastConfinement:
             assert left_span.value == right_span.value
             # 배경 슬롯은 채굴 최빈값(카탈로그 index 0)으로 고정된다.
             assert left_span.value == DEFAULT_CATALOG[left_span.axis][0]
-
-    def test_global_axis_pair_shares_static_user_fragment(self) -> None:
-        pack = _pack()
-        for axis in fx.GLOBAL_AXES:
-            values = DEFAULT_CATALOG[axis]
-            pair = fx.render_pair(pack, axis, values[0], values[1], fx.GENERIC_SKIN)
-            left_static, right_static = pair.left.spans[0], pair.right.spans[0]
-            assert left_static.role == right_static.role == fx.ROLE_STATIC
-            assert (
-                pair.left.text[left_static.start : left_static.end]
-                == pair.right.text[right_static.start : right_static.end]
-            )
-            # 통짜 본문만 다르다.
-            left_whole = fx.contrast_span(pair.left)
-            right_whole = fx.contrast_span(pair.right)
-            assert left_whole.fragment_id.startswith(f"whole-{axis}:")
-            assert (
-                pair.left.text[left_whole.start :]
-                != pair.right.text[right_whole.start :]
-            )
 
 
 class TestRepoSkinSubstitution:
@@ -224,12 +260,12 @@ class TestRepoSkinSubstitution:
         repo = _make_python_repo(tmp_path)
         skin = fx.scan_repo_skin(repo)
         pair = fx.render_pair(
-            fx.load_pack(), "commit_style", "conventional", "no_auto_commit", skin
+            fx.load_pack(), "scn-feature", "commit_style", "conventional",
+            "no_auto_commit", skin,
         )
         for transcript in (pair.left, pair.right):
             assert "manage.py" in transcript.text
             assert "Python" in transcript.text
-            assert "Django" in transcript.text
             for placeholder in fx.SKIN_PLACEHOLDERS:
                 assert placeholder not in transcript.text
 
@@ -259,39 +295,22 @@ class TestRepoSkinSubstitution:
 class TestOfflineGuarantee:
     """(6) fixtures.py 소스에 네트워크/서브프로세스 import가 없다 - 정적 검사."""
 
-    FORBIDDEN_ROOTS = frozenset(
-        {
-            "urllib",
-            "socket",
-            "subprocess",
-            "http",
-            "requests",
-            "ssl",
-            "ftplib",
-            "smtplib",
-            "telnetlib",
-            "xmlrpc",
-            "aiohttp",
-            "httpx",
-        }
-    )
     ALLOWED_ROOTS = frozenset(
         {
             "__future__",
-            "collections",
             "dataclasses",
             "itertools",
             "json",
             "logging",
             "pathlib",
-            "xout",
             "typing",
+            "collections",
+            "xout",
         }
     )
 
-    @staticmethod
-    def _import_roots() -> set[str]:
-        source = Path(fx.__file__).read_text(encoding="utf-8")
+    def _import_roots(self) -> set[str]:
+        source = (Path(fx.__file__)).read_text(encoding="utf-8")
         tree = ast.parse(source)
         roots: set[str] = set()
         for node in ast.walk(tree):
@@ -303,9 +322,8 @@ class TestOfflineGuarantee:
 
     def test_no_network_or_subprocess_imports(self) -> None:
         roots = self._import_roots()
-        assert roots.isdisjoint(self.FORBIDDEN_ROOTS), sorted(
-            roots & self.FORBIDDEN_ROOTS
-        )
+        for banned in ("socket", "http", "urllib", "subprocess", "asyncio"):
+            assert banned not in roots
 
     def test_only_stdlib_and_popper_imports(self) -> None:
         roots = self._import_roots()

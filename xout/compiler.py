@@ -17,12 +17,13 @@ from typing import Any, Iterable, Mapping, Sequence
 
 from xout.atomic import atomic_write_text
 from xout.counter import DEFAULT_CATALOG, AxisCatalog, fold
-from xout.events import EventType
+from xout.events import EventType, StrikeEvent
+from xout.fixtures import CONTEXT_IRREVERSIBLE, CONTEXT_ROUTINE, SCENE_CONTEXTS
 from xout.locking import base_lock
 
 logger = logging.getLogger(__name__)
 
-CATALOG_VERSION = "v1"
+CATALOG_VERSION = "v2"
 METRIC_SPEC_VERSION = "v1"
 MANIFEST_VERSION = "1"
 SCOPE = "global"
@@ -58,15 +59,9 @@ MINED_PRIOR: dict[str, tuple[str, ...]] = {
 }
 
 RULE_TEXT: dict[tuple[str, str], str] = {
-    ("response_language", "korean"): "모든 응답과 설명은 한국어로 작성한다.",
-    ("response_language", "english"): "모든 응답과 설명은 영어로 작성한다.",
-    ("response_language", "mirror_user"): "사용자가 마지막에 쓴 언어로 응답한다.",
-    ("verbosity", "terse"): "결론과 코드만 제시한다. 요청받지 않은 배경 설명 문단은 쓰지 않는다.",
-    ("verbosity", "balanced"): "첫 문장에 결론을 쓰고, 근거는 그 아래 한 단락으로 제한한다.",
-    ("verbosity", "explanatory"): "변경의 배경, 검토한 대안, 선택 이유까지 단계별로 설명한다.",
     ("autonomy", "ask_first"): "코드를 수정하기 전에 계획을 제시하고 승인을 받는다. 명백한 오타 수정처럼 자명한 변경만 예외다.",
-    ("autonomy", "propose_then_act"): "짧은 계획을 먼저 적고 곧바로 실행한다. 삭제, push, 배포, 스키마 변경처럼 되돌리기 어려운 작업만 승인을 기다린다.",
-    ("autonomy", "act_then_report"): "되돌릴 수 있는 변경은 먼저 실행하고 변경 내역을 요약해 보고한다. 삭제, push, 배포, 스키마 변경처럼 되돌리기 어려운 작업은 실행 전에 확인받는다.",
+    ("autonomy", "propose_then_act"): "짧은 계획을 먼저 적고 곧바로 이어서 실행한다.",
+    ("autonomy", "act_then_report"): "먼저 실행하고 변경 내역을 요약해 보고한다.",
     ("commit_style", "conventional"): "커밋 메시지는 feat/fix/refactor 같은 conventional prefix로 시작한다. 리포에 이미 자리잡은 커밋 컨벤션이 있으면 그것을 우선한다.",
     ("commit_style", "narrative"): "커밋 메시지 제목은 변경 의도를 서술형 문장으로 적는다. 리포에 이미 자리잡은 커밋 컨벤션이 있으면 그것을 우선한다.",
     ("commit_style", "no_auto_commit"): "요청받지 않은 커밋은 만들지 않는다. 변경은 워킹 트리에 남겨 사용자가 확인 후 직접 커밋하게 한다.",
@@ -78,11 +73,40 @@ RULE_TEXT: dict[tuple[str, str], str] = {
     ("comment_doc", "thorough"): "공개 API에는 docstring을 쓰고, 비자명한 로직에만 인라인 주석을 남긴다.",
     ("error_behavior", "stop_and_report"): "에러가 나면 즉시 멈추고 원문 로그 그대로 보고한다. 로그를 요약하거나 가공하지 않는다.",
     ("error_behavior", "retry_then_report"): "일시적으로 보이는 실패는 한 번만 재시도한다. 그래도 실패하면 원문 로그와 함께 보고하고 멈춘다.",
-    ("error_behavior", "self_heal"): "테스트나 빌드 실패는 원인을 고쳐 통과할 때까지 진행한 뒤 결과를 보고한다. 단, 데이터를 지우거나 외부 상태를 바꾸는 복구는 멈추고 확인받는다.",
+    ("error_behavior", "self_heal"): "테스트나 빌드 실패는 원인을 고쳐 통과할 때까지 진행한 뒤 결과를 보고한다.",
     ("scope_adherence", "strict"): "요청받은 범위 밖의 파일은 수정하지 않는다. 범위 밖 결함을 발견하면 고치지 말고 보고만 한다.",
     ("scope_adherence", "adjacent_fix_ok"): "요청 범위와 직접 맞닿은 결함까지만 같은 변경에서 고치고, 그 사실을 보고에 명시한다. 그 밖의 발견은 보고만 한다.",
     ("scope_adherence", "proactive"): "작업 중 발견한 개선점은 같은 변경에 포함하되, 요청 범위와 부수 정리를 보고에서 구분해 적는다. diff가 요청보다 커지면 사전에 알린다.",
+    ("verification", "always_run"): "완료를 선언하기 전에 테스트와 빌드를 실제로 돌려 통과 출력을 확인한다.",
+    ("verification", "on_risky"): "위험한 변경일 때만 전체 검증을 돌리고, 평소에는 변경과 직접 관련된 테스트만 확인한다.",
+    ("verification", "trust_static"): "정적 확인(코드 재독, 타입 체크)으로 충분하다고 판단되면 그대로 완료를 선언한다.",
+    ("dependency_policy", "prefer_existing"): "새 패키지보다 기존 의존성과 표준 라이브러리를 우선한다. 불가피하게 추가하면 그 사실을 보고한다.",
+    ("dependency_policy", "ask_first"): "새 의존성은 추가하기 전에 반드시 확인을 받는다.",
+    ("dependency_policy", "free"): "필요한 의존성은 바로 추가하고, 추가한 목록을 보고에 남긴다.",
 }
+
+#: 맥락 분기 규칙의 되돌리기-어려운-작업 절 - 앞에 조건 접두가 붙는다.
+IRREVERSIBLE_CLAUSE: dict[tuple[str, str], str] = {
+    ("autonomy", "ask_first"): "실행 전에 반드시 승인을 받는다",
+    ("autonomy", "propose_then_act"): "계획을 알린 뒤 진행하되 최종 적용은 승인을 기다린다",
+    ("autonomy", "act_then_report"): "먼저 실행하고 결과를 보고한다",
+    ("error_behavior", "stop_and_report"): "에러 즉시 멈추고 원문 로그로 보고한다",
+    ("error_behavior", "retry_then_report"): "일시적 실패만 한 번 재시도하고 이후에는 멈춰 보고한다",
+    ("error_behavior", "self_heal"): "복구 로직을 넣어 끝까지 진행한 뒤 결과를 보고한다",
+    ("verification", "always_run"): "적용 전에 사본 리허설과 롤백 검증까지 실제로 돌린다",
+    ("verification", "on_risky"): "전체 검증과 리허설을 반드시 돌린다",
+    ("verification", "trust_static"): "정적 확인만으로 완료를 선언한다",
+    ("dependency_policy", "prefer_existing"): "기존 의존성만으로 해결한다",
+    ("dependency_policy", "ask_first"): "새 도구 설치 전에 반드시 확인을 받는다",
+    ("dependency_policy", "free"): "필요한 도구를 바로 설치해 진행한다",
+    ("commit_style", "conventional"): "커밋은 만들되 리포 컨벤션을 따른다",
+    ("commit_style", "narrative"): "커밋 제목은 변경 의도를 서술형으로 적는다",
+    ("commit_style", "no_auto_commit"): "커밋을 만들지 않고 변경을 워킹 트리에 남긴다",
+}
+
+IRREVERSIBLE_CONDITION_PREFIX = (
+    "단, 삭제, push, 배포, 마이그레이션처럼 되돌리기 어려운 작업에서는 "
+)
 
 # XOUT.md 본문에 절대 실려서는 안 되는 인식론 어휘.
 EPISTEMIC_TOKENS: tuple[str, ...] = (
@@ -272,6 +296,28 @@ def _grade(
     return GRADE_UNTESTED
 
 
+def _context_stream(
+    stream: Sequence[Any], context: str
+) -> tuple[Any, ...]:
+    """맥락 클래스에 속한 긋기만 남긴다 - 비긋기 이벤트(undo/revive)는 양쪽에 남는다."""
+    kept: list[Any] = []
+    for event in stream:
+        if isinstance(event, StrikeEvent):
+            if SCENE_CONTEXTS.get(event.scene_id, CONTEXT_ROUTINE) == context:
+                kept.append(event)
+        else:
+            kept.append(event)
+    return tuple(kept)
+
+
+def conditional_rule_text(
+    axis: str, routine_value: str, irreversible_value: str
+) -> str:
+    """두 맥락의 생존값이 갈릴 때 - 평시 문장 + 되돌리기-어려운-작업 절."""
+    clause = IRREVERSIBLE_CLAUSE[(axis, irreversible_value)]
+    return f"{RULE_TEXT[(axis, routine_value)]} {IRREVERSIBLE_CONDITION_PREFIX}{clause}."
+
+
 def compile_rules(
     events: Iterable[Any],
     catalog: AxisCatalog | None = None,
@@ -280,6 +326,8 @@ def compile_rules(
     stream = tuple(events)
     active = dict(catalog) if catalog is not None else dict(DEFAULT_CATALOG)
     state = fold(stream, catalog)
+    routine_state = fold(_context_stream(stream, CONTEXT_ROUTINE), catalog)
+    irreversible_state = fold(_context_stream(stream, CONTEXT_IRREVERSIBLE), catalog)
     flipped_axes = _probe_flip_axes(stream)
     pair_struck_axes, provenance = _strike_scan(stream)
 
@@ -288,7 +336,21 @@ def compile_rules(
         axis_state = state.axis(axis)
         surviving = tuple(axis_state.surviving)
         value = select_value(axis, surviving)
-        text = RULE_TEXT.get((axis, value))
+        routine_axis = routine_state.axis(axis)
+        irreversible_axis = irreversible_state.axis(axis)
+        if routine_axis.eliminated and irreversible_axis.eliminated:
+            routine_value = select_value(axis, tuple(routine_axis.surviving))
+            irreversible_value = select_value(
+                axis, tuple(irreversible_axis.surviving)
+            )
+            if routine_value != irreversible_value:
+                value = routine_value
+                text = conditional_rule_text(axis, routine_value, irreversible_value)
+            else:
+                value = routine_value
+                text = RULE_TEXT.get((axis, value))
+        else:
+            text = RULE_TEXT.get((axis, value))
         if text is None:
             raise CompileViolation(f"no executable rule text for {axis}={value}")
         pair_struck = axis in pair_struck_axes

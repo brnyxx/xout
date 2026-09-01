@@ -38,7 +38,7 @@ SESSION = "sess-compile"
 NOW = "2026-08-28T00:00:00+00:00"
 
 # 혼합 스트림에서 아무 이벤트도 받지 않는 축들 - 반증 이력 0건.
-UNTESTED_AXES = ("comment_doc", "response_language", "scope_adherence", "test_discipline")
+UNTESTED_AXES = ("comment_doc", "dependency_policy", "scope_adherence", "test_discipline")
 
 
 def _refutation(axis: str, value: str, side: str) -> Refutation:
@@ -105,7 +105,7 @@ def mixed_events(discriminating_strike):
     return (
         Event(type=EventType.SESSION_START, session_id=SESSION),
         discriminating_strike,
-        left_strike("verbosity", "terse"),
+        left_strike("verification", "always_run"),
         pair_strike("commit_style"),
         probe_flip("error_behavior"),
     )
@@ -148,7 +148,7 @@ def test_mixed_events_still_emit_all_eight_axes(mixed_events) -> None:
 def test_mixed_stream_yields_all_four_grades(mixed_events) -> None:
     rules = by_axis(compile_rules(mixed_events))
     assert rules["autonomy"].corroboration_grade == GRADE_DISCRIMINATED
-    assert rules["verbosity"].corroboration_grade == GRADE_INDISCRIMINATE
+    assert rules["verification"].corroboration_grade == GRADE_INDISCRIMINATE
     assert rules["commit_style"].corroboration_grade == GRADE_INDISCRIMINATE
     assert rules["error_behavior"].corroboration_grade == GRADE_UNSTABLE
     for axis in UNTESTED_AXES:
@@ -159,15 +159,15 @@ def test_value_source_is_orthogonal_to_grade(mixed_events) -> None:
     rules = by_axis(compile_rules(mixed_events))
     # 반증으로 좁혀진 축은 elicited.
     assert rules["autonomy"].value_source == SOURCE_ELICITED
-    assert rules["verbosity"].value_source == SOURCE_ELICITED
+    assert rules["verification"].value_source == SOURCE_ELICITED
     # 같은 indiscriminate 등급이라도 pair 긋기만 받은 축은 mined-prior다 - 등급과 출처는 직교한다.
     assert rules["commit_style"].value_source == SOURCE_MINED_PRIOR
     assert rules["error_behavior"].value_source == SOURCE_MINED_PRIOR
     assert (
-        rules["verbosity"].corroboration_grade
+        rules["verification"].corroboration_grade
         == rules["commit_style"].corroboration_grade
     )
-    assert rules["verbosity"].value_source != rules["commit_style"].value_source
+    assert rules["verification"].value_source != rules["commit_style"].value_source
 
 
 def test_discriminated_rule_carries_strike_provenance(

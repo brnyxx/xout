@@ -29,8 +29,8 @@ from xout.events import (
 
 SESSION = "sess-counter"
 AUTONOMY = "autonomy"
-VERBOSITY = "verbosity"
-LANGUAGE = "response_language"
+VERBOSITY = "verification"
+LANGUAGE = "dependency_policy"
 
 
 def _ref(axis: str, value: str, side: str = "left") -> Refutation:
@@ -126,7 +126,7 @@ def test_both_target_across_two_axes():
         StrikeTarget.BOTH,
         (
             _ref(AUTONOMY, "ask_first", side="left"),
-            _ref(VERBOSITY, "explanatory", side="right"),
+            _ref(VERBOSITY, "trust_static", side="right"),
         ),
     )
     state = fold([event])
@@ -286,8 +286,8 @@ def test_replay_is_deterministic():
             VERBOSITY,
             StrikeTarget.BOTH,
             (
-                _ref(VERBOSITY, "terse", side="left"),
-                _ref(VERBOSITY, "explanatory", side="right"),
+                _ref(VERBOSITY, "always_run", side="left"),
+                _ref(VERBOSITY, "trust_static", side="right"),
             ),
             pair_id="pair-2",
         ),
@@ -299,7 +299,7 @@ def test_replay_is_deterministic():
             (_ref(AUTONOMY, "ask_first", side="right"),),
             pair_id="pair-4",
         ),
-        _event(EventType.REVIVE, axis=VERBOSITY, value="terse"),
+        _event(EventType.REVIVE, axis=VERBOSITY, value="always_run"),
     ]
 
     first = fold(events)
@@ -390,7 +390,7 @@ def test_fold_consumes_event_log_container():
         _strike(
             VERBOSITY,
             StrikeTarget.LEFT,
-            (_ref(VERBOSITY, "terse"),),
+            (_ref(VERBOSITY, "always_run"),),
             pair_id="pair-2",
         )
     )

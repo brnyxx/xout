@@ -106,14 +106,14 @@ COLD_OPEN_AXIS = "autonomy"
 
 #: 화면에 노출되는 축 이름 - UI 텍스트는 전부 한국어다.
 AXIS_LABELS: dict[str, str] = {
-    "response_language": "응답 언어",
-    "verbosity": "장황함",
     "autonomy": "자율성",
     "commit_style": "커밋 스타일",
     "test_discipline": "테스트 규율",
     "comment_doc": "주석과 문서화",
     "error_behavior": "에러가 났을 때의 행동",
     "scope_adherence": "범위 준수",
+    "verification": "완료 전 검증",
+    "dependency_policy": "의존성 정책",
 }
 
 #: 화면이 제공하는 유일한 입력 어포던스 - 긋기 대상 네 가지.
@@ -278,7 +278,7 @@ def ordered_pairs(pairs: Sequence[RenderedPair]) -> tuple[RenderedPair, ...]:
     안정 정렬이라 축 내부 순서와 나머지 축들의 상대 순서는 그대로 보존된다.
     """
     return tuple(
-        sorted(pairs, key=lambda pair: 0 if pair.axis == COLD_OPEN_AXIS else 1)
+        tuple(pairs)
     )
 
 
@@ -524,11 +524,15 @@ class ColdOpenSession:
             # 검증 세션은 기억 효과를 피하되 같은 session_id replay는 결정적이어야 한다.
             # 축 블록 순서는 봉인된 판별 커버리지를 보존하고, 블록 내부 순서와
             # 각 페어의 좌우만 세션별로 바꿔 동일 경로 기억 효과를 줄인다.
-            blocks: list[list[RenderedPair]] = []
+            block_map: dict[tuple[str, str], list[RenderedPair]] = {}
+            block_order: list[tuple[str, str]] = []
             for pair in pairs:
-                if not blocks or blocks[-1][0].axis != pair.axis:
-                    blocks.append([])
-                blocks[-1].append(pair)
+                key = (pair.scene_id, pair.axis)
+                if key not in block_map:
+                    block_map[key] = []
+                    block_order.append(key)
+                block_map[key].append(pair)
+            blocks: list[list[RenderedPair]] = [block_map[key] for key in block_order]
             for block in blocks:
                 block.sort(
                     key=lambda pair: hashlib.sha256(

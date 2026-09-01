@@ -32,7 +32,7 @@ from xout.conflict import (
     SCORING_CELLS,
     core_denominator,
 )
-from xout.counter import DEFAULT_CATALOG
+from xout.counter import DEFAULT_CATALOG, LEGACY_AXES
 
 logger = logging.getLogger(__name__)
 
@@ -445,7 +445,8 @@ def score_restoration(
       core 지표 분모에서 제외되어 별도 보고된다.
     """
     active = dict(catalog) if catalog is not None else dict(DEFAULT_CATALOG)
-    if ground_truth.catalog_version != catalog_version:
+    if ground_truth.catalog_version not in {"v1", catalog_version}:
+        # v1 봉인 정답지는 이관 없이 존중한다 - 그 밖의 불일치는 여전히 거부.
         raise ScoringViolation(
             f"정답지 catalog_version과 채점 catalog_version이 다르다: "
             f"{ground_truth.catalog_version!r} != {catalog_version!r}"
@@ -478,6 +479,26 @@ def score_restoration(
             continue
 
         axis = str(label.confirmed_axis)
+        if axis in LEGACY_AXES:
+            # v1 봉인 라벨의 은퇴 축 - 채점 분모 밖 반증 로그로만 보존한다.
+            cells.append(_cell_row(label, CELL_UNMAPPABLE))
+            out_rows.append(
+                {
+                    "record": OUT_OF_CATALOG_RECORD,
+                    "label_id": label.label_id,
+                    "rule_text": label.rule_text,
+                    "llm_draft": {
+                        "axis": label.llm_draft_axis,
+                        "value": label.llm_draft_value,
+                    },
+                    "catalog_version": catalog_version,
+                    "legacy_axis": axis,
+                    "seal_ref": label.seal_ref,
+                    "ground_truth_hash": ground_truth.file_hash,
+                    "at": stamp,
+                }
+            )
+            continue
         if axis not in active:
             raise ScoringViolation(f"카탈로그 밖 축이 매핑 라벨에 있다: {axis}")
         if label.confirmed_value not in active[axis]:

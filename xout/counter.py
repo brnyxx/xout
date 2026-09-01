@@ -28,13 +28,9 @@ class CounterViolation(ValueError):
 
 
 DEFAULT_CATALOG: dict[str, tuple[str, str, str]] = {
-    # 응답언어
-    "response_language": ("korean", "english", "mirror_user"),
-    # 장황함
-    "verbosity": ("terse", "balanced", "explanatory"),
     # 자율성
     "autonomy": ("ask_first", "propose_then_act", "act_then_report"),
-    # 커밋스타일
+    # 커밋정책
     "commit_style": ("conventional", "narrative", "no_auto_commit"),
     # 테스트규율
     "test_discipline": ("test_first", "test_after", "on_request"),
@@ -44,7 +40,14 @@ DEFAULT_CATALOG: dict[str, tuple[str, str, str]] = {
     "error_behavior": ("stop_and_report", "retry_then_report", "self_heal"),
     # 범위준수
     "scope_adherence": ("strict", "adjacent_fix_ok", "proactive"),
+    # 완료전검증
+    "verification": ("always_run", "on_risky", "trust_static"),
+    # 의존성정책
+    "dependency_policy": ("prefer_existing", "ask_first", "free"),
 }
+
+#: v1 카탈로그에만 있던 축 - 구버전 이벤트 재생 시 무시한다(관용 fold).
+LEGACY_AXES: frozenset[str] = frozenset({"response_language", "verbosity"})
 
 INITIAL_COMBINATIONS: int = prod(len(v) for v in DEFAULT_CATALOG.values())
 TOTAL_PAIRS: int = sum(len(v) for v in DEFAULT_CATALOG.values())
@@ -304,6 +307,9 @@ def _apply_strike(event: StrikeEvent, space: HypothesisSpace) -> EventEffect:
     for refutation in event.refutations:
         # skeleton span은 대비축을 가리지 않으므로 arity 0이다.
         if getattr(refutation, "span_kind", None) == "skeleton":
+            continue
+        if refutation.axis in LEGACY_AXES:
+            # v1 축의 과거 긋기 - 현재 공간에 좌표가 없으므로 조용히 지나간다.
             continue
         delta, contradicted = space.eliminate(refutation.axis, refutation.value)
         if delta:

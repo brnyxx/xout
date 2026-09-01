@@ -29,7 +29,7 @@ from xout.events import Refutation
 
 logger = logging.getLogger(__name__)
 
-CATALOG_VERSION = "v1"
+CATALOG_VERSION = "v2"
 
 _SOURCE_FIXTURES_DIR = Path(__file__).resolve().parent.parent / "fixtures"
 _PACKAGED_FIXTURES_DIR = Path(__file__).resolve().parent / "_data" / "fixtures"
@@ -40,15 +40,19 @@ FIXTURES_DIR = (
 )
 
 MANIFEST_FILE = "pack_manifest.json"
-SKELETON_FILE = "scene_skeleton.json"
-AXIS_SLOTS_FILE = "axis_slots.json"
-GLOBAL_WHOLES_FILE = "global_wholes.json"
+SCENES_FILE = "scenes.json"
 
-# docs/axis_locality_table.md 의 전역(통짜) 판정 축 - 표와 어긋나면 안 된다.
-GLOBAL_AXES: tuple[str, ...] = ("response_language", "verbosity")
-LOCAL_AXES: tuple[str, ...] = tuple(
-    axis for axis in DEFAULT_CATALOG if axis not in GLOBAL_AXES
-)
+CONTEXT_ROUTINE = "routine"
+CONTEXT_IRREVERSIBLE = "irreversible"
+SCENE_CONTEXT_VALUES: tuple[str, ...] = (CONTEXT_ROUTINE, CONTEXT_IRREVERSIBLE)
+
+#: 장면 -> 맥락 클래스. 구버전 단일 장면은 routine으로 재생된다.
+SCENE_CONTEXTS: dict[str, str] = {
+    "scn-bugfix": CONTEXT_ROUTINE,
+    "scn-feature": CONTEXT_ROUTINE,
+    "scn-risky": CONTEXT_IRREVERSIBLE,
+    "scn-pagination-fix": CONTEXT_ROUTINE,
+}
 
 SKIN_PLACEHOLDERS: tuple[str, ...] = ("{file}", "{lang}", "{framework}")
 
@@ -182,15 +186,36 @@ class Segment:
 
 
 @dataclass(frozen=True, slots=True)
+class Scene:
+    """한 장면 - 공통 skeleton과 그 장면이 판별하는 축들의 슬롯 변형 텍스트."""
+
+    scene_id: str
+    context: str
+    title: str
+    skeleton: tuple[Segment, ...]
+    axis_slots: Mapping[str, Mapping[str, str]]
+
+    @property
+    def slot_axes(self) -> tuple[str, ...]:
+        return tuple(seg.axis for seg in self.skeleton if seg.kind == KIND_SLOT)
+
+
+@dataclass(frozen=True, slots=True)
 class FixturePack:
     """fixtures/ 에 동결된 정적 픽스처 팩 - 시나리오 수는 사전등록 봉인 문서가 정한다."""
 
     catalog_version: str
-    scene_id: str
-    skeleton: tuple[Segment, ...]
-    axis_slots: Mapping[str, Mapping[str, str]]
-    global_user_fragments: Mapping[str, tuple[str, str]]
-    global_wholes: Mapping[str, Mapping[str, str]]
+    scenes: tuple[Scene, ...]
+
+    @property
+    def scene_ids(self) -> tuple[str, ...]:
+        return tuple(scene.scene_id for scene in self.scenes)
+
+    def scene(self, scene_id: str) -> Scene:
+        for scene in self.scenes:
+            if scene.scene_id == scene_id:
+                return scene
+        raise FixtureViolation(f"팩에 없는 장면: {scene_id!r}")
 
 
 @dataclass(frozen=True, slots=True)
@@ -263,6 +288,60 @@ def _validate_variants(axis: str, variants: Mapping[str, str], origin: str) -> N
         raise FixtureViolation(f"{origin}의 {axis} 변형이 서로 대비되지 않는다")
 
 
+def _load_scene(raw: Mapping[str, Any]) -> Scene:
+    scene_id = str(raw.get("scene_id", ""))
+    context = str(raw.get("context", ""))
+    title = str(raw.get("title", ""))
+    if not scene_id:
+        raise FixtureViolation("scene_id가 비어 있다")
+    if context not in SCENE_CONTEXT_VALUES:
+        raise FixtureViolation(f"허용되지 않은 장면 맥락: {context!r} ({scene_id})")
+    if SCENE_CONTEXTS.get(scene_id) != context:
+        raise FixtureViolation(f"장면 맥락이 동결 맵과 다르다: {scene_id}={context!r}")
+
+    segments: list[Segment] = []
+    for entry in raw.get("segments", ()):
+        if not isinstance(entry, Mapping):
+            raise FixtureViolation(f"segment 형식 위반: {entry!r}")
+        segments.append(
+            Segment(
+                kind=str(entry.get("kind", "")),
+                segment_id=str(entry.get("segment_id", "")),
+                text=str(entry.get("text", "")),
+                axis=str(entry.get("axis", "")),
+            )
+        )
+    if not segments:
+        raise FixtureViolation(f"{scene_id}: segment가 하나도 없다")
+    segment_ids = [seg.segment_id for seg in segments]
+    if len(set(segment_ids)) != len(segment_ids):
+        raise FixtureViolation(f"{scene_id}: segment_id가 중복됐다")
+
+    slot_axes = [seg.axis for seg in segments if seg.kind == KIND_SLOT]
+    if len(set(slot_axes)) != len(slot_axes):
+        raise FixtureViolation(f"{scene_id}: 슬롯 축이 중복됐다")
+    for axis in slot_axes:
+        if axis not in DEFAULT_CATALOG:
+            raise FixtureViolation(f"{scene_id}: 카탈로그에 없는 슬롯 축 {axis!r}")
+
+    raw_slots = raw.get("slots")
+    if not isinstance(raw_slots, Mapping) or set(raw_slots) != set(slot_axes):
+        raise FixtureViolation(f"{scene_id}: slots 키가 슬롯 축과 다르다")
+    axis_slots: dict[str, dict[str, str]] = {}
+    for axis in slot_axes:
+        variants = {str(k): str(v) for k, v in dict(raw_slots[axis]).items()}
+        _validate_variants(axis, variants, f"{SCENES_FILE}:{scene_id}")
+        axis_slots[axis] = variants
+
+    return Scene(
+        scene_id=scene_id,
+        context=context,
+        title=title,
+        skeleton=tuple(segments),
+        axis_slots=axis_slots,
+    )
+
+
 def load_pack(fixtures_dir: Path | str | None = None) -> FixturePack:
     """fixtures/ 의 정적 데이터 파일만으로 픽스처 팩을 적재한다."""
     base = Path(fixtures_dir) if fixtures_dir is not None else FIXTURES_DIR
@@ -273,82 +352,29 @@ def load_pack(fixtures_dir: Path | str | None = None) -> FixturePack:
             f"manifest catalog_version 불일치: {manifest.get('catalog_version')!r}"
         )
 
-    skeleton_doc = _load_json(base / SKELETON_FILE)
-    scene_id = skeleton_doc.get("scene_id")
-    if not isinstance(scene_id, str) or not scene_id:
-        raise FixtureViolation("skeleton의 scene_id가 비어 있다")
+    scenes_doc = _load_json(base / SCENES_FILE)
+    if scenes_doc.get("catalog_version") != CATALOG_VERSION:
+        raise FixtureViolation("scenes catalog_version 불일치")
+    raw_scenes = scenes_doc.get("scenes")
+    if not isinstance(raw_scenes, list) or not raw_scenes:
+        raise FixtureViolation("scenes가 비어 있다")
+    scenes = tuple(_load_scene(raw) for raw in raw_scenes)
 
-    segments: list[Segment] = []
-    for raw in skeleton_doc.get("segments", ()):
-        if not isinstance(raw, Mapping):
-            raise FixtureViolation(f"segment 형식 위반: {raw!r}")
-        segments.append(
-            Segment(
-                kind=str(raw.get("kind", "")),
-                segment_id=str(raw.get("segment_id", "")),
-                text=str(raw.get("text", "")),
-                axis=str(raw.get("axis", "")),
-            )
-        )
-    if not segments:
-        raise FixtureViolation("skeleton에 segment가 하나도 없다")
+    scene_ids = [scene.scene_id for scene in scenes]
+    if len(set(scene_ids)) != len(scene_ids):
+        raise FixtureViolation("scene_id가 중복됐다")
+    covered: set[str] = set()
+    for scene in scenes:
+        covered.update(scene.slot_axes)
+    if covered != set(DEFAULT_CATALOG):
+        missing = sorted(set(DEFAULT_CATALOG) - covered)
+        raise FixtureViolation(f"장면들이 카탈로그 축을 전부 덮지 못한다: {missing}")
+    contexts = {scene.context for scene in scenes}
+    if contexts != set(SCENE_CONTEXT_VALUES):
+        raise FixtureViolation("routine과 irreversible 맥락이 모두 있어야 한다")
 
-    segment_ids = [seg.segment_id for seg in segments]
-    if len(set(segment_ids)) != len(segment_ids):
-        raise FixtureViolation("segment_id가 중복됐다")
-
-    slot_axes = [seg.axis for seg in segments if seg.kind == KIND_SLOT]
-    if sorted(slot_axes) != sorted(LOCAL_AXES):
-        raise FixtureViolation(
-            f"skeleton 슬롯 축이 국소 6축과 다르다: {sorted(slot_axes)}"
-        )
-
-    slots_doc = _load_json(base / AXIS_SLOTS_FILE)
-    raw_slots = slots_doc.get("slots")
-    if not isinstance(raw_slots, Mapping) or set(raw_slots) != set(LOCAL_AXES):
-        raise FixtureViolation("axis_slots의 축 키가 국소 6축과 다르다")
-    axis_slots: dict[str, dict[str, str]] = {}
-    for axis in LOCAL_AXES:
-        variants = {str(k): str(v) for k, v in dict(raw_slots[axis]).items()}
-        _validate_variants(axis, variants, AXIS_SLOTS_FILE)
-        axis_slots[axis] = variants
-
-    wholes_doc = _load_json(base / GLOBAL_WHOLES_FILE)
-    raw_wholes = wholes_doc.get("wholes")
-    if not isinstance(raw_wholes, Mapping) or set(raw_wholes) != set(GLOBAL_AXES):
-        raise FixtureViolation("global_wholes의 축 키가 전역 2축과 다르다")
-    global_wholes: dict[str, dict[str, str]] = {}
-    global_user_fragments: dict[str, tuple[str, str]] = {}
-    for axis in GLOBAL_AXES:
-        entry = raw_wholes[axis]
-        if not isinstance(entry, Mapping):
-            raise FixtureViolation(f"global_wholes[{axis}] 형식 위반")
-        fragment = entry.get("user_fragment")
-        if not isinstance(fragment, Mapping):
-            raise FixtureViolation(f"global_wholes[{axis}].user_fragment 형식 위반")
-        fragment_seg_id = str(fragment.get("segment_id", ""))
-        fragment_text = str(fragment.get("text", ""))
-        if not fragment_seg_id or not fragment_text:
-            raise FixtureViolation(f"global_wholes[{axis}].user_fragment가 비어 있다")
-        bodies = {str(k): str(v) for k, v in dict(entry.get("bodies", {})).items()}
-        _validate_variants(axis, bodies, GLOBAL_WHOLES_FILE)
-        global_user_fragments[axis] = (fragment_seg_id, fragment_text)
-        global_wholes[axis] = bodies
-
-    logger.debug(
-        "픽스처 팩 적재 완료: scene=%s, 국소 %d축, 전역 %d축",
-        scene_id,
-        len(axis_slots),
-        len(global_wholes),
-    )
-    return FixturePack(
-        catalog_version=CATALOG_VERSION,
-        scene_id=scene_id,
-        skeleton=tuple(segments),
-        axis_slots=axis_slots,
-        global_user_fragments=global_user_fragments,
-        global_wholes=global_wholes,
-    )
+    logger.debug("픽스처 팩 적재 완료: %d장면, 축 커버리지 완전", len(scenes))
+    return FixturePack(catalog_version=CATALOG_VERSION, scenes=scenes)
 
 
 def _iter_repo_files(root: Path) -> Iterator[Path]:
@@ -457,12 +483,12 @@ def _assemble(
     )
 
 
-def _render_local(
-    pack: FixturePack, contrast_axis: str, value: str, side: str, skin: RepoSkin
+def _render_scene(
+    scene: Scene, contrast_axis: str, value: str, side: str, skin: RepoSkin
 ) -> RenderedTranscript:
-    """국소 축 렌더 - 공통 skeleton에 배경 슬롯은 채굴 최빈값(index 0)으로 채운다."""
+    """장면 렌더 - 공통 skeleton에 배경 슬롯은 채굴 최빈값(index 0)으로 채운다."""
     resolved: list[tuple[str, str, str | None, str | None, str]] = []
-    for seg in pack.skeleton:
+    for seg in scene.skeleton:
         if seg.kind == KIND_STATIC:
             resolved.append((seg.segment_id, ROLE_STATIC, None, None, seg.text))
             continue
@@ -476,32 +502,15 @@ def _render_local(
                 role,
                 seg.axis,
                 chosen,
-                pack.axis_slots[seg.axis][chosen],
+                scene.axis_slots[seg.axis][chosen],
             )
         )
-    return _assemble(pack.scene_id, side, resolved, skin)
-
-
-def _render_global(
-    pack: FixturePack, axis: str, value: str, side: str, skin: RepoSkin
-) -> RenderedTranscript:
-    """전역 축 렌더 - 공통 사용자 조각 + 통짜 본문 1본이 대비 슬롯이 된다."""
-    fragment_seg_id, fragment_text = pack.global_user_fragments[axis]
-    resolved: list[tuple[str, str, str | None, str | None, str]] = [
-        (fragment_seg_id, ROLE_STATIC, None, None, fragment_text),
-        (
-            f"whole-{axis}:{value}",
-            ROLE_CONTRAST,
-            axis,
-            value,
-            pack.global_wholes[axis][value],
-        ),
-    ]
-    return _assemble(pack.scene_id, side, resolved, skin)
+    return _assemble(scene.scene_id, side, resolved, skin)
 
 
 def render_pair(
     pack: FixturePack,
+    scene_id: str,
     axis: str,
     left_value: str,
     right_value: str,
@@ -517,28 +526,43 @@ def render_pair(
             raise FixtureViolation(f"{axis} 축에 없는 값: {value!r}")
     if left_value == right_value:
         raise FixtureViolation(f"대비 페어의 좌우 값이 같다: {left_value!r}")
+    scene = pack.scene(scene_id)
+    if axis not in scene.slot_axes:
+        raise FixtureViolation(f"{scene_id} 장면은 {axis} 축을 판별하지 않는다")
 
     if pair_id is None:
-        pair_id = f"{pack.scene_id}:{axis}:{left_value}|{right_value}"
+        pair_id = f"{scene_id}:{axis}:{left_value}|{right_value}"
 
-    renderer = _render_global if axis in GLOBAL_AXES else _render_local
     return RenderedPair(
         pair_id=pair_id,
-        scene_id=pack.scene_id,
+        scene_id=scene_id,
         axis=axis,
         left_value=left_value,
         right_value=right_value,
-        left=renderer(pack, axis, left_value, SIDE_LEFT, skin),
-        right=renderer(pack, axis, right_value, SIDE_RIGHT, skin),
+        left=_render_scene(scene, axis, left_value, SIDE_LEFT, skin),
+        right=_render_scene(scene, axis, right_value, SIDE_RIGHT, skin),
     )
 
 
 def render_all_pairs(pack: FixturePack, skin: RepoSkin) -> tuple[RenderedPair, ...]:
-    """8축 x 3값 조합(축당 3페어) 전체를 렌더한다 - 총 24페어."""
+    """전 장면의 페어를 라운드 교차 순서로 렌더한다.
+
+    라운드 r = 각 (장면, 축)의 r번째 값 조합. 앞 라운드가 모든 장면을 한 바퀴
+    돌므로, 15슬롯 세션은 자연히 장면1 5축 -> 장면2 5축 -> 장면3 5축 순서로
+    흐른다 (판별력이 없는 페어는 select_pair가 건너뛴다).
+    """
     pairs: list[RenderedPair] = []
-    for axis, values in DEFAULT_CATALOG.items():
-        for left_value, right_value in combinations(values, 2):
-            pairs.append(render_pair(pack, axis, left_value, right_value, skin))
+    rounds = 3  # 축당 값 조합 수 = C(3, 2)
+    for round_index in range(rounds):
+        for scene in pack.scenes:
+            for axis in scene.slot_axes:
+                values = DEFAULT_CATALOG[axis]
+                left_value, right_value = list(combinations(values, 2))[round_index]
+                pairs.append(
+                    render_pair(
+                        pack, scene.scene_id, axis, left_value, right_value, skin
+                    )
+                )
     return tuple(pairs)
 
 
