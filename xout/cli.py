@@ -68,7 +68,12 @@ from xout.session import (
 from xout.sessions import latest_resumable, summarize_sessions
 from xout.store import EventStore, StoreViolation
 from xout.web.server import EPHEMERAL_PORT, HOST, build_server
-from xout.web.state import ColdOpenSession, SessionComplete
+from xout.web.state import (
+    ColdOpenSession,
+    RecoveryUnavailable,
+    SessionComplete,
+    StalePresentation,
+)
 from xout.writer import OwnedWriter
 
 logger = logging.getLogger("xout")
@@ -469,7 +474,7 @@ def cmd_open(args: argparse.Namespace) -> int:
                 candidate.slots_used,
                 candidate.slots_total,
             )
-            return _serve(
+            return _launch(
                 _resumed_session(base, store, candidate.session_id, args),
                 args,
             )
@@ -482,7 +487,139 @@ def cmd_open(args: argparse.Namespace) -> int:
         banner=_banner_text(manifest),
         conflicts_for=_conflicts_for(base),
     )
+    return _launch(session, args)
+
+
+def _launch(session: ColdOpenSession, args: argparse.Namespace) -> int:
+    if getattr(args, "tui", False):
+        return _run_tui(session, Path(args.base_dir))
     return _serve(session, args)
+
+
+def _grant_and_enable(base: Path) -> int:
+    """import 허가 레코드를 남기고 소유 @import 한 줄을 추가한다."""
+    writer = OwnedWriter(base_dir=base)
+    record = ConsentRecord(
+        kind=ConsentKind.IMPORT_PERMISSION_GRANTED,
+        subject=str(writer.claude_md_path),
+    )
+    _persist_consent(base, record)
+    outcome = writer.ensure_import(record)
+    logger.info("결과: %s (%s)", outcome.reason, outcome.path)
+    return 0 if outcome.reason in ("added", "already_present") else 1
+
+
+_TUI_TARGETS = {"1": "left", "2": "right", "b": "both", "p": "pair"}
+
+
+def _run_tui(session: ColdOpenSession, base: Path) -> int:
+    """터미널 세션 루프 - 웹과 같은 이벤트 원장 위에서 긋는다."""
+    print("xout - 아닌 쪽에 X를 치세요.")
+    print("입력: 1/2=한쪽에 X, b=둘 다 X, p=이 페어로는 판별 불가, u=되돌리기, q=중단")
+    while True:
+        snap = session.snapshot()
+        if snap.session_complete or snap.pair is None:
+            break
+        pair = snap.pair
+        print()
+        print(f"[{snap.slots_used + 1}/{snap.slots_total}] {pair.axis_label}")
+        print("  (1) " + pair.left_text.replace("\n", "\n      "))
+        print("  (2) " + pair.right_text.replace("\n", "\n      "))
+        try:
+            choice = input("X> ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            logger.info("중단 - 진행 상황은 저장됐다. 다시 실행하면 이어진다.")
+            return 0
+        try:
+            if choice in _TUI_TARGETS:
+                session.strike(_TUI_TARGETS[choice], expected_pair_id=pair.pair_id)
+            elif choice == "u":
+                session.undo()
+            elif choice == "q":
+                logger.info("중단 - 진행 상황은 저장됐다. 다시 실행하면 이어진다.")
+                return 0
+            else:
+                print("허용 입력: 1, 2, b, p, u, q")
+        except SessionComplete:
+            break
+        except (StalePresentation, RecoveryUnavailable, SchemaViolation) as exc:
+            logger.error("반영 거부: %s", exc)
+    snap = session.snapshot()
+    if snap.voided_reason:
+        logger.error("세션 무효: %s", snap.voided_reason)
+        return 1
+    print()
+    print("세션 완료 - 컴파일된 규칙:")
+    for rule in snap.rules:
+        print(f"  - {rule.text}")
+    if snap.landing is not None:
+        logger.info("착지 완료: %s", base)
+    try:
+        answer = input("지금 CLAUDE.md에 적용할까요? [y/N] ").strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        answer = ""
+    if answer == "y":
+        return _grant_and_enable(base)
+    logger.info("나중에 적용하려면: xout enable --grant / 취소는 xout undo")
+    return 0
+
+
+def _headless_session(args: argparse.Namespace) -> ColdOpenSession:
+    """서버 없이 쓰는 일반 세션 - 미완료 1건이면 재개, 없으면 새로 연다."""
+    base = Path(args.base_dir)
+    store = EventStore(base)
+    candidates = [
+        summary
+        for summary in summarize_sessions(store.load_all())
+        if summary.resumable and summary.profile == PROFILE_PRODUCT
+    ]
+    if len(candidates) > 1:
+        raise ValueError(
+            f"미완료 일반 세션이 {len(candidates)}건 있다 - xout resume <session-id>로 정리해라"
+        )
+    if candidates:
+        return _resumed_session(base, store, candidates[0].session_id, args)
+    return ColdOpenSession(
+        repo_root=args.repo,
+        profile=PROFILE_PRODUCT,
+        store=store,
+        land_dir=base,
+        history=store.load_completed(),
+        banner=_banner_text(_load_manifest(base)),
+        conflicts_for=_conflicts_for(base),
+    )
+
+
+@_runtime_exclusive
+def cmd_pair(args: argparse.Namespace) -> int:
+    try:
+        session = _headless_session(args)
+    except (ValueError, SchemaViolation) as exc:
+        logger.error("%s", exc)
+        return 1
+    print(json.dumps(session.snapshot().to_dict(), ensure_ascii=False, indent=2))
+    return 0
+
+
+@_runtime_exclusive
+def cmd_strike(args: argparse.Namespace) -> int:
+    try:
+        session = _headless_session(args)
+    except (ValueError, SchemaViolation) as exc:
+        logger.error("%s", exc)
+        return 1
+    try:
+        snapshot = session.strike(
+            args.target,
+            expected_pair_id=args.pair_id,
+            expected_slot=args.slot,
+        )
+    except (SessionComplete, StalePresentation, SchemaViolation) as exc:
+        logger.error("긋기 거부: %s", exc)
+        return 1
+    print(json.dumps(snapshot.to_dict(), ensure_ascii=False, indent=2))
+    return 0
 
 
 @_runtime_exclusive
@@ -692,14 +829,7 @@ def cmd_enable(args: argparse.Namespace) -> int:
             "사용자 파일은 허가 없이는 건드리지 않는다 - --grant로 허가를 명시해라"
         )
         return 1
-    record = ConsentRecord(
-        kind=ConsentKind.IMPORT_PERMISSION_GRANTED,
-        subject=str(writer.claude_md_path),
-    )
-    _persist_consent(base, record)
-    outcome = writer.ensure_import(record)
-    logger.info("결과: %s (%s)", outcome.reason, outcome.path)
-    return 0 if outcome.reason in ("added", "already_present") else 1
+    return _grant_and_enable(base)
 
 
 def cmd_rollback(args: argparse.Namespace) -> int:
@@ -939,7 +1069,29 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="미완료 일반 세션이 있어도 새 세션을 연다",
     )
+    p_open.add_argument(
+        "--tui",
+        action="store_true",
+        help="브라우저 대신 터미널 안에서 세션을 진행한다",
+    )
     p_open.set_defaults(func=cmd_open)
+
+    p_pair = sub.add_parser(
+        "pair", help="현재 세션의 다음 페어를 JSON으로 출력 (에이전트/스크립트용)"
+    )
+    _add_common(p_pair)
+    p_pair.add_argument("--repo", type=Path, default=None, help="슬롯 치환용 레포 경로")
+    p_pair.set_defaults(func=cmd_pair)
+
+    p_strike = sub.add_parser(
+        "strike", help="페어 하나에 긋기를 기록 (에이전트/스크립트용)"
+    )
+    _add_common(p_strike)
+    p_strike.add_argument("target", choices=["left", "right", "both", "pair"])
+    p_strike.add_argument("--pair-id", required=True, help="pair 명령이 보여준 pair_id")
+    p_strike.add_argument("--slot", type=int, default=None, help="기대 슬롯 번호(선택)")
+    p_strike.add_argument("--repo", type=Path, default=None, help="슬롯 치환용 레포 경로")
+    p_strike.set_defaults(func=cmd_strike)
 
     p_resume = sub.add_parser("resume", help="마지막 또는 지정한 미완료 세션을 재개")
     _add_serve_common(p_resume)
