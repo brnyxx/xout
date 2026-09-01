@@ -62,6 +62,7 @@ from xout.fixtures import (
 from xout.migrate import migrate_legacy_home
 from xout.mine import Conflict, find_conflicts, mine, summarize, user_rule_files
 from xout.reconcile import apply_removals, plan as reconcile_plan, render_patch, write_patch
+from xout.targets import MODE_IMPORT, REGISTRY, block_state, ensure_block, remove_block, targets_by_id
 from xout.savepoint import SavepointError, create as create_savepoint, list_savepoints, restore as restore_savepoint
 from xout.probe import (
     DEFAULT_RUNNER,
@@ -532,6 +533,7 @@ _TUI_MSG: dict[str, dict[str, str]] = {
         "apply": "지금 CLAUDE.md에 적용할까요? [y/N] ",
         "mined": "      ↳ 이미 있는 규칙 {path}:{line_no} \"{text}\" → {value}",
         "later": "나중에 적용하려면: xout enable --grant / 취소는 xout undo",
+        "targets": "다른 도구에도 꽂기: xout enable --grant --target codex|opencode|gemini|copilot|pi|omp|kiro|agents|all",
     },
     "en": {
         "intro": "xout - cross out the one you never want.",
@@ -545,6 +547,7 @@ _TUI_MSG: dict[str, dict[str, str]] = {
         "apply": "Apply to CLAUDE.md now? [y/N] ",
         "mined": "      ↳ already in your files {path}:{line_no} \"{text}\" → {value}",
         "later": "Apply later with: xout enable --grant / undo with xout undo",
+        "targets": "Other tools: xout enable --grant --target codex|opencode|gemini|copilot|pi|omp|kiro|agents|all",
     },
     "ja": {
         "intro": "xout - 二度と見たくない方に X を。",
@@ -558,6 +561,7 @@ _TUI_MSG: dict[str, dict[str, str]] = {
         "apply": "今すぐ CLAUDE.md に適用しますか？ [y/N] ",
         "mined": "      ↳ 既存の規則 {path}:{line_no} \"{text}\" → {value}",
         "later": "後で適用: xout enable --grant / 取り消し: xout undo",
+        "targets": "他のツールにも: xout enable --grant --target codex|opencode|gemini|copilot|pi|omp|kiro|agents|all",
     },
     "zh": {
         "intro": "xout - 给你再也不想看到的那个打 X。",
@@ -571,6 +575,7 @@ _TUI_MSG: dict[str, dict[str, str]] = {
         "apply": "现在应用到 CLAUDE.md 吗？ [y/N] ",
         "mined": "      ↳ 已有规则 {path}:{line_no} \"{text}\" → {value}",
         "later": "稍后应用: xout enable --grant / 撤销: xout undo",
+        "targets": "也接入其他工具: xout enable --grant --target codex|opencode|gemini|copilot|pi|omp|kiro|agents|all",
     },
 }
 
@@ -641,8 +646,11 @@ def _run_tui(session: ColdOpenSession, base: Path, lang: str = DEFAULT_LANG) -> 
     except (EOFError, KeyboardInterrupt):
         answer = ""
     if answer == "y":
-        return _grant_and_enable(base)
+        code = _grant_and_enable(base)
+        print(msg["targets"])
+        return code
     logger.info(msg["later"])
+    print(msg["targets"])
     return 0
 
 
@@ -1149,7 +1157,7 @@ _MINE_MSG = {
     "ko": {
         "none": "관측 없음 - 스캔한 규칙 파일에서 이 축을 겨눈 줄을 찾지 못했다.",
         "header": "로컬 채굴 보고 (읽기전용, 휴리스틱) - 관측 {count}건",
-        "hint": "세션에서 X를 칠 때 이 관측과 교차 확인해라: xout open",
+        "hint": "세션을 열면 이 줄들이 해당 페어 옆에 보인다: xout",
         "no_files": "규칙 파일을 찾지 못했다 (CLAUDE.md / AGENTS.md / .cursorrules 류)",
     },
     "en": {
@@ -1517,23 +1525,96 @@ def cmd_land(args: argparse.Namespace) -> int:
     return 0
 
 
+def _selected_targets(args: argparse.Namespace, default: list[str]) -> list:
+    ids = list(getattr(args, "targets", None) or default)
+    try:
+        return targets_by_id(REGISTRY, ids)
+    except KeyError as exc:
+        logger.error("알 수 없는 타깃: %s (xout targets 로 목록 확인)", exc)
+        return []
+
+
+def _enable_block_target(base: Path, target) -> int:
+    path = target.resolve(Path.home(), Path.cwd())
+    xout_md = base / XOUT_MD
+    if not xout_md.is_file():
+        logger.error("착지된 XOUT.md가 없다 - 먼저 xout을 돌려라")
+        return 1
+    record = ConsentRecord(kind=ConsentKind.IMPORT_PERMISSION_GRANTED, subject=str(path))
+    _persist_consent(base, record)
+    outcome = ensure_block(
+        base, target.target_id, path, xout_md.read_text(encoding="utf-8"), record,
+        preamble=target.preamble,
+    )
+    logger.info("결과 [%s]: %s (%s)%s", target.target_id, outcome.reason, outcome.path,
+                f" - 되돌리기: xout savepoint restore {outcome.savepoint_id}" if outcome.savepoint_id else "")
+    return 0 if outcome.reason in ("added", "updated", "already_present") else 1
+
+
 def cmd_enable(args: argparse.Namespace) -> int:
     base = Path(args.base_dir)
+    targets = _selected_targets(args, ["claude"])
+    if not targets:
+        return 1
     writer = OwnedWriter(base_dir=base)
     if not args.grant:
-        logger.info("추가될 한 줄: %s", writer.import_line())
+        for target in targets:
+            if target.mode == MODE_IMPORT:
+                logger.info("추가될 한 줄 [%s]: %s", target.target_id, writer.import_line())
+            else:
+                logger.info("추가될 소유 블록 [%s]: %s", target.target_id, target.resolve(Path.home(), Path.cwd()))
         logger.info(
             "사용자 파일은 허가 없이는 건드리지 않는다 - --grant로 허가를 명시해라"
         )
         return 1
-    return _grant_and_enable(base)
+    worst = 0
+    for target in targets:
+        code = _grant_and_enable(base) if target.mode == MODE_IMPORT else _enable_block_target(base, target)
+        worst = max(worst, code)
+    return worst
 
 
 def cmd_rollback(args: argparse.Namespace) -> int:
-    writer = OwnedWriter(base_dir=Path(args.base_dir))
-    outcome = writer.remove_import()
-    logger.info("결과: %s (%s)", outcome.reason, outcome.path)
-    return 0 if outcome.reason in ("removed", "not_present", "not_owned") else 1
+    base = Path(args.base_dir)
+    targets = _selected_targets(args, ["all"])
+    if not targets:
+        return 1
+    worst = 0
+    for target in targets:
+        if target.mode == MODE_IMPORT:
+            outcome = OwnedWriter(base_dir=base).remove_import()
+            logger.info("결과 [%s]: %s (%s)", target.target_id, outcome.reason, outcome.path)
+            ok = outcome.reason in ("removed", "not_present", "not_owned")
+        else:
+            block = remove_block(base, target.target_id, target.resolve(Path.home(), Path.cwd()))
+            logger.info("결과 [%s]: %s (%s)", target.target_id, block.reason, block.path)
+            ok = block.reason in ("removed", "not_present")
+        worst = max(worst, 0 if ok else 1)
+    return worst
+
+
+def cmd_targets(args: argparse.Namespace) -> int:
+    """활성화 타깃 목록 - 어느 도구의 어느 파일에 어떤 방식으로 붙는지."""
+    base = Path(args.base_dir)
+    rows = []
+    for target in REGISTRY.values():
+        path = target.resolve(Path.home(), Path.cwd())
+        if target.mode == MODE_IMPORT:
+            state = _activation_state(base)
+            active = state["status"] == "active"
+        else:
+            active = block_state(base, target.target_id, path)["active"]
+        rows.append({**target.to_dict(), "resolved_path": str(path), "active": active})
+    if args.json_output:
+        print(json.dumps(rows, ensure_ascii=False, indent=2))
+        return 0
+    for row in rows:
+        flag = "active" if row["active"] else "-"
+        verified = "" if row["verified"] else "  (unverified)"
+        print(f"{row['target_id']:<10} {row['name']:<36} {row['mode']:<7} {flag:<7} {row['resolved_path']}{verified}")
+    print()
+    print("enable: xout enable --grant --target <id> [<id>...] | undo: xout undo [--target <id>]")
+    return 0
 
 
 def cmd_optin(args: argparse.Namespace) -> int:
@@ -1921,14 +2002,21 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_land.set_defaults(func=cmd_land)
 
-    p_enable = sub.add_parser("enable", help="CLAUDE.md @import 한 줄 추가 (허가 필수)")
+    p_targets = sub.add_parser("targets", help="활성화 타깃 목록 (어느 도구의 어느 파일에 어떻게 붙는지)")
+    _add_common(p_targets)
+    p_targets.add_argument("--json", dest="json_output", action="store_true")
+    p_targets.set_defaults(func=cmd_targets)
+
+    p_enable = sub.add_parser("enable", help="규칙 활성화: Claude Code는 @import 한 줄, 다른 도구는 소유 블록 (허가 필수)")
     _add_common(p_enable)
+    p_enable.add_argument("--target", dest="targets", nargs="*", help="타깃 id (기본 claude; all 가능; 목록: xout targets)")
     p_enable.add_argument(
         "--grant", action="store_true", help="import_permission_granted 허가를 기록한다"
     )
     p_enable.set_defaults(func=cmd_enable)
 
-    p_undo = sub.add_parser("undo", help="@import 한 줄 제거 (전체 롤백 지점)")
+    p_undo = sub.add_parser("undo", help="활성화 되돌리기: 소유 @import 한 줄/소유 블록만 제거 (기본 all)")
+    p_undo.add_argument("--target", dest="targets", nargs="*", help="타깃 id (기본 all)")
     _add_common(p_undo)
     p_undo.set_defaults(func=cmd_rollback)
 

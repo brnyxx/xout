@@ -5,13 +5,13 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "xout"
 version = "1.0.1"
-description = "X out the AI behavior you never want again — cross out wrong agent behavior and keep the rule"
+description = "X out the AI behavior you never want again - cross out wrong agent behavior, keep the rule, plug it into Claude Code, Codex, OpenCode, Gemini CLI, Copilot, pi, Kiro or any AGENTS.md reader"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 authors = [{ name = "Brian Kim", email = "kim62210@gmail.com" }]
 dependencies = []
-keywords = ["claude-code", "plugin", "preferences", "falsification", "local-first", "agent-skills"]
+keywords = ["claude-code", "codex", "opencode", "gemini-cli", "copilot", "kiro", "agents-md", "plugin", "preferences", "falsification", "local-first", "agent-skills"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Environment :: Console",

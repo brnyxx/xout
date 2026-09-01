@@ -10,25 +10,25 @@
 
 [![PyPI](https://img.shields.io/pypi/v/xout)](https://pypi.org/project/xout/) [![CI](https://github.com/brnyxx/xout/actions/workflows/ci.yml/badge.svg)](https://github.com/brnyxx/xout/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-[クイックスタート](#動作の仕組み) · [すべてのルールが自らを証明する](#すべてのルールが自らを証明する) · [マップ](#マップ) · [コマンド](#コマンド) · [信頼できる理由](#信頼できる理由)
+[五つのステップ](#全体は五つのステップ) · [対応ツール](#対応ツール) · [動作の仕組み](#動作の仕組み) · [本当に効くのか](#本当に効くのか) · [コマンド](#コマンド) · [信頼できる理由](#信頼できる理由)
 
 <sub>Read in: [English](README.md) · [한국어](README.ko.md) · 日本語 · [简体中文](README.zh.md) · [ライブ解説](https://brnyxx.github.io/xout/)</sub>
 
 </div>
 
-コーディングエージェントが、取りうる振る舞いを 2 つ具体的に見せてきます。あなたは間違っているほうに X をつける。2 分と 15 回の X のあとには、生き残った選択肢が 8 本のローカルルールにコンパイルされ、Claude Code が `CLAUDE.md` から読み込みます。
+**AI コーディングツールはどれもルールファイルに従います。けれど、良いルールファイルを書ける人はほとんどいません。** xout がそれを代わりに書きます。質問はしません。AI が取りうる振る舞いを 2 つ見せ、二度と見たくないほうに X をつけてもらうだけです。15 回の X、およそ 2 分。生き残った選択肢が 8 本の平易なルールになり、あなたが実際に使っているツールに差し込まれます: Claude Code、Codex、OpenCode、Gemini CLI、Copilot CLI、pi、oh-my-pi、Kiro、そして `AGENTS.md` を読むすべてのもの。
 
 ```bash
 uvx xout --lang ja
 ```
 
-これだけです。セッションはまるごとターミナルの中で進みます。2 分ほど X をつけ続ければ、エージェントに 8 本のルールが入ります。
+これだけです。セッションはまるごとターミナルの中で進みます。2 分ほど X をつけ、最後に `y` を押せば、エージェントに 8 本のルールが入ります。
 
 <img src=".github/assets/demo.ja.gif" alt="実際の xout ターミナルセッション: 15 回の X を進め、8 本の条件付きルールをコンパイルし、キー 1 つで適用する" width="860">
 
 <sub>上の映像に演出はありません。レコーダーは実際のセッションをそのまま撮影しているので、画面上のペアもルールもすべてエンジンの本物の出力です。</sub>
 
-**クラウドなし。テレメトリなし。LLM 呼び出しなし。ロールバックは 1 行。**
+**クラウドなし。テレメトリなし。セッション中の LLM 呼び出しなし。自身のフォルダの外に書くものはすべてセーブポイントの後ろにあり、コマンド 1 つで元に戻せます。**
 
 **v1.0.1 · Python 3.10–3.14 · MIT · サードパーティのランタイムパッケージはゼロ**
 
@@ -52,6 +52,46 @@ Popper 1.x からのアップグレードですか? `xout` を一度実行する
 
 </details>
 
+## 全体は五つのステップ
+
+| | 何が起きるか | あなたが打つもの |
+|---|---|---|
+| **1. すでにあるものを読む** | 既存のルールファイル (`CLAUDE.md`、`AGENTS.md`、`.cursorrules`、グローバルの `~/.claude/CLAUDE.md`) を一度だけ読み、画面上の振る舞いについて書かれた行を各ペアの横に表示します。コピーも変更もしません。 | なし (`xout mine` で一覧を表示) |
+| **2. X をつける、15 回** | 同じタスクに対する具体的な振る舞いが 2 つ。二度と要らないほうを消します。現実的な場面は 3 つ: バグ修正、新機能、リスクの高いマイグレーション。 | `xout` |
+| **3. ルールが着地する** | 根拠つきの 8 本のルールが `~/.claude/xout/` 配下に書き出されます。この時点では他のファイルには触れません。 | なし |
+| **4. 差し込む** | Claude Code には所有する `@import` 行を 1 行。それ以外のツールには、そのツール自身のルールファイルの末尾に所有するブロックを 1 つ。どちらにもレシートが付きます。 | 最後に `y`、または `xout enable --grant --target codex` |
+| **5. 確かめ、整理し、いつでも戻れる** | ルールが効いているかをエージェント本人に尋ねます。古いファイルが今や繰り返している行を取り除きます。xout のフォルダ外への編集は、すべて先にセーブポイントを取ります。`xout undo` は xout が書いたものだけを正確に取り除きます。 | `xout probe` · `xout reconcile` · `xout undo` |
+
+## 対応ツール
+
+xout のルールはただの markdown なので、ツールごとに違うのは *そのツールがどこからルールを読むか* だけです。以下のパスはすべて各ツール自身のドキュメントに基づいています。xout は検証できなかったものを登録しません。
+
+| ツール | ルールの置き場所 | 方法 | `xout enable --grant --target …` |
+|---|---|---|---|
+| [Claude Code](https://code.claude.com/docs/en/memory) | `~/.claude/CLAUDE.md` | 所有する `@import` 行 1 つ | `claude` (既定) |
+| [OpenAI Codex CLI](https://learn.chatgpt.com/docs/agent-configuration/agents-md) | `~/.codex/AGENTS.md` | 所有するブロック | `codex` |
+| [OpenCode](https://opencode.ai/docs/rules/) | `~/.config/opencode/AGENTS.md` | 所有するブロック | `opencode` |
+| [Gemini CLI](https://geminicli.com/docs/cli/gemini-md/) | `~/.gemini/GEMINI.md` | 所有するブロック | `gemini` |
+| [GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-custom-instructions) | `~/.copilot/copilot-instructions.md` | 所有するブロック | `copilot` |
+| [pi](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/README.md) | `~/.pi/agent/AGENTS.md` | 所有するブロック | `pi` |
+| [oh-my-pi](https://github.com/can1357/oh-my-pi/blob/main/docs/context-files.md) | `~/.omp/agent/AGENTS.md` | 所有するブロック | `omp` |
+| [Kiro](https://kiro.dev/docs/steering/) | `~/.kiro/steering/xout.md` | 所有する steering ファイル | `kiro` |
+| [AGENTS.md を読むすべてのもの](https://agents.md) | プロジェクト内の `./AGENTS.md` | 所有するブロック | `agents` |
+
+`xout targets` はこの表を、それぞれの現在の状態つきで表示します。`xout enable --grant --target all` はすべてのツールに一度に差し込み、`xout undo` はそれらをすべて取り除きます。
+
+所有するブロックは次のような形で、そのファイルの中で xout が編集するのはこれだけです:
+
+```markdown
+<!-- xout:begin sha256=… -->
+<!-- managed by xout - edit XOUT.md, not this block; remove with: xout undo -->
+# xout Rules
+…
+<!-- xout:end -->
+```
+
+gajae-code: そのドキュメントにはどのルールファイルを読むかが書かれていないため、xout はターゲットを登録していません。pi のフォークなので `pi` ターゲットが使えるかもしれませんが、ドキュメントでは確認できていません。
+
 ## 動作の仕組み
 
 <img src=".github/assets/how-it-works.ja.svg" alt="3 つのパネル: 「バグを直して」に対する 2 つの振る舞いのうち間違ったほうが X で消され、6,561 通りのエージェント候補が 15 回の X で 1 つに絞られ、8 本のルールが 1 行の import を通じて CLAUDE.md に着地する" width="920">
@@ -64,9 +104,9 @@ Popper 1.x からのアップグレードですか? `xout` を一度実行する
    > 短い計画を先に書き、そのまま実行に進む。**ただし、削除・push・デプロイ・マイグレーションのような取り消しにくい作業では、実行前に必ず承認を得る。**
 
    この条件はテンプレートではありません。マイグレーションの場面であなたが違う X をつけたからこそ存在しています。インタビュー形式のツールには作れないものです。
-3. **キー 1 つで適用する。** 完了画面が「今すぐ適用しますか?」と尋ねます。はいと答えると、`~/.claude/CLAUDE.md` に xout が所有する `@import` 行がちょうど 1 行追加されます。`xout undo` はその 1 行だけを取り除きます。
+3. **キー 1 つで差し込む。** 完了画面が「今すぐ適用しますか?」と尋ねます。はいと答えると、`~/.claude/CLAUDE.md` に xout が所有する `@import` 行がちょうど 1 行追加されます。他のツールでは `xout enable --grant --target codex` (または `opencode`、`gemini`、`copilot`、`pi`、`omp`、`kiro`、`agents`、`all`) が、そのツール自身のルールファイルに所有するブロックを 1 つ追加します。`xout undo` は xout が書いたものだけを取り除きます。
 
-以前イライラさせられたのと同じ依頼を、新しい Claude Code セッションで繰り返してみてください。ルールが効いているのが分かるはずです。古びたと感じたら、もう一度 `xout` を。
+以前イライラさせられたのと同じ依頼を、エージェントの新しいセッションで繰り返してみてください。ルールが効いているのが分かるはずです。古びたと感じたら、もう一度 `xout` を。
 
 <details>
 <summary><strong>内部構造</strong> (図 1 枚)</summary>
@@ -127,6 +167,28 @@ receipt: ~/.claude/xout/probes/probe-20260901T231554.json
 
 読み方はこうです。9 件は規則なしでも既に一致していたので、そこではモデルの既定がこのプロファイルと同じです。4 件は規則が選択を動かしました。2 件は不一致です。バグ修正ではエージェントは失敗するテストを先に書くことにこだわり、危険な場面では「既存の依存関係を優先」を「インストール前に確認」と同じものとして扱いました。不一致こそ役に立つ部分です。どのルール文を研ぐべきかを名指しし、探針は 1 分で走るので直した後すぐ確かめられます。探針でないもの: 強制 A/B の答えは指示のもとでの意図を測るのであって、長いエージェントループの中の振る舞いではなく、これは 1 モデルで 1 回走らせた記録です。レシートは生の回答をすべて保持しているので誰でも読み直せます。
 
+ランナーは、プロンプトを最後の引数として受け取り、答えを表示するコマンドなら何でも構いません。既定は Claude Code です。以下の他のツールは、それぞれのドキュメントに記載されたヘッドレスモードです:
+
+| ツール | `xout probe --runner "…"` |
+|---|---|
+| Claude Code | `claude -p --output-format text` (既定) |
+| OpenAI Codex CLI | `codex exec` |
+| OpenCode | `opencode run` |
+| Gemini CLI | `gemini -p` |
+| GitHub Copilot CLI | `copilot -p` |
+| pi | `pi -p` |
+| oh-my-pi | `omp -p` |
+| Kiro | `kiro-cli chat --no-interactive` |
+
+## 既存のプロンプト
+
+おそらく、すでにルールファイルをお持ちでしょう。xout はそれを競合相手ではなく、根拠として扱います。
+
+- **セッション中** は、各ペアの横に、その振る舞いについてあなたのファイルがすでに述べている行を表示します。`~/.claude/CLAUDE.md:12 "Always ask before editing" → ask_first` のように。かつて書いたことを、そのまま確定するか覆すかを、その場で選べます。
+- **着地後** は、`xout conflicts` が新しいルールと反対のことを言っている行を file:line つきで一覧します。衝突している行は決して編集しません。プロジェクト自身の指示が優先することは、ルールファイル自体にすでに書いてあります。
+- **`xout reconcile`** は、古いファイルが今や `XOUT.md` と重複して述べている行を一覧し、提案パッチを `~/.claude/xout/reconcile/` 配下に書き出します。重複行を実際に取り除くのは `xout reconcile --apply --grant` だけで、それもセーブポイントを取ってからです。
+- **`xout savepoint`** は、いつでもルールファイルをバイト単位でそのままスナップショットします。`xout savepoint restore <id>` で元に戻せます。`enable`、`undo`、`reconcile --apply` はどれも自動でセーブポイントを取ります。
+
 ## 得られるもの
 
 15 回目の X のあと、`~/.claude/xout/` 配下に 3 つのファイルが着地します:
@@ -152,9 +214,9 @@ receipt: ~/.claude/xout/probes/probe-20260901T231554.json
 | 完了前の検証 | feature | migration | あり |
 | 依存関係ポリシー | feature | migration | あり |
 | コミットポリシー | feature | migration | あり |
-| スコープ遵守 | bugfix + feature | - | 相互検証 |
-| テスト規律 | bugfix + feature | - | 相互検証 |
-| コメントとドキュメント | bugfix | - | スタイル軸 |
+| スコープ遵守 | bugfix + feature | - | 2 回測定 |
+| テスト規律 | bugfix + feature | - | 2 回測定 |
+| コメントとドキュメント | bugfix | - | なし |
 
 この 8 軸は思いつきで決めたものではなく、デフォルトも同様です。スター数の多い (10k から 240k 超) プロンプト/エージェント系プロジェクトを 100 件以上調査しました。codex/gemini-cli/Devin が出荷しているシステムプロンプト、rust/node/pytorch/transformers の AGENTS.md、コミュニティのルール集などです。そしてレシートを残しました。原文どおりの引用、検証済みのスター数、軸ごとの集計、すべて [`docs/mined-prior.md`](docs/mined-prior.md) にあります。8 つのデフォルトのうち 6 つは業界の最頻値と一致し、2 つは一致しなかったので修正しました。あなた自身の環境も情報源です。`xout mine` は既存のルールファイルを読み、file:line のレシートつきで取り込みます。
 
@@ -175,18 +237,21 @@ receipt: ~/.claude/xout/probes/probe-20260901T231554.json
 | `xout` | セッションを開始 (または自動で再開) する | 自身のディレクトリのみ | - |
 | `xout why [axis]` | ルールを、それを生んだ X まで遡る | なし | - |
 | `xout status` | 8 本のルールと、それが有効かどうかを表示する | なし | - |
-| `xout undo` | xout が所有する 1 行の import を取り除く。完全なロールバック | 所有する 1 行 | - |
-| `xout enable --grant` | 有効化: 所有する `@import` 行を 1 行追加する | 所有する 1 行 | 明示的 |
-| `xout mine [paths]` | 既存の CLAUDE.md/AGENTS.md/.cursorrules を読み、file:line のレシートつきで軸ごとの観測に変換する | なし | - |
-| `xout conflicts [paths]` | プロジェクトの規則ファイルのうち、あなたのルールと異なる値を求める行を file:line つきで報告 | なし | - |
-| `xout probe` | 外部ランナー (既定 `claude -p`) に同じ A/B を規則なし / `XOUT.md` 付きで 2 回尋ね、ルールごとに維持されたかをレシートに残す | 所有ディレクトリ (`probes/`) のみ | オプトイン |
+| `xout targets` | xout が差し込めるツール、その場所、どれが有効かを表示する | なし | - |
+| `xout enable --grant [--target …]` | 差し込む: 所有する `@import` 行 1 つ (Claude Code) または所有するブロック 1 つ (他のツール) | 所有する 1 行 / ブロック。先にセーブポイント | 明示的 |
+| `xout undo [--target …]` | xout が書いたものだけを正確に取り除く。完全なロールバック | 所有する 1 行 / ブロック | - |
+| `xout mine [paths]` | 既存のルールファイル (プロジェクト + `~/.claude`) を読み、file:line のレシートつきで軸ごとの観測に変換する | なし | - |
+| `xout conflicts [paths]` | ルールファイルのうち、あなたのルールと反対のことを言う行 | なし | - |
+| `xout reconcile [paths]` | ルールファイルが今や `XOUT.md` と重複して述べている行。パッチを提案し、`--apply --grant` でセーブポイントの後ろで取り除く | 自身のディレクトリ。ルールファイルは `--apply --grant` のときのみ | 明示的 |
+| `xout savepoint [list\|restore <id>]` | ルールファイルをバイト単位でスナップショットし、元に戻す | 自身のディレクトリ。restore は保存したファイルを書き戻す | - |
+| `xout probe` | 外部ランナーに同じ A/B を規則なし / あなたのルール付きで 2 回尋ね、ルールごとに維持されたかをレシートに残す | 自身のディレクトリ (`probes/`) | オプトイン |
 | `xout pair` / `xout strike` | エージェントやスクリプト向けのヘッドレス JSON セッション | 自身のディレクトリのみ | - |
 
 ## 信頼できる理由
 
 - **ローカルのみ。** セッション中に LLM 呼び出し、テレメトリ、Cookie、ネットワーク通信は一切ありません。
 - **クラッシュに強い。** 追記専用の台帳とアトミックな書き込み。どこで中断しても、どこからでも再開でき、着地は正確に 1 回だけです。
-- **可逆。** 有効化は所有する import 行 1 つだけ。`xout undo` は xout が書いたと証明できるものだけを取り除きます。
+- **可逆。** 有効化はツールごとに所有する import 行 1 つ、または所有するブロック 1 つだけ。xout のフォルダ外への編集はすべて先にセーブポイントを取り、`xout undo` は xout が書いたと証明できるものだけを取り除きます。
 - **正直。** 残った振る舞いは「まだ X をつけられていない」だけで、「正しいと証明された」わけではありません。推測したデフォルトには推測だとラベルが付きます。
 
 xout はすべてのルールに根拠を求めるので、自身の主張にも同じ形式でレシートを添えます:
@@ -208,6 +273,8 @@ evidence:
     prefix hash and the exact byte where its one line landed
   - xout undo re-verifies that receipt first; if the file changed around
     the line, it refuses instead of guessing
+  - every other tool gets a marker-bounded block, a receipt, and a
+    savepoint of the file as it was; undo removes the block and nothing else
 ```
 
 ```text
@@ -226,9 +293,9 @@ evidence:
 
 </details>
 
-## Claude Code プラグインと Agent Skills
+## エージェントのチャットの中で (Claude Code プラグインと Agent Skills)
 
-xout は Claude Code の中で、会話として動かすこともできます。`/xout:xout` は振る舞いのペアをチャットに表示し、あなたが X をつけるほうを選ぶと、エージェントはあなたの明示的な選択だけを記録します。`/xout:xout status`、`/xout:xout undo` も同じように動きます。
+xout は Claude Code の中で、会話として動かすこともできます (他のツールでは上のターミナルセッションを使います)。`/xout:xout` は振る舞いのペアをチャットに表示し、あなたが X をつけるほうを選ぶと、エージェントはあなたの明示的な選択だけを記録します。`/xout:xout status`、`/xout:xout undo` も同じように動きます。
 
 あるいは、オープンな [Agent Skills](https://github.com/vercel-labs/skills) エコシステムから同じスキルをインストールできます。コマンド 1 つ、対応するどのエージェントでも:
 

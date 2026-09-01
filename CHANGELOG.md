@@ -33,7 +33,16 @@ slow cadence: minor versions ship every 6-12 months, patches only for defects.
   proposed patch under `~/.claude/xout/reconcile/`; `--apply --grant` removes
   the duplicate lines only, always behind a savepoint. Conflicts are never
   edited.
-- `xout savepoint [create|list|restore <id>]` - byte-exact snapshots of the
+- Universal activation: `xout enable --grant --target codex|opencode|gemini|copilot|pi|omp|kiro|agents|all`
+  adds one owned, marker-bounded block to that tool's documented rules file
+  (`~/.codex/AGENTS.md`, `~/.config/opencode/AGENTS.md`, `~/.gemini/GEMINI.md`,
+  `~/.copilot/copilot-instructions.md`, `~/.pi/agent/AGENTS.md`,
+  `~/.omp/agent/AGENTS.md`, `~/.kiro/steering/xout.md`, `./AGENTS.md`), behind a
+  receipt and a savepoint; `xout undo` removes exactly that block. Claude Code
+  keeps the one `@import` line. `xout targets` lists every target with its live
+  state. Paths come from each tool's own documentation; gajae-code is not
+  registered because its docs do not state a rules file.
+- `xout savepoint [create|list|restore <id>] - byte-exact snapshots of the
   rule files outside xout's directory, stored under `~/.claude/xout/savepoints/`.
   Restore rewrites only files that existed at snapshot time.
 

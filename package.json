@@ -1,7 +1,7 @@
 {
   "name": "xout-skills",
   "version": "1.0.1",
-  "description": "X out the AI behavior you never want again. Cross out the wrong one of two concrete agent behaviors; the survivors compile into local CLAUDE.md rules with evidence, activation consent, and one-line rollback.",
+  "description": "X out the AI behavior you never want again. Cross out the wrong one of two concrete agent behaviors; the survivors compile into rules with evidence, plugged into Claude Code, Codex, OpenCode, Gemini CLI, Copilot, pi, Kiro or any AGENTS.md reader, with consent, savepoints, and one-command rollback.",
   "keywords": [
     "agent",
     "coding-agents",

@@ -64,3 +64,16 @@ def test_every_language_owns_its_surfaces() -> None:
         for other in SUPPORTED_LANGS:
             link = "README.md" if other == "en" else f"README.{other}.md"
             assert other == lang or link in body, (readme.name, link)
+
+
+def test_readmes_list_every_registered_target() -> None:
+    """지원 도구 표(README 4종)와 targets.REGISTRY가 같이 움직여야 한다."""
+    from xout.targets import REGISTRY
+
+    for name in ("README.md", "README.ko.md", "README.ja.md", "README.zh.md"):
+        body = (ROOT / name).read_text(encoding="utf-8")
+        for target in REGISTRY.values():
+            assert f"| `{target.target_id}`" in body, (name, target.target_id)
+            assert target.doc_url in body, (name, target.doc_url)
+            if target.mode == "block":
+                assert target.relative_path.split("/")[-1] in body, (name, target.relative_path)

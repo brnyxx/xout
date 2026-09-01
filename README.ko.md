@@ -10,25 +10,25 @@
 
 [![PyPI](https://img.shields.io/pypi/v/xout)](https://pypi.org/project/xout/) [![CI](https://github.com/brnyxx/xout/actions/workflows/ci.yml/badge.svg)](https://github.com/brnyxx/xout/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-[퀵스타트](#동작-방식) · [모든 규칙은 증거를 댑니다](#모든-규칙은-자기-증거를-댑니다) · [지도](#지도) · [명령어](#명령어) · [믿을 수 있는 이유](#믿을-수-있는-이유)
+[다섯 단계](#전체-흐름은-다섯-단계) · [지원 도구](#지원-도구) · [동작 방식](#동작-방식) · [먹히나?](#실제로-먹히나) · [명령어](#명령어) · [믿을 이유](#믿을-수-있는-이유)
 
 <sub>Read in: [English](README.md) · 한국어 · [日本語](README.ja.md) · [简体中文](README.zh.md) · [소개 사이트](https://brnyxx.github.io/xout/ko/)</sub>
 
 </div>
 
-코딩 에이전트가 행동할 수 있는 두 가지 방식을 보여줍니다. 아닌 쪽에 X를 치세요. 2분, 15번의 X 후에 살아남은 선택들이 Claude Code가 `CLAUDE.md`에서 읽는 로컬 규칙 8줄로 컴파일됩니다.
+**AI 코딩 도구는 전부 규칙 파일을 따릅니다. 그런데 그 파일을 제대로 쓰는 사람은 거의 없습니다.** xout이 대신 써 줍니다. 질문지를 내미는 대신 AI가 할 수 있는 두 가지 행동을 보여 주고 다시는 보고 싶지 않은 쪽에 X를 치게 합니다. X 15번, 약 2분. 살아남은 선택이 규칙 8줄이 되어 당신이 실제로 쓰는 도구에 꽂힙니다. Claude Code, Codex, OpenCode, Gemini CLI, Copilot CLI, pi, oh-my-pi, Kiro, 그리고 `AGENTS.md`를 읽는 모든 도구.
 
 ```bash
 uvx xout
 ```
 
-이게 전부입니다. 세션은 터미널 안에서 그대로 진행되고 2분 정도 X를 치면 에이전트에게 규칙 8줄이 생깁니다.
+이게 전부입니다. 세션은 터미널 안에서 끝납니다. 2분쯤 X를 치고 마지막에 `y`를 누르면 에이전트에 규칙 8줄이 들어갑니다.
 
 <img src=".github/assets/demo.gif" alt="실제 xout 터미널 세션이 15회 X를 진행해 조건부 규칙 8줄을 컴파일하고 한 번의 입력으로 적용하는 모습" width="860">
 
-<sub>위 화면 중 연출된 것은 없습니다 - 레코더는 라이브 세션을 촬영할 뿐이라, 화면의 모든 페어와 규칙은 엔진의 실제 출력입니다.</sub>
+<sub>위 영상은 연출이 아닙니다. 녹화기가 실제 세션을 그대로 찍기 때문에 화면의 페어와 규칙은 전부 엔진의 진짜 출력입니다.</sub>
 
-**클라우드 없음. 텔레메트리 없음. LLM 호출 없음. 롤백은 한 줄.**
+**클라우드 없음. 텔레메트리 없음. 세션 중 LLM 호출 없음. 자기 폴더 밖에 쓰는 것은 전부 세이브포인트 뒤에서, 명령 하나로 되돌립니다.**
 
 **v1.0.1 · Python 3.10–3.14 · MIT · 서드파티 런타임 패키지 0개**
 
@@ -52,6 +52,46 @@ Popper 1.x에서 올라오는 경우? `xout`을 한 번 실행하면 됩니다: 
 
 </details>
 
+## 전체 흐름은 다섯 단계
+
+| | 무슨 일이 일어나나 | 당신이 치는 것 |
+|---|---|---|
+| **1. 이미 있는 것을 읽는다** | 기존 규칙 파일(`CLAUDE.md`, `AGENTS.md`, `.cursorrules`, 전역 `~/.claude/CLAUDE.md`)을 한 번 읽고 화면의 행동과 관련된 줄을 페어 옆에 보여 줍니다. 복사도 수정도 하지 않습니다. | 없음 (`xout mine`으로 목록 확인) |
+| **2. X를 15번 친다** | 같은 작업에 대한 구체적 행동 두 개. 다시 보고 싶지 않은 쪽에 X. 실제 장면 셋: 버그픽스, 기능 추가, 위험한 마이그레이션. | `xout` |
+| **3. 규칙이 착지한다** | 근거가 붙은 규칙 8줄이 `~/.claude/xout/`에 쓰입니다. 다른 파일은 아직 손대지 않습니다. | 없음 |
+| **4. 도구에 꽂는다** | Claude Code에는 xout 소유의 `@import` 한 줄, 다른 도구에는 그 도구의 규칙 파일 끝에 소유 블록 하나. 둘 다 영수증이 남습니다. | 마지막에 `y`, 또는 `xout enable --grant --target codex` |
+| **5. 확인하고 정리하고 언제든 되돌린다** | 규칙이 먹히는지 에이전트 본인에게 묻고 옛 파일이 이제 반복하는 줄을 지우고 밖에 쓰기 전엔 항상 세이브포인트. `xout undo`는 xout이 쓴 것만 정확히 지웁니다. | `xout probe` · `xout reconcile` · `xout undo` |
+
+## 지원 도구
+
+xout의 규칙은 평범한 마크다운이라 도구마다 다른 건 *그 도구가 규칙을 어디서 읽느냐*뿐입니다. 아래 경로는 전부 각 도구의 공식 문서에서 확인한 것이고 확인하지 못한 도구는 등록하지 않았습니다.
+
+| 도구 | 규칙이 들어가는 곳 | 방식 | `xout enable --grant --target …` |
+|---|---|---|---|
+| [Claude Code](https://code.claude.com/docs/en/memory) | `~/.claude/CLAUDE.md` | 소유 `@import` 한 줄 | `claude` (기본) |
+| [OpenAI Codex CLI](https://learn.chatgpt.com/docs/agent-configuration/agents-md) | `~/.codex/AGENTS.md` | 소유 블록 | `codex` |
+| [OpenCode](https://opencode.ai/docs/rules/) | `~/.config/opencode/AGENTS.md` | 소유 블록 | `opencode` |
+| [Gemini CLI](https://geminicli.com/docs/cli/gemini-md/) | `~/.gemini/GEMINI.md` | 소유 블록 | `gemini` |
+| [GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-custom-instructions) | `~/.copilot/copilot-instructions.md` | 소유 블록 | `copilot` |
+| [pi](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/README.md) | `~/.pi/agent/AGENTS.md` | 소유 블록 | `pi` |
+| [oh-my-pi](https://github.com/can1357/oh-my-pi/blob/main/docs/context-files.md) | `~/.omp/agent/AGENTS.md` | 소유 블록 | `omp` |
+| [Kiro](https://kiro.dev/docs/steering/) | `~/.kiro/steering/xout.md` | 소유 steering 파일 | `kiro` |
+| [AGENTS.md를 읽는 모든 도구](https://agents.md) | 프로젝트의 `./AGENTS.md` | 소유 블록 | `agents` |
+
+`xout targets`가 이 표를 각 도구의 현재 상태와 함께 보여 줍니다. `xout enable --grant --target all`로 한 번에 다 꽂고 `xout undo`로 한 번에 다 뺍니다.
+
+소유 블록은 이렇게 생겼고 xout이 그 파일 안에서 손대는 건 이 블록뿐입니다:
+
+```markdown
+<!-- xout:begin sha256=… -->
+<!-- managed by xout - edit XOUT.md, not this block; remove with: xout undo -->
+# xout Rules
+…
+<!-- xout:end -->
+```
+
+gajae-code는 어떤 규칙 파일을 읽는지 문서에서 확인하지 못해 타깃을 등록하지 않았습니다. pi의 포크라 `pi` 타깃이 통할 수 있지만 그 도구의 문서가 확인해 주지는 않습니다.
+
 ## 동작 방식
 
 <img src=".github/assets/how-it-works.ko.svg" alt="세 칸 그림: 버그 고쳐줘에 대한 두 행동 중 아닌 쪽에 X, 15번의 X로 6,561개의 가능한 에이전트가 하나로 줄어드는 깔때기, 그리고 import 한 줄로 CLAUDE.md에 착지하는 규칙 8줄" width="920">
@@ -64,9 +104,9 @@ Popper 1.x에서 올라오는 경우? `xout`을 한 번 실행하면 됩니다: 
    > 짧은 계획을 먼저 적고 곧바로 이어서 실행한다. **단, 삭제, push, 배포, 마이그레이션처럼 되돌리기 어려운 작업에서는 실행 전에 반드시 승인을 받는다.**
 
    이 조건절은 템플릿이 아닙니다. 당신이 마이그레이션 장면에서 다르게 그었기 때문에 존재합니다. 설문형 도구는 이걸 만들 수 없습니다.
-3. **키 입력 한 번으로 적용합니다.** 완료 화면에서 "지금 적용할까요?"를 물으며 예라고 하면 `~/.claude/CLAUDE.md`에 xout 소유의 `@import` 한 줄만 추가됩니다. `xout undo`가 그 한 줄만 제거합니다.
+3. **키 입력 한 번으로 꽂습니다.** 완료 화면에서 "지금 적용할까요?"를 물으며 예라고 하면 `~/.claude/CLAUDE.md`에 xout 소유의 `@import` 한 줄만 추가됩니다. 다른 도구는 `xout enable --grant --target codex`(또는 `opencode`, `gemini`, `copilot`, `pi`, `omp`, `kiro`, `agents`, `all`)가 그 도구의 규칙 파일에 소유 블록 하나를 넣습니다. `xout undo`는 xout이 쓴 것만 지웁니다.
 
-새 Claude Code 세션에서 예전에 거슬리던 요청을 다시 해보고 규칙이 지켜지는지 확인하세요. 규칙이 낡았다 싶으면 다시 `xout`.
+에이전트의 새 세션에서 예전에 거슬리던 요청을 다시 해보고 규칙이 지켜지는지 확인하세요. 규칙이 낡았다 싶으면 다시 `xout`.
 
 <details>
 <summary><strong>안쪽 구조</strong> (그림 한 장)</summary>
@@ -126,6 +166,28 @@ receipt: ~/.claude/xout/probes/probe-20260901T231554.json
 
 읽는 법은 이렇습니다. 9개는 규칙 없이도 이미 일치했으니 그 부분은 모델의 기본값이 이 프로필과 같은 겁니다. 4개는 규칙이 선택을 움직였습니다. 2개는 불일치입니다. 버그픽스에서 에이전트는 실패하는 테스트를 먼저 쓰기를 고집했고 위험 장면에서는 "기존 의존성 우선"을 "설치 전 확인"과 같은 것으로 취급했습니다. 불일치가 쓸모 있는 부분입니다. 어느 규칙 문장을 날카롭게 다듬어야 하는지 알려주고 탐침은 1분이면 도니 고친 뒤 바로 확인할 수 있습니다. 탐침이 아닌 것: 강제 A/B 답은 지시 아래에서의 의도를 재는 것이지 긴 에이전트 루프 안의 행동이 아니고 이건 모델 하나에서 한 번 돌린 기록입니다. 영수증은 원문 답변을 전부 담고 있어 누구든 다시 읽을 수 있습니다.
 
+러너는 프롬프트를 마지막 인자로 받아 답을 출력하는 아무 명령이면 됩니다. 기본은 Claude Code이고 아래는 각 도구가 문서로 밝힌 헤드리스 모드입니다:
+
+| 도구 | `xout probe --runner "…"` |
+|---|---|
+| Claude Code | `claude -p --output-format text` (기본) |
+| OpenAI Codex CLI | `codex exec` |
+| OpenCode | `opencode run` |
+| Gemini CLI | `gemini -p` |
+| GitHub Copilot CLI | `copilot -p` |
+| pi | `pi -p` |
+| oh-my-pi | `omp -p` |
+| Kiro | `kiro-cli chat --no-interactive` |
+
+## 이미 갖고 있는 프롬프트
+
+규칙 파일이 이미 있을 겁니다. xout은 그걸 경쟁자가 아니라 증거로 다룹니다.
+
+- **세션 중에는** 페어마다 당신의 파일이 그 행동에 대해 이미 말하는 줄이 보입니다. `~/.claude/CLAUDE.md:12 "편집 전에 항상 물어라" → ask_first` 같은 식이라 예전에 쓴 걸 확인하거나 뒤집을 수 있습니다.
+- **착지 뒤에는** `xout conflicts`가 새 규칙과 반대로 말하는 줄을 file:line으로 보여 줍니다. 모순 줄은 절대 편집하지 않습니다. 프로젝트 자체 지시가 이긴다는 건 규칙 파일이 이미 말하고 있습니다.
+- **`xout reconcile`**은 옛 파일이 이제 `XOUT.md`를 반복하는 줄을 찾고 `~/.claude/xout/reconcile/`에 패치를 제안합니다. 그 중복 줄을 실제로 지우는 건 `xout reconcile --apply --grant`뿐이고 그때도 세이브포인트를 먼저 만듭니다.
+- **`xout savepoint`**는 언제든 규칙 파일을 바이트 그대로 스냅샷하고 `xout savepoint restore <id>`로 되돌립니다. `enable`, `undo`, `reconcile --apply`는 자동으로 하나씩 만듭니다.
+
 ## 얻는 것
 
 15번째 X 이후 `~/.claude/xout/`에 세 파일이 착지합니다:
@@ -151,9 +213,9 @@ X로 직접 확정한 규칙은 **확정**, xout이 묻지 않고 추정한 기�
 | 완료 전 검증 | 기능 추가 | 마이그레이션 | O |
 | 의존성 정책 | 기능 추가 | 마이그레이션 | O |
 | 커밋 정책 | 기능 추가 | 마이그레이션 | O |
-| 범위 준수 | 버그픽스 + 기능 추가 | - | 교차 검증 |
-| 테스트 규율 | 버그픽스 + 기능 추가 | - | 교차 검증 |
-| 주석과 문서화 | 버그픽스 | - | 스타일 축 |
+| 범위 준수 | 버그픽스 + 기능 추가 | - | 두 번 측정 |
+| 테스트 규율 | 버그픽스 + 기능 추가 | - | 두 번 측정 |
+| 주석과 문서화 | 버그픽스 | - | 아니오 |
 
 이 8축도, 추정 기본값도 허공에서 만들지 않았습니다. 1만~24만+ 스타 프롬프트/에이전트 프로젝트 100여 개를 조사했습니다 - codex/gemini-cli/Devin이 실제로 출하하는 시스템프롬프트, rust/node/pytorch/transformers의 AGENTS.md, 커뮤니티 룰 컬렉션까지 - 그리고 영수증을 남겼습니다: 원문 인용, 실측 스타 수, 축별 집계 전부가 [`docs/mined-prior.md`](docs/mined-prior.md)에 있습니다. 기본값 8개 중 6개는 현장 최빈값과 일치했고 2개는 달라서 교정했습니다. 당신의 환경도 출처가 됩니다: `xout mine`이 이미 갖고 있는 규칙 파일을 file:line 영수증과 함께 읽어줍니다.
 
@@ -163,7 +225,7 @@ X로 직접 확정한 규칙은 **확정**, xout이 묻지 않고 추정한 기�
 
 > (1) ~~CLAUDE.md를 기억으로 씁니다. 규칙에는 출처가 없고 버그픽스와 운영 마이그레이션에 똑같이 적용되며 에이전트가 다시 거슬릴 때까지 조용히 낡아갑니다.~~
 >
-> (2) 실제로 보고 싫었던 행동에 X를 칩니다. 모든 규칙이 당신의 X로 소급되고 X가 갈린 곳에서만 일상/고위험 경계로 분기하며 영수증으로 증명되는 한 줄로 되돌아가고, 낡으면 2분 세션에서 다시 긋습니다.
+> (2) 실제로 보고 싫었던 행동에 X를 칩니다. 모든 규칙이 당신의 X로 소급되고 X가 갈린 곳에서만 일상/고위험 경계로 분기하며 영수증으로 증명되는 한 줄로 되돌아가고 낡으면 2분 세션에서 다시 긋습니다.
 
 그 X가 이 제품의 전부입니다.
 
@@ -171,21 +233,24 @@ X로 직접 확정한 규칙은 **확정**, xout이 묻지 않고 추정한 기�
 
 | 명령 | 하는 일 | 쓰는 곳 | 동의 |
 |---|---|---|---|
-| `xout` | 세션 시작(미완료 세션은 자동 재개) | 소유 디렉토리만 | - |
+| `xout` | 세션 시작 (미완료가 있으면 자동 재개) | 소유 디렉토리만 | - |
 | `xout why [축]` | 규칙을 만든 X까지 증거를 소급 | 없음 | - |
-| `xout status` | 규칙 8줄과 활성화 여부 표시 | 없음 | - |
-| `xout undo` | 소유한 import 한 줄 제거 - 완전한 롤백 | 소유한 한 줄 | - |
-| `xout enable --grant` | 활성화: 소유 `@import` 한 줄 추가 | 소유한 한 줄 | 명시적 |
-| `xout mine [경로]` | 이미 있는 CLAUDE.md/AGENTS.md/.cursorrules를 축 관측으로 읽기 - file:line 영수증 동반 | 없음 | - |
-| `xout conflicts [경로]` | 프로젝트 규칙 파일에서 당신의 규칙과 다른 값을 요구하는 줄을 file:line으로 보고 | 없음 | - |
-| `xout probe` | 외부 러너(기본 `claude -p`)에 같은 A/B를 규칙 없이/`XOUT.md`를 앞세워 두 번 묻고 규칙별 유지 여부를 영수증으로 남김 | 소유 디렉토리(`probes/`)만 | 옵트인 |
-| `xout pair` / `xout strike` | 에이전트/스크립트용 헤드리스 JSON 세션 | 소유 디렉토리만 | - |
+| `xout status` | 규칙 8줄과 활성 여부 | 없음 | - |
+| `xout targets` | 꽂을 수 있는 도구, 경로, 현재 활성 상태 | 없음 | - |
+| `xout enable --grant [--target …]` | 꽂기: 소유 `@import` 한 줄(Claude Code) 또는 소유 블록(다른 도구) | 소유 한 줄/블록, 세이브포인트 선행 | 명시적 |
+| `xout undo [--target …]` | xout이 쓴 것만 정확히 제거 - 전체 롤백 | 소유 한 줄/블록 | - |
+| `xout mine [경로]` | 기존 규칙 파일(프로젝트 + `~/.claude`)을 축 관측으로 읽기 - file:line 영수증 동반 | 없음 | - |
+| `xout conflicts [경로]` | 규칙 파일 중 당신의 규칙과 반대로 말하는 줄 | 없음 | - |
+| `xout reconcile [경로]` | 규칙 파일이 이제 `XOUT.md`를 반복하는 줄. 패치 제안. `--apply --grant`면 세이브포인트 뒤에서 제거 | 소유 디렉토리. 규칙 파일은 `--apply --grant`일 때만 | 명시적 |
+| `xout savepoint [list\|restore <id>]` | 규칙 파일을 바이트 그대로 스냅샷하고 되돌리기 | 소유 디렉토리. restore는 저장한 파일을 다시 씀 | - |
+| `xout probe` | 외부 러너에 같은 A/B를 규칙 없이/규칙과 함께 두 번 묻고 규칙별 유지 여부를 영수증으로 | 소유 디렉토리(`probes/`) | 옵트인 |
+| `xout pair` / `xout strike` | 에이전트·스크립트용 헤드리스 JSON 세션 | 소유 디렉토리만 | - |
 
 ## 믿을 수 있는 이유
 
 - **로컬 온리.** 세션 중 LLM 호출, 텔레메트리, 쿠키, 네트워크 없음.
 - **크래시 안전.** append-only 원장과 원자적 쓰기: 어디서 끊겨도 재개되고 정확히 한 번만 착지.
-- **되돌릴 수 있음.** 활성화는 소유된 import 한 줄뿐이고 `xout undo`는 xout이 썼다고 증명 가능한 것만 제거.
+- **되돌릴 수 있습니다.** 활성화는 도구당 소유 import 한 줄 또는 소유 블록 하나이고 자기 폴더 밖에 쓰기 전엔 항상 세이브포인트를 만듭니다. `xout undo`는 xout이 썼다고 증명할 수 있는 것만 지웁니다.
 - **정직함.** 살아남은 행동은 "아직 X를 안 맞았을 뿐"이지 "옳다고 증명된 것"이 아닙니다. 추정 기본값은 추정이라고 표시합니다.
 
 xout은 모든 규칙에 증거를 요구하는 도구라서, 자기 주장에도 같은 모양의 영수증을 답니다:
@@ -220,11 +285,11 @@ xout은 모든 규칙에 증거를 요구하는 도구라서, 자기 주장에�
 <details>
 <summary><strong>이 주장들을 받치는 엔지니어링</strong></summary>
 
-모든 X는 fsync되는 append-only JSONL 이벤트이고 착지는 콘텐츠 해시를 동반한 원자적 쓰기이며, 세션은 결정적으로 재생되고 중복 세션은 거부되며, 수동 편집은 착지 전에 감지됩니다. 페어 판별력은 맥락별로 판정되어 일상 긋기가 고위험 장면을 굶기지 않고 판별 증거가 5축 미만인 세션은 무효 처리됩니다. 15번의 X는 6,561개(8축 x 3값)의 가능한 에이전트 공간을 하나로 좁힙니다 - 그리고 살아남은 쪽은 "아직 X를 안 맞았을 뿐"이지 "옳다고 증명된 것"이 아닙니다. 봉인된 사전등록은 [`docs/prereg/prereg_sealed.json`](docs/prereg/prereg_sealed.json), 동결된 8축 카탈로그는 [`docs/axis_locality_table.md`](docs/axis_locality_table.md)에 있습니다. 8축 카탈로그는 의도적으로 동결되어 있습니다: xout은 로컬 행동 컴파일러이지, 프롬프트 매니저나 클라우드 프로필, 에이전트 오케스트레이터가 아닙니다.
+모든 X는 fsync되는 append-only JSONL 이벤트이고 착지는 콘텐츠 해시를 동반한 원자적 쓰기이며 세션은 결정적으로 재생되고 중복 세션은 거부되며 수동 편집은 착지 전에 감지됩니다. 페어 판별력은 맥락별로 판정되어 일상 긋기가 고위험 장면을 굶기지 않고 판별 증거가 5축 미만인 세션은 무효 처리됩니다. 15번의 X는 6,561개(8축 x 3값)의 가능한 에이전트 공간을 하나로 좁힙니다 - 그리고 살아남은 쪽은 "아직 X를 안 맞았을 뿐"이지 "옳다고 증명된 것"이 아닙니다. 봉인된 사전등록은 [`docs/prereg/prereg_sealed.json`](docs/prereg/prereg_sealed.json), 동결된 8축 카탈로그는 [`docs/axis_locality_table.md`](docs/axis_locality_table.md)에 있습니다. 8축 카탈로그는 의도적으로 동결되어 있습니다: xout은 로컬 행동 컴파일러이지, 프롬프트 매니저나 클라우드 프로필, 에이전트 오케스트레이터가 아닙니다.
 
 </details>
 
-## Claude Code 플러그인 & Agent Skills
+## 에이전트 채팅 안에서 (Claude Code 플러그인 & Agent Skills)
 
 xout은 Claude Code 안에서 대화로 실행됩니다: `/xout:xout`이 행동 페어를 채팅으로 보여주고 당신이 X 칠 쪽을 고르면 에이전트는 그 명시적 선택만 기록합니다. `/xout:xout status`, `/xout:xout undo`도 동일합니다.
 
