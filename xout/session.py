@@ -68,6 +68,7 @@ REASON_PROBE_UNRESOLVED = "probe_unresolved"
 REASON_PROBE_REDRAWN = "probe_redrawn"
 
 _COMPLETE = "complete"
+_PARTIAL = "partial"
 
 _SOURCE_PREREG_PATH = (
     Path(__file__).resolve().parent.parent / "docs" / "prereg" / "prereg_sealed.json"
@@ -471,10 +472,13 @@ def fold_session(
     complete = spec is not None and started and slot == spec.total_slots
 
     counter_state = fold_counter(stream, catalog)
+    # v2: 세션 유효성은 "판별 증거가 남은 축" 수로 판정한다. 다중 장면 설계에서
+    # 한 축의 완전 판별(생존 1값)은 맥락 간 값 분화에 달려 있어 세션 품질의
+    # 지표가 아니다 - 증거 0축(전부 pair-strike) 세션만 무효가 된다.
     fully_discriminated = tuple(
         state.axis
         for state in counter_state.axes
-        if state.effective_discrimination == _COMPLETE
+        if state.effective_discrimination in (_COMPLETE, _PARTIAL)
     )
 
     voided: SessionVoidRecord | None = None

@@ -45,6 +45,7 @@ from typing import Any, Callable, Mapping, Sequence
 from xout.compiler import (
     CompiledRule,
     HashMismatch,
+    _context_stream,
     compile_rules,
     write_outputs,
 )
@@ -66,7 +67,9 @@ from xout.events import (
 )
 from xout.events import strike as make_strike
 from xout.fixtures import (
+    CONTEXT_ROUTINE,
     GENERIC_SKIN,
+    SCENE_CONTEXTS,
     RenderedPair,
     RenderedTranscript,
     RepoSkin,
@@ -378,15 +381,20 @@ def select_pair(
     3순위: 이미 그은 페어 재등판 - 같은 조합 재긋기는 복구 채널의 일부다.
     allowed_axes가 주어지면(재심) 각 순위를 그 축들에서 먼저 찾는다.
     """
-    counter = fold(all_events)
+    counters = {
+        context: fold(_context_stream(tuple(all_events), context))
+        for context in dict.fromkeys(SCENE_CONTEXTS.values())
+    }
     consumed = consumed_pair_ids(session_events)
 
-    def surviving(axis: str) -> set[str]:
-        return set(counter.axis(axis).surviving)
+    def surviving(pair: RenderedPair) -> set[str]:
+        """판별력은 그 페어가 속한 맥락의 생존값 기준이다 - 맥락 간 오염 금지."""
+        context = SCENE_CONTEXTS.get(pair.scene_id, CONTEXT_ROUTINE)
+        return set(counters[context].axis(pair.axis).surviving)
 
     def rank(candidates: Sequence[RenderedPair]) -> RenderedPair | None:
         for pair in candidates:
-            alive = surviving(pair.axis)
+            alive = surviving(pair)
             if (
                 pair.pair_id not in consumed
                 and len(alive) > 1

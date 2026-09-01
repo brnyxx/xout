@@ -34,15 +34,18 @@ FONT_SIZE = 17
 
 # 데모가 마지막에 보여줄 규칙 세트가 일관되도록, 각 축에서 살릴 값.
 PREFERRED_VALUES = {
-    "response_language": "korean",
-    "verbosity": "balanced",
     "autonomy": "act_then_report",
     "scope_adherence": "adjacent_fix_ok",
     "test_discipline": "test_after",
     "comment_doc": "minimal",
     "error_behavior": "retry_then_report",
     "commit_style": "no_auto_commit",
+    "verification": "always_run",
+    "dependency_policy": "prefer_existing",
 }
+
+# 고위험 장면에서는 다른 값을 살린다 - 조건부 규칙이 컴파일되는 시연.
+RISKY_PREFERRED_VALUES = {**PREFERRED_VALUES, "autonomy": "ask_first"}
 
 
 def _font() -> ImageFont.FreeTypeFont:
@@ -172,7 +175,12 @@ def capture(output: Path) -> None:
             snap = session.snapshot()
             if snap.session_complete or snap.pair is None:
                 break
-            preferred = PREFERRED_VALUES.get(snap.pair.axis)
+            table = (
+                RISKY_PREFERRED_VALUES
+                if snap.pair.scene_id == "scn-risky"
+                else PREFERRED_VALUES
+            )
+            preferred = table.get(snap.pair.axis)
             if snap.pair.left_value == preferred:
                 target = "right"
             elif snap.pair.right_value == preferred:
