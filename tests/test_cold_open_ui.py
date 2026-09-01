@@ -215,7 +215,7 @@ def scan_page(html: str) -> AffordanceScan:
 def boot_payload(html: str) -> dict:
     """서버가 첫 응답에 박아 넣은 부트 상태를 꺼낸다."""
     match = re.search(
-        r'<script id="popper-boot" type="application/json">(.*?)</script>',
+        r'<script id="xout-boot" type="application/json">(.*?)</script>',
         html,
         re.DOTALL,
     )
