@@ -27,7 +27,7 @@ from xout.atomic import atomic_write_bytes, atomic_write_text
 from xout.compiler import (
     MANIFEST_JSON,
     MANIFEST_VERSION,
-    POPPER_MD,
+    XOUT_MD,
     SETTINGS_JSON,
     content_hash,
     default_base_dir,
@@ -38,7 +38,7 @@ from xout.locking import base_lock, target_lock
 logger = logging.getLogger(__name__)
 
 # manifest가 content hash를 기록/대조하는 산출물 (manifest.json 자신은 제외)
-HASHED_OUTPUTS = (POPPER_MD, SETTINGS_JSON)
+HASHED_OUTPUTS = (XOUT_MD, SETTINGS_JSON)
 
 # 수기 편집 감지 신호 - 사용자가 규칙 본문을 직접 고쳤다는 최강 strike 신호
 MANUAL_EDIT_STRIKE = "manual_edit_strike"
@@ -152,8 +152,8 @@ class OwnedWriter:
         return self.base_dir / name
 
     def import_line(self) -> str:
-        """CLAUDE.md에 들어갈 @import 한 줄 - POPPER.md 착지 경로의 순수 함수."""
-        target = self.base_dir / POPPER_MD
+        """CLAUDE.md에 들어갈 @import 한 줄 - XOUT.md 착지 경로의 순수 함수."""
+        target = self.base_dir / XOUT_MD
         try:
             rel = target.relative_to(Path.home())
         except ValueError:

@@ -70,7 +70,7 @@ class DoctorReport:
 
 def app_version() -> str:
     try:
-        return version("popper")
+        return version("xout")
     except PackageNotFoundError:
         return APP_VERSION_FALLBACK
 

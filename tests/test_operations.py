@@ -82,7 +82,7 @@ def test_activation_truth_distinguishes_inactive_active_and_drift(
     monkeypatch.setenv("USERPROFILE", str(home))
     base = tmp_path / "data"
     base.mkdir()
-    (base / "POPPER.md").write_text("# rules\n", encoding="utf-8")
+    (base / "XOUT.md").write_text("# rules\n", encoding="utf-8")
     writer = OwnedWriter(base_dir=base)
     claude_md = claude / "CLAUDE.md"
     claude_md.write_text("# User\n", encoding="utf-8")
@@ -90,10 +90,10 @@ def test_activation_truth_distinguishes_inactive_active_and_drift(
     assert _activation_state(base)["status"] == "inactive"
     claude_md.write_text(f"# User\n{writer.import_line()}\n", encoding="utf-8")
     assert _activation_state(base)["status"] == "active"
-    (base / "POPPER.md").unlink()
+    (base / "XOUT.md").unlink()
     assert _activation_state(base)["status"] == "import-drift"
-    (base / "POPPER.md").write_text("# rules\n", encoding="utf-8")
-    claude_md.write_text("# User\n@/old/popper/POPPER.md\n", encoding="utf-8")
+    (base / "XOUT.md").write_text("# rules\n", encoding="utf-8")
+    claude_md.write_text("# User\n@/old/popper/XOUT.md\n", encoding="utf-8")
     assert _activation_state(base)["status"] == "import-drift"
 
 
@@ -105,7 +105,7 @@ def test_all_export_formats_are_deterministic_and_explicit(tmp_path: Path) -> No
         for format_name in EXPORT_FORMATS
     }
 
-    assert rendered["markdown"].startswith("# Popper Rules")
+    assert rendered["markdown"].startswith("# xout Rules")
     assert rendered["agents"].startswith("# Agent Instructions")
     assert rendered["claude"].startswith("# Claude Instructions")
     assert json.loads(rendered["json"])["artifact"] == "popper_rules_export"
@@ -130,7 +130,7 @@ def test_backup_round_trip_inspection_and_tamper_detection(tmp_path: Path) -> No
     with zipfile.ZipFile(archive) as source, zipfile.ZipFile(tampered, "w") as target:
         for info in source.infolist():
             data = source.read(info.filename)
-            if info.filename.endswith("POPPER.md"):
+            if info.filename.endswith("XOUT.md"):
                 data += b"tampered"
             target.writestr(info, data)
     broken = inspect_backup(tampered)

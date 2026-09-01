@@ -23,7 +23,7 @@ replay하면 항상 같은 값이 나온다.
   않는다 - 캡은 봉인 수치다.
 - 착지: 마지막 슬롯이 닫히면 세션 판정(fold_session)을 거쳐
   session_validated/voided를 방출하고, product/recheck 세션은
-  ~/.claude/popper/에 POPPER.md + manifest.json + settings.popper.json을
+  ~/.claude/popper/에 XOUT.md + manifest.json + settings.xout.json을
   착지시킨다. content hash 불일치(수기 편집)는 silent overwrite 대신
   착지 차단으로 표면화된다.
 

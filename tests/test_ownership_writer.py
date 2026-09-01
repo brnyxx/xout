@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from xout.compiler import MANIFEST_JSON, POPPER_MD, SETTINGS_JSON
+from xout.compiler import MANIFEST_JSON, XOUT_MD, SETTINGS_JSON
 from xout.conflict import ConsentLedger
 from xout.writer import (
     ACTIVATION_RECEIPT,
@@ -35,7 +35,7 @@ from xout.writer import (
 CLAUDE_MD_BODY = "# 사용자 규칙\n\n- 기존 본문은 Popper 소유가 아니다\n"
 LIVE_SETTINGS_BODY = '{"model": "opus"}\n'
 DOCS_V1 = {
-    POPPER_MD: "# POPPER 실행 룰 v1\n",
+    XOUT_MD: "# POPPER 실행 룰 v1\n",
     SETTINGS_JSON: '{"scope": "global"}\n',
 }
 
@@ -272,22 +272,22 @@ def test_manual_edit_blocks_overwrite_and_returns_strike_signal(
     first = writer.write_outputs(DOCS_V1, now="2026-08-28T00:00:00+00:00")
     assert first.blocked is False
     assert {path.name for path in first.written} == {
-        POPPER_MD,
+        XOUT_MD,
         SETTINGS_JSON,
         MANIFEST_JSON,
     }
     manifest = json.loads(writer.path(MANIFEST_JSON).read_text(encoding="utf-8"))
-    assert set(manifest["outputs"]) == {POPPER_MD, SETTINGS_JSON}
+    assert set(manifest["outputs"]) == {XOUT_MD, SETTINGS_JSON}
 
     # 수기 편집이 없으면 재쓰기는 통과한다
     assert writer.write_outputs(DOCS_V1).blocked is False
 
     edited = "# POPPER 실행 룰 v1\n\n사용자가 직접 고친 줄\n"
-    writer.path(POPPER_MD).write_text(edited, encoding="utf-8")
+    writer.path(XOUT_MD).write_text(edited, encoding="utf-8")
     manifest_before = writer.path(MANIFEST_JSON).read_bytes()
 
     blocked = writer.write_outputs(
-        {POPPER_MD: "# POPPER 실행 룰 v2\n", SETTINGS_JSON: "{}\n"}
+        {XOUT_MD: "# POPPER 실행 룰 v2\n", SETTINGS_JSON: "{}\n"}
     )
     assert blocked.blocked is True
     assert blocked.written == ()
@@ -297,7 +297,7 @@ def test_manual_edit_blocks_overwrite_and_returns_strike_signal(
     assert detection.recorded_hash != detection.actual_hash
     assert detection.to_dict()["signal"] == MANUAL_EDIT_STRIKE
     # silent overwrite 없음 - 수기 편집본과 manifest가 그대로다
-    assert writer.path(POPPER_MD).read_text(encoding="utf-8") == edited
+    assert writer.path(XOUT_MD).read_text(encoding="utf-8") == edited
     assert writer.path(MANIFEST_JSON).read_bytes() == manifest_before
 
 

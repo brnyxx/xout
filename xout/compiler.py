@@ -1,4 +1,4 @@
-"""AC4 - 세션 이벤트를 8축 실행 룰(POPPER.md)과 인식론 사이드카(manifest.json)로 컴파일한다.
+"""AC4 - 세션 이벤트를 8축 실행 룰(XOUT.md)과 인식론 사이드카(manifest.json)로 컴파일한다.
 
 컴파일러는 순수 fold 파생만 사용한다. 카운터/등급/판정은 저장하지 않고 매 호출마다
 이벤트 스트림에서 다시 계산한다. 산출 경로는 ~/.claude/popper/ 단독이며 사용자 파일에는
@@ -27,10 +27,10 @@ METRIC_SPEC_VERSION = "v1"
 MANIFEST_VERSION = "1"
 SCOPE = "global"
 
-POPPER_MD = "POPPER.md"
+XOUT_MD = "XOUT.md"
 MANIFEST_JSON = "manifest.json"
-SETTINGS_JSON = "settings.popper.json"
-OUTPUT_FILES = (POPPER_MD, MANIFEST_JSON, SETTINGS_JSON)
+SETTINGS_JSON = "settings.xout.json"
+OUTPUT_FILES = (XOUT_MD, MANIFEST_JSON, SETTINGS_JSON)
 
 DEFAULT_PREREG_REF = "docs/prereg/prereg_sealed.json"
 
@@ -84,7 +84,7 @@ RULE_TEXT: dict[tuple[str, str], str] = {
     ("scope_adherence", "proactive"): "작업 중 발견한 개선점은 같은 변경에 포함해 처리한다.",
 }
 
-# POPPER.md 본문에 절대 실려서는 안 되는 인식론 어휘.
+# XOUT.md 본문에 절대 실려서는 안 되는 인식론 어휘.
 EPISTEMIC_TOKENS: tuple[str, ...] = (
     "corroboration",
     "corroborated",
@@ -123,7 +123,7 @@ class HashMismatch(RuntimeError):
 
 @dataclass(frozen=True, slots=True)
 class CompiledRule:
-    """POPPER.md 한 줄과 manifest 한 항목이 공유하는 단일 룰."""
+    """XOUT.md 한 줄과 manifest 한 항목이 공유하는 단일 룰."""
 
     axis: str
     value: str
@@ -177,7 +177,7 @@ class WriteResult:
 
 def default_base_dir() -> Path:
     """Popper 단독 소유 산출 디렉터리."""
-    return Path.home() / ".claude" / "popper"
+    return Path.home() / ".claude" / "xout"
 
 
 def _now(now: str | None = None) -> str:
@@ -318,7 +318,7 @@ def compile_rules(
 
 def render_popper_md(rules: Sequence[CompiledRule]) -> str:
     """실행 가능한 룰만 렌더한다 - 인식론 주석 0줄."""
-    lines = ["# Popper Rules", ""]
+    lines = ["# xout Rules", ""]
     lines.extend(f"- {rule.text}" for rule in rules)
     return "\n".join(lines) + "\n"
 
@@ -330,7 +330,7 @@ def render_settings(rules: Sequence[CompiledRule]) -> str:
             "proposal_only": True,
             "catalog_version": CATALOG_VERSION,
             "scope": SCOPE,
-            "rules_ref": POPPER_MD,
+            "rules_ref": XOUT_MD,
         },
         "recommended_hooks": [],
         "rule_ids": [rule.rule_id for rule in rules],
@@ -475,7 +475,7 @@ def _write_outputs_unlocked(
     prereg_ref: str = DEFAULT_PREREG_REF,
     acknowledge_mismatch: bool = False,
 ) -> WriteResult:
-    """~/.claude/popper/ 안에만 POPPER.md + manifest.json + settings.popper.json을 착지시킨다."""
+    """~/.claude/popper/ 안에만 XOUT.md + manifest.json + settings.xout.json을 착지시킨다."""
     target_dir = Path(base_dir) if base_dir is not None else default_base_dir()
 
     mismatches = verify_outputs(target_dir) if target_dir.exists() else ()
@@ -491,7 +491,7 @@ def _write_outputs_unlocked(
     settings = render_settings(rules)
     manifest = build_manifest(
         rules,
-        documents={POPPER_MD: popper_md, SETTINGS_JSON: settings},
+        documents={XOUT_MD: popper_md, SETTINGS_JSON: settings},
         session_id=session_id,
         now=now,
         conflicts=conflicts,
@@ -506,13 +506,13 @@ def _write_outputs_unlocked(
 
     target_dir.mkdir(parents=True, exist_ok=True)
     documents = {
-        POPPER_MD: popper_md,
+        XOUT_MD: popper_md,
         SETTINGS_JSON: settings,
         MANIFEST_JSON: _canonical(manifest),
     }
     written_by_name: dict[str, Path] = {}
     # manifest를 마지막에 교체해 세 파일 세대의 commit marker로 사용한다.
-    for name in (POPPER_MD, SETTINGS_JSON, MANIFEST_JSON):
+    for name in (XOUT_MD, SETTINGS_JSON, MANIFEST_JSON):
         path = target_dir / name
         atomic_write_text(path, documents[name])
         written_by_name[name] = path

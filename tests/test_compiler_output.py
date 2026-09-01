@@ -1,4 +1,4 @@
-"""AC4 - POPPER.md에는 8축 실행 룰만 착지하고 manifest.json이 인식론 메타를 전담하는지 검증한다."""
+"""AC4 - XOUT.md에는 8축 실행 룰만 착지하고 manifest.json이 인식론 메타를 전담하는지 검증한다."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from xout.compiler import (
     GRADE_UNTESTED,
     MANIFEST_JSON,
     OUTPUT_FILES,
-    POPPER_MD,
+    XOUT_MD,
     RECHECK_CLASS_PRIORITY,
     RULE_TEXT,
     SETTINGS_JSON,
@@ -186,7 +186,7 @@ def test_compile_is_a_pure_replay(mixed_events) -> None:
 
 
 # ---------------------------------------------------------------------------
-# POPPER.md - 실행 가능한 룰만, 인식론 주석 0줄
+# XOUT.md - 실행 가능한 룰만, 인식론 주석 0줄
 # ---------------------------------------------------------------------------
 
 
@@ -194,7 +194,7 @@ def test_popper_md_contains_exactly_eight_executable_rules(mixed_events) -> None
     rules = compile_rules(mixed_events)
     body = render_popper_md(rules)
     lines = body.splitlines()
-    assert lines[0] == "# Popper Rules"
+    assert lines[0] == "# xout Rules"
     assert lines[1] == ""
     bullets = lines[2:]
     assert len(bullets) == 8
@@ -259,7 +259,7 @@ def test_manifest_records_grade_label_source_per_rule(tmp_path, mixed_events) ->
 def test_manifest_records_content_hash_per_output(tmp_path, mixed_events) -> None:
     _, manifest = _landed(tmp_path, mixed_events)
     outputs = manifest["outputs"]
-    for name in (POPPER_MD, SETTINGS_JSON):
+    for name in (XOUT_MD, SETTINGS_JSON):
         body = (tmp_path / name).read_text(encoding="utf-8")
         assert outputs[name]["content_hash"] == content_hash(body)
         assert outputs[name]["bytes"] == len(body.encode("utf-8"))
@@ -311,7 +311,7 @@ def test_verify_outputs_is_clean_right_after_write(tmp_path, mixed_events) -> No
 
 def test_manual_edit_blocks_silent_overwrite(tmp_path, mixed_events) -> None:
     _landed(tmp_path, mixed_events)
-    target = tmp_path / POPPER_MD
+    target = tmp_path / XOUT_MD
     target.write_text(
         target.read_text(encoding="utf-8") + "- 수기로 덧붙인 줄\n", encoding="utf-8"
     )
@@ -325,7 +325,7 @@ def test_manual_edit_blocks_silent_overwrite(tmp_path, mixed_events) -> None:
 
 def test_acknowledged_rewrite_records_the_mismatch(tmp_path, mixed_events) -> None:
     _landed(tmp_path, mixed_events)
-    target = tmp_path / POPPER_MD
+    target = tmp_path / XOUT_MD
     target.write_text("# 임의 수정\n", encoding="utf-8")
     result = write_outputs(
         mixed_events,

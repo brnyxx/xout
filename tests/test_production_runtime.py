@@ -1,7 +1,7 @@
 """프로덕션 런타임 검증 - 세션 완주, 착지, 복구 채널, 프로파일, 영속화.
 
 시드의 exit condition을 코드로 못 박는다:
-  - 일반 세션 1회가 cap 15로 완주해 POPPER.md/manifest.json/settings.popper.json이
+  - 일반 세션 1회가 cap 15로 완주해 XOUT.md/manifest.json/settings.xout.json이
     소유 디렉토리에 착지한다.
   - 재심 진입 경로(배너 + 수동)가 동작한다.
   - 검증 세션은 판별 13 + 슬롯 9/13 미러 프로브 2로 완주하고 착지하지 않는다.
@@ -19,7 +19,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from xout.compiler import MANIFEST_JSON, POPPER_MD, SETTINGS_JSON
+from xout.compiler import MANIFEST_JSON, XOUT_MD, SETTINGS_JSON
 from xout.counter import INITIAL_COMBINATIONS, fold
 from xout.events import EventType, SchemaViolation, StrikeEvent
 from xout.session import PROFILE_VALIDATION, fold_session, load_session_specs
@@ -70,7 +70,7 @@ class ProductCompletionTest(unittest.TestCase):
         self.assertIsNone(snapshot.voided_reason)
         self.assertIsNotNone(snapshot.landing)
         self.assertEqual(snapshot.landing.status, "landed")
-        for name in (POPPER_MD, MANIFEST_JSON, SETTINGS_JSON):
+        for name in (XOUT_MD, MANIFEST_JSON, SETTINGS_JSON):
             self.assertTrue((self.base / name).exists(), f"{name} 미착지")
         self.assertTrue(snapshot.landing.import_line.startswith("@"))
 
@@ -120,7 +120,7 @@ class VoidedSessionTest(unittest.TestCase):
             self.assertTrue(snapshot.session_complete)
             self.assertEqual(snapshot.voided_reason, "axis_shortfall")
             self.assertEqual(snapshot.landing.status, "voided")
-            for name in (POPPER_MD, MANIFEST_JSON, SETTINGS_JSON):
+            for name in (XOUT_MD, MANIFEST_JSON, SETTINGS_JSON):
                 self.assertFalse((base / name).exists(), f"{name}이 착지됐다")
             types = [e.type for e in EventStore(base).load_session("void-1")]
             self.assertIn(EventType.SESSION_VOIDED, types)
@@ -233,7 +233,7 @@ class ValidationProbeTest(unittest.TestCase):
         snapshot = self.session.snapshot()
         self.assertTrue(snapshot.session_complete)
         self.assertEqual(snapshot.landing.status, "skipped")
-        for name in (POPPER_MD, MANIFEST_JSON, SETTINGS_JSON):
+        for name in (XOUT_MD, MANIFEST_JSON, SETTINGS_JSON):
             self.assertFalse((self.base / name).exists(), f"{name}이 착지됐다")
 
         events = self.session.log.events
@@ -431,7 +431,7 @@ class LandingBlockTest(unittest.TestCase):
                 first.strike("left")
             self.assertEqual(first.snapshot().landing.status, "landed")
 
-            target = base / POPPER_MD
+            target = base / XOUT_MD
             target.write_text(
                 target.read_text(encoding="utf-8") + "\n- 수기 추가 룰\n",
                 encoding="utf-8",

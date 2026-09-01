@@ -13,7 +13,7 @@ import pytest
 import xout.recheck as recheck_module
 from xout.compiler import (
     MANIFEST_JSON,
-    POPPER_MD,
+    XOUT_MD,
     SETTINGS_JSON,
     build_manifest,
     compile_rules,
@@ -93,7 +93,7 @@ def _conflict_row() -> dict:
 def manifest() -> dict:
     """실제 컴파일러 경로로 만든 manifest - 불안정 1 + untested-prior 7 + 충돌 1."""
     rules = compile_rules((_flip_probe("verbosity"),))
-    documents = {POPPER_MD: render_popper_md(rules), SETTINGS_JSON: render_settings(rules)}
+    documents = {XOUT_MD: render_popper_md(rules), SETTINGS_JSON: render_settings(rules)}
     return build_manifest(
         rules,
         documents=documents,

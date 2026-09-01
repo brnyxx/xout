@@ -24,7 +24,7 @@ from xout.cli import (
 from xout.events import Event, EventType
 from xout.fixtures import FIXTURES_DIR
 from xout.judgment import fold_judgment
-from xout.compiler import MANIFEST_JSON, POPPER_MD, compile_rules
+from xout.compiler import MANIFEST_JSON, XOUT_MD, compile_rules
 from xout.session import DEFAULT_PREREG_PATH
 from xout.store import EventStore
 from xout.web.state import ColdOpenSession
@@ -85,7 +85,7 @@ class LandCommandTest(unittest.TestCase):
             base = Path(tmp)
             land_product_session(base)
 
-            target = base / POPPER_MD
+            target = base / XOUT_MD
             target.write_text(
                 target.read_text(encoding="utf-8") + "\n- 수기 추가\n",
                 encoding="utf-8",

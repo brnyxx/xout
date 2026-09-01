@@ -1,6 +1,6 @@
-"""popper CLI - /popper 스킬과 터미널이 쓰는 단일 진입점.
+"""xout CLI - /xout 스킬과 터미널이 쓰는 단일 진입점.
 
-세션 런타임(popper.web)은 시각을 조회하지 않는다. 벽시계 읽기(재심 배너 판정),
+세션 런타임(xout.web)은 시각을 조회하지 않는다. 벽시계 읽기(재심 배너 판정),
 브라우저 열기, 동의 원장 적재 같은 바깥세상 접점은 전부 이 경계에서 끝낸다.
 
 명령:
@@ -47,6 +47,7 @@ from xout.conflict import (
 )
 from xout.events import Event, EventType, SchemaViolation
 from xout.fixtures import load_pack
+from xout.migrate import migrate_legacy_home
 from xout.doctor import app_version, run_doctor
 from xout.exporter import EXPORT_FORMATS, render_export, write_export
 from xout.judgment import acknowledge, emit_condition_met, fold_judgment
@@ -69,7 +70,7 @@ from xout.web.server import EPHEMERAL_PORT, HOST, build_server
 from xout.web.state import ColdOpenSession, SessionComplete
 from xout.writer import OwnedWriter
 
-logger = logging.getLogger("popper")
+logger = logging.getLogger("xout")
 
 CONSENT_FILE = "consent.jsonl"
 MANUAL_RULES_FILE = "manual_rules.json"
@@ -106,16 +107,16 @@ def _activation_state(base_dir: Path) -> dict[str, str | None]:
     writer = OwnedWriter(base_dir=base_dir)
     expected = writer.import_line()
     target = writer.claude_md_path
-    output_exists = (base_dir / "POPPER.md").is_file()
+    output_exists = (base_dir / "XOUT.md").is_file()
     if not target.is_file():
         return {
             "status": "inactive",
             "path": str(target),
             "expected_import": expected,
             "remediation": (
-                "popper enable --grant를 실행해라"
+                "xout enable --grant를 실행해라"
                 if output_exists
-                else "popper open으로 세션을 먼저 완주해라"
+                else "xout open으로 세션을 먼저 완주해라"
             ),
         }
     try:
@@ -134,7 +135,11 @@ def _activation_state(base_dir: Path) -> dict[str, str | None]:
             "expected_import": expected,
             "remediation": None,
         }
-    stale = [line for line in lines if line.startswith("@") and "POPPER.md" in line]
+    stale = [
+        line
+        for line in lines
+        if line.startswith("@") and ("XOUT.md" in line or "POPPER.md" in line)
+    ]
     if expected in lines:
         stale.append(expected)
     return {
@@ -143,15 +148,15 @@ def _activation_state(base_dir: Path) -> dict[str, str | None]:
         "expected_import": expected,
         "remediation": (
             (
-                "popper rollback 후 popper enable --grant를 실행해라"
+                "xout rollback 후 xout enable --grant를 실행해라"
                 if output_exists
-                else "popper rollback 후 popper open을 실행해라"
+                else "xout rollback 후 xout open을 실행해라"
             )
             if stale
             else (
-                "popper enable --grant를 실행해라"
+                "xout enable --grant를 실행해라"
                 if output_exists
-                else "popper open으로 세션을 먼저 완주해라"
+                else "xout open으로 세션을 먼저 완주해라"
             )
         ),
     }
@@ -453,7 +458,7 @@ def cmd_open(args: argparse.Namespace) -> int:
                     candidate.slots_total,
                     candidate.updated_at,
                 )
-            logger.error("popper resume <session-id> 또는 popper open --new를 사용해라")
+            logger.error("xout resume <session-id> 또는 xout open --new를 사용해라")
             return 1
         if candidates:
             candidate = candidates[0]
@@ -555,7 +560,7 @@ def cmd_recheck(args: argparse.Namespace) -> int:
     base = Path(args.base_dir)
     manifest = _load_manifest(base)
     if manifest is None:
-        logger.error("착지된 manifest가 없다 - 일반 세션(popper open)을 먼저 완주해라")
+        logger.error("착지된 manifest가 없다 - 일반 세션(xout open)을 먼저 완주해라")
         return 1
     queue = manifest.get("recheck_queue")
     if not isinstance(queue, Sequence) or isinstance(queue, (str, bytes)) or not queue:
@@ -615,7 +620,7 @@ def cmd_status(args: argparse.Namespace) -> int:
         )
         return 0
     if manifest is None:
-        logger.info("착지된 산출물이 없다 - popper open으로 첫 세션을 완주해라")
+        logger.info("착지된 산출물이 없다 - xout open으로 첫 세션을 완주해라")
     else:
         logger.info("착지 디렉토리: %s", base)
         logger.info("마지막 착지: %s", manifest.get("generated_at"))
@@ -631,7 +636,7 @@ def cmd_status(args: argparse.Namespace) -> int:
     logger.info("저장된 세션: %d개, 이벤트 %d건", len(store.session_ids()), len(events))
     in_progress = [summary for summary in summaries if summary.resumable]
     if in_progress:
-        logger.info("재개 가능: %d건 (popper resume)", len(in_progress))
+        logger.info("재개 가능: %d건 (xout resume)", len(in_progress))
     logger.info(
         "자기반증 판정: 유효 검증 세션 %d, 판별 인스턴스 %d, 정복원 %d, 오복원 %d",
         state.valid_sessions,
@@ -643,7 +648,7 @@ def cmd_status(args: argparse.Namespace) -> int:
         logger.info("핵심 반증 확정 - 긋기-only 접근이 반증됐다 (직접편집 전환 피벗)")
     elif state.condition_met:
         logger.info(
-            "refutation_condition_met 성립 - 확정은 popper acknowledge --actor <이름>"
+            "refutation_condition_met 성립 - 확정은 xout acknowledge --actor <이름>"
         )
     return 0
 
@@ -799,7 +804,7 @@ def cmd_sessions(args: argparse.Namespace) -> int:
             summary.updated_at,
         )
     if any(summary.resumable for summary in summaries):
-        logger.info("* popper resume [session-id]로 계속할 수 있다")
+        logger.info("* xout resume [session-id]로 계속할 수 있다")
     return 0
 
 
@@ -873,15 +878,15 @@ def cmd_data_inspect(args: argparse.Namespace) -> int:
 
 def cmd_version(args: argparse.Namespace) -> int:
     pack = load_pack()
-    print(f"popper {app_version()} (catalog {pack.catalog_version}, backup schema 1)")
+    print(f"xout {app_version()} (catalog {pack.catalog_version}, backup schema 1)")
     return 0
 
 
 def cmd_update(args: argparse.Namespace) -> int:
     logger.info("Popper는 자동 네트워크 확인이나 자동 업그레이드를 하지 않는다.")
-    logger.info("uv:   uv tool upgrade popper")
-    logger.info("pipx: pipx upgrade popper")
-    logger.info("wheel/plugin: 새 공식 릴리스를 설치한 뒤 popper doctor를 실행해라")
+    logger.info("uv:   uv tool upgrade xout")
+    logger.info("pipx: pipx upgrade xout")
+    logger.info("wheel/plugin: 새 공식 릴리스를 설치한 뒤 xout doctor를 실행해라")
     return 0
 
 
@@ -892,7 +897,7 @@ def _add_common(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--base-dir",
         default=str(default_base_dir()),
-        help="popper 소유 디렉토리 (기본 ~/.claude/popper)",
+        help="xout 소유 디렉토리 (기본 ~/.claude/xout)",
     )
 
 
@@ -915,7 +920,7 @@ def _add_serve_common(parser: argparse.ArgumentParser) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="popper",
+        prog="xout",
         description="반증(긋기)만으로 Claude Code 설정을 수렴시키는 도구",
     )
     sub = parser.add_subparsers(dest="command", required=True)
@@ -1030,6 +1035,11 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     args = build_parser().parse_args(argv)
+    if getattr(args, "base_dir", None) is None:
+        try:
+            migrate_legacy_home()
+        except OSError as exc:
+            logger.warning("레거시 데이터 이관 실패 - 기존 경로로 계속한다: %s", exc)
     try:
         return args.func(args)
     except StoreViolation as exc:
