@@ -87,7 +87,7 @@ def test_block_survives_user_edits_around_it(tmp_path: Path) -> None:
     assert target.read_text(encoding="utf-8") == "top\n\nbottom note\n"
 
 
-def test_registry_entries_are_verified_user_level_files() -> None:
+def test_registry_entries_are_verified_user_level_files(tmp_path: Path) -> None:
     from xout.targets import MODE_BLOCK, MODE_IMPORT, REGISTRY, SCOPE_PROJECT, SCOPE_USER
 
     assert set(REGISTRY) == {"claude", "codex", "opencode", "gemini", "copilot", "pi", "omp", "kiro", "agents"}
@@ -97,9 +97,9 @@ def test_registry_entries_are_verified_user_level_files() -> None:
         assert target.scope in (SCOPE_USER, SCOPE_PROJECT)
     assert REGISTRY["claude"].mode == MODE_IMPORT
     assert REGISTRY["agents"].scope == SCOPE_PROJECT
-    home, project = Path("/h"), Path("/p")
-    assert REGISTRY["codex"].resolve(home, project) == Path("/h/.codex/AGENTS.md")
-    assert REGISTRY["agents"].resolve(home, project) == Path("/p/AGENTS.md")
+    home, project = tmp_path / "h", tmp_path / "p"
+    assert REGISTRY["codex"].resolve(home, project) == (home / ".codex" / "AGENTS.md").resolve()
+    assert REGISTRY["agents"].resolve(home, project) == (project / "AGENTS.md").resolve()
 
 
 def test_enable_and_undo_block_targets_through_the_cli(capsys, tmp_path: Path, monkeypatch) -> None:
