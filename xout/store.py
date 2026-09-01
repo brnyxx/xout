@@ -1,7 +1,7 @@
 """이벤트 영속화 - 소유 디렉토리 안의 append-only JSONL 스토어.
 
 세션의 단일 진실원은 append-only 이벤트 스트림이다. 이 모듈은 그 스트림을
-~/.claude/popper/sessions/<session_id>.jsonl 한 파일에 한 줄 한 이벤트로
+~/.claude/xout/sessions/<session_id>.jsonl 한 파일에 한 줄 한 이벤트로
 내려앉히고, 같은 파일을 다시 읽어 동일한 이벤트 열로 복원한다.
 
 - 쓰기는 append 모드만 쓴다. 덮어쓰기/삭제 경로는 없다.

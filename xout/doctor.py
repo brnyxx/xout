@@ -133,7 +133,7 @@ def run_doctor(base_dir: Path | str) -> DoctorReport:
         evidence=f"{sys.version.split()[0]} ({sys.platform})",
         remediation=None
         if supported
-        else "Python 3.10-3.14 중 하나로 Popper를 다시 설치해라.",
+        else "Python 3.10-3.14 중 하나로 xout을 다시 설치해라.",
     )
     checks = [python_check]
     checks.append(
@@ -143,7 +143,7 @@ def run_doctor(base_dir: Path | str) -> DoctorReport:
                 f"catalog={load_pack().catalog_version}, "
                 f"profiles={','.join(sorted(load_session_specs()))}"
             ),
-            "wheel/plugin을 다시 설치하고 popper doctor를 재실행해라.",
+            "wheel/plugin을 다시 설치하고 xout doctor를 재실행해라.",
         )
     )
     checks.append(
@@ -216,7 +216,7 @@ def run_doctor(base_dir: Path | str) -> DoctorReport:
             raise ValueError(
                 "terminal event 없이 slot cap에 도달한 세션: "
                 + ",".join(stalled)
-                + " (popper resume으로 finalize 가능)"
+                + " (xout resume으로 finalize 가능)"
             )
         checks.append(
             DoctorCheck(
@@ -238,7 +238,7 @@ def run_doctor(base_dir: Path | str) -> DoctorReport:
         _capture(
             "landed_outputs",
             lambda: _output_evidence(base),
-            "popper land로 재검증하되 수기 편집은 먼저 별도 보존해라.",
+            "xout land로 재검증하되 수기 편집은 먼저 별도 보존해라.",
         )
     )
     checks.append(

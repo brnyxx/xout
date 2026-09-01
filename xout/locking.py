@@ -135,13 +135,13 @@ def lock_for_path(path: Path | str) -> ProcessFileLock:
 def base_lock(base_dir: Path | str) -> ProcessFileLock:
     """이벤트와 파생 산출물 전체를 직렬화하는 소유 디렉토리 잠금."""
     base = Path(base_dir).expanduser().resolve()
-    return lock_for_path(base.parent / f".{base.name}.popper.lock")
+    return lock_for_path(base.parent / f".{base.name}.xout.lock")
 
 
 def target_lock(target: Path | str) -> ProcessFileLock:
     """소유 디렉토리 밖 단일 사용자 파일을 보호하는 형제 잠금."""
     path = Path(target).expanduser().resolve()
-    return lock_for_path(path.with_name(f".{path.name}.popper.lock"))
+    return lock_for_path(path.with_name(f".{path.name}.xout.lock"))
 
 
 def base_runtime_lock(

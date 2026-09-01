@@ -176,7 +176,7 @@ class WriteResult:
 
 
 def default_base_dir() -> Path:
-    """Popper 단독 소유 산출 디렉터리."""
+    """xout 단독 소유 산출 디렉터리."""
     return Path.home() / ".claude" / "xout"
 
 
@@ -316,7 +316,7 @@ def compile_rules(
     return tuple(rules)
 
 
-def render_popper_md(rules: Sequence[CompiledRule]) -> str:
+def render_xout_md(rules: Sequence[CompiledRule]) -> str:
     """실행 가능한 룰만 렌더한다 - 인식론 주석 0줄."""
     lines = ["# xout Rules", ""]
     lines.extend(f"- {rule.text}" for rule in rules)
@@ -487,7 +487,7 @@ def _write_outputs_unlocked(
     rules = compile_rules(stream, catalog)
     state = fold(stream, catalog)
 
-    popper_md = render_popper_md(rules)
+    popper_md = render_xout_md(rules)
     settings = render_settings(rules)
     manifest = build_manifest(
         rules,

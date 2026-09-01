@@ -27,7 +27,7 @@ from xout.compiler import (
     content_hash,
     manifest_self_hash,
     mined_mode,
-    render_popper_md,
+    render_xout_md,
     verify_outputs,
     write_outputs,
 )
@@ -192,7 +192,7 @@ def test_compile_is_a_pure_replay(mixed_events) -> None:
 
 def test_popper_md_contains_exactly_eight_executable_rules(mixed_events) -> None:
     rules = compile_rules(mixed_events)
-    body = render_popper_md(rules)
+    body = render_xout_md(rules)
     lines = body.splitlines()
     assert lines[0] == "# xout Rules"
     assert lines[1] == ""
@@ -207,7 +207,7 @@ def test_popper_md_contains_exactly_eight_executable_rules(mixed_events) -> None
 
 def test_popper_md_has_zero_epistemic_annotation_lines(mixed_events) -> None:
     for stream in ((), mixed_events):
-        body = render_popper_md(compile_rules(stream))
+        body = render_xout_md(compile_rules(stream))
         lowered = body.lower()
         for token in EPISTEMIC_TOKENS:
             assert token.lower() not in lowered, f"인식론 어휘 유출: {token}"

@@ -1,4 +1,4 @@
-"""Popper 소유 데이터의 원자 ZIP snapshot과 읽기 전용 무결성 검사."""
+"""xout 소유 데이터의 원자 ZIP snapshot과 읽기 전용 무결성 검사."""
 
 from __future__ import annotations
 
@@ -80,7 +80,7 @@ def create_backup(base_dir: Path | str, destination: Path | str) -> BackupResult
     base = Path(base_dir).expanduser().resolve()
     target = Path(destination).expanduser().resolve()
     if target == base or base in target.parents:
-        raise ValueError("백업 파일은 Popper 소유 데이터 디렉토리 밖에 둬야 한다")
+        raise ValueError("백업 파일은 xout 소유 데이터 디렉토리 밖에 둬야 한다")
     if target.suffix.lower() != ".zip":
         raise ValueError("백업 파일 확장자는 .zip이어야 한다")
 

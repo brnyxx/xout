@@ -18,7 +18,7 @@ from xout.compiler import (
     build_manifest,
     compile_rules,
     manifest_self_hash,
-    render_popper_md,
+    render_xout_md,
     render_settings,
 )
 from xout.conflict import (
@@ -93,7 +93,7 @@ def _conflict_row() -> dict:
 def manifest() -> dict:
     """실제 컴파일러 경로로 만든 manifest - 불안정 1 + untested-prior 7 + 충돌 1."""
     rules = compile_rules((_flip_probe("verbosity"),))
-    documents = {XOUT_MD: render_popper_md(rules), SETTINGS_JSON: render_settings(rules)}
+    documents = {XOUT_MD: render_xout_md(rules), SETTINGS_JSON: render_settings(rules)}
     return build_manifest(
         rules,
         documents=documents,

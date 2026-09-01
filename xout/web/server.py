@@ -95,7 +95,7 @@ class ColdOpenServer(ThreadingHTTPServer):
             self.shutdown_requested.set()
             Thread(
                 target=self.shutdown,
-                name=f"popper-shutdown-{self.server_address[1]}",
+                name=f"xout-shutdown-{self.server_address[1]}",
                 daemon=True,
             ).start()
 
@@ -103,7 +103,7 @@ class ColdOpenServer(ThreadingHTTPServer):
 class ColdOpenHandler(BaseHTTPRequestHandler):
     """긋기와 무름만 받는 요청 핸들러."""
 
-    server_version = "PopperColdOpen"
+    server_version = "XoutColdOpen"
     protocol_version = "HTTP/1.1"
 
     def do_GET(self) -> None:

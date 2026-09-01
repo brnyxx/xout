@@ -1,6 +1,6 @@
 """AC5 - 쓰기 권한 분리 writer.
 
-Popper는 자기 소유 디렉토리(~/.claude/popper/) 밖에 절대 쓰지 않는다.
+xout은 자기 소유 디렉토리(~/.claude/xout/) 밖에 절대 쓰지 않는다.
 사용자 CLAUDE.md 본문과 라이브 settings.json은 무변경이며, 유일한 예외인
 @import 한 줄은 import_permission_granted 동의 레코드가 인자로 전달될 때만
 파일 끝에 추가된다(멱등). manifest에 기록된 마지막 쓰기 content hash와
@@ -122,7 +122,7 @@ class ImportOutcome:
 
 
 class OwnedWriter:
-    """Popper 단독 소유 디렉토리 writer.
+    """xout 단독 소유 디렉토리 writer.
 
     모든 쓰기는 base_dir 내부로 강제되고, 사용자 CLAUDE.md와 라이브
     settings.json은 쓰기 대상에서 원천 차단된다. 유일한 사용자 파일 변경은

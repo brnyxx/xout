@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build Popper's deterministic, dependency-free social card."""
+"""Build xout's deterministic, dependency-free social card."""
 
 from __future__ import annotations
 
@@ -136,8 +136,8 @@ def main() -> None:
     )
     canvas = bytearray([COLOR_INDEX[PAPER]]) * (W * H)
     # Concrete red-pen behavior test: cross out the bad transcript and retain the survivor.
-    text(canvas, 64, 48, "POPPER", 8, INK, gap=3)
-    text(canvas, 64, 112, "CLAUDE.MD BEHAVIOR COMPILER", 3, MUTED, gap=2)
+    text(canvas, 64, 48, "XOUT", 8, INK, gap=3)
+    text(canvas, 64, 112, "X OUT THE BEHAVIOR. KEEP THE RULE.", 3, MUTED, gap=2)
     text(canvas, 64, 166, "FIX THE BUG.", 7, INK, gap=2)
     rect(canvas, 64, 248, 470, 118, PAPER)
     rect(canvas, 64, 248, 470, 6, INK)

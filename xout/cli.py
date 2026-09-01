@@ -383,7 +383,7 @@ def _runtime_exclusive(
                 return command(args)
         except LockTimeout:
             logger.error(
-                "다른 Popper 세션이 이 소유 디렉토리에서 실행 중이다: %s",
+                "다른 xout 세션이 이 소유 디렉토리에서 실행 중이다: %s",
                 Path(args.base_dir).expanduser().resolve(),
             )
             return 1
@@ -816,7 +816,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
             json.dumps(report.to_dict(), ensure_ascii=False, indent=2, sort_keys=True)
         )
     else:
-        logger.info("Popper %s doctor - %s", report.version, report.base_dir)
+        logger.info("xout %s doctor - %s", report.version, report.base_dir)
         for check in report.checks:
             marker = "OK" if check.healthy else "ERROR"
             logger.info("[%s] %s - %s", marker, check.name, check.evidence)
@@ -884,7 +884,7 @@ def cmd_version(args: argparse.Namespace) -> int:
 
 
 def cmd_update(args: argparse.Namespace) -> int:
-    logger.info("Popper는 자동 네트워크 확인이나 자동 업그레이드를 하지 않는다.")
+    logger.info("xout은 자동 네트워크 확인이나 자동 업그레이드를 하지 않는다.")
     logger.info("uv:   uv tool upgrade xout")
     logger.info("pipx: pipx upgrade xout")
     logger.info("wheel/plugin: 새 공식 릴리스를 설치한 뒤 xout doctor를 실행해라")

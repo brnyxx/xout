@@ -1,4 +1,4 @@
-"""Popper 이벤트 스키마 - strike-only, append-only.
+"""xout 이벤트 스키마 - strike-only, append-only.
 
 세션의 단일 진실원은 긋기(strike) 이벤트 스트림이다.
 사용자의 유일한 동사는 긋기이며, 승인/생존을 기록하는 이벤트 타입은

@@ -12,11 +12,11 @@ from pathlib import Path
 
 from xout.web.server import EPHEMERAL_PORT, HOST, serve
 
-logger = logging.getLogger("popper.web")
+logger = logging.getLogger("xout.web")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="popper.web", description="로컬 긋기 UI")
+    parser = argparse.ArgumentParser(prog="xout.web", description="로컬 긋기 UI")
     parser.add_argument("--host", default=HOST, help="바인딩할 주소")
     parser.add_argument("--port", type=int, default=EPHEMERAL_PORT, help="바인딩할 포트")
     parser.add_argument(

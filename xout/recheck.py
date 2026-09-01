@@ -2,7 +2,7 @@
 
 - check_due(manifest, now)는 last_review 경과 >= 7일 판정과 대기 건수 N 계산만
   수행해 배너 데이터를 돌려주는 순수 함수다. 부수효과가 없고 manifest를 바꾸지
-  않는다. 수동 진입(/popper recheck)은 배너와 무관하게 항상 열려 있다 -
+  않는다. 수동 진입(/xout recheck)은 배너와 무관하게 항상 열려 있다 -
   plan_recheck_session은 due를 전혀 검사하지 않는다.
 - 재심 큐 우선순위는 전순서다: 불안정(unstable) > untested-prior(미시험) >
   충돌(conflict). recovery.RECHECK_CLASS_PRIORITY를 그대로 재사용한다.
@@ -44,7 +44,7 @@ MIN_BUDGET: int = 5
 MAX_BUDGET: int = 7
 DEFAULT_BUDGET: int = 5
 RECHECK_SESSION_KIND: str = "recheck"
-MANUAL_COMMAND: str = "/popper recheck"
+MANUAL_COMMAND: str = "/xout recheck"
 BANNER_TEMPLATE: str = "재심 대기 {count}건"
 
 
@@ -167,7 +167,7 @@ def plan_recheck_session(
     *,
     budget: int = DEFAULT_BUDGET,
 ) -> RecheckPlan:
-    """미니 재심 세션 계획 - 수동(/popper recheck) 경로는 due와 무관하게 항상 열린다.
+    """미니 재심 세션 계획 - 수동(/xout recheck) 경로는 due와 무관하게 항상 열린다.
 
     예산은 5-7긋기(기본 5)로 강제되고, 대상은 정렬된 큐의 선두 budget건이다.
     반환되는 opening은 기존 session_start 이벤트 스키마 그대로이며 신규 이벤트

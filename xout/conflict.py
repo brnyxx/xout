@@ -1,4 +1,4 @@
-"""Popper 충돌 리포트 - conflict_id 단일 실체, write-time 자동 해소 없음.
+"""xout 충돌 리포트 - conflict_id 단일 실체, write-time 자동 해소 없음.
 
 기존 수기 룰과 신규 컴파일 룰이 같은 축에서 어긋나도 어느 쪽도 고르지 않는다.
 충돌은 conflict_id(축 + 수기룰 id + catalog_version)를 키로 한 번만 생성되고,
