@@ -909,7 +909,8 @@ def cmd_probe(args: argparse.Namespace) -> int:
         else:
             print(msg["dry"].format(n=len(cases)))
         return 0
-    command = shlex.split(args.runner)
+    # Windows 경로의 역슬래시를 이스케이프로 먹지 않도록 non-POSIX 분할.
+    command = shlex.split(args.runner, posix=os.name != "nt")
     try:
         runner = subprocess_runner(command, timeout=args.timeout)
     except ProbeError as exc:
