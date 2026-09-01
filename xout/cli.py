@@ -1,10 +1,10 @@
 """xout CLI - /xout 스킬과 터미널이 쓰는 단일 진입점.
 
-세션 런타임(xout.web)은 시각을 조회하지 않는다. 벽시계 읽기(재심 배너 판정),
-브라우저 열기, 동의 원장 적재 같은 바깥세상 접점은 전부 이 경계에서 끝낸다.
+세션 런타임(xout.state)은 시각을 조회하지 않는다. 벽시계 읽기(재심 배너 판정),
+터미널 입출력, 동의 원장 적재 같은 바깥세상 접점은 전부 이 경계에서 끝낸다.
 
 명령:
-  open         일반(product) 세션 - 콜드 오픈 서버를 열고 15긋기 완주 시 착지
+  open         일반(product) 세션 - 터미널에서 15긋기 완주 시 착지
   validate     검증(validation) 세션 - 판별 13 + 미러 프로브 2, 착지 없음
   recheck      4막 경량 재심 - manifest 재심 큐 선두를 5-7긋기로 재시험
   status       manifest/재심 배너/자기반증 판정 fold 요약
@@ -22,7 +22,6 @@ import json
 import logging
 import os
 import sys
-import webbrowser
 from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
@@ -67,8 +66,7 @@ from xout.session import (
 )
 from xout.sessions import latest_resumable, summarize_sessions
 from xout.store import EventStore, StoreViolation
-from xout.web.server import EPHEMERAL_PORT, HOST, build_server
-from xout.web.state import (
+from xout.state import (
     ColdOpenSession,
     RecoveryUnavailable,
     SessionComplete,
@@ -396,30 +394,6 @@ def _runtime_exclusive(
     return wrapped
 
 
-def _serve(session: ColdOpenSession, args: argparse.Namespace) -> int:
-    snapshot = session.snapshot()
-    if snapshot.session_complete:
-        logger.info(
-            "세션 복구 완료: %s (%s) - 서버를 열 필요가 없다",
-            session.session_id,
-            snapshot.landing.status if snapshot.landing is not None else "complete",
-        )
-        return 0
-    server = build_server(session=session, host=args.host, port=args.port)
-    logger.info("긋기 화면: %s", server.url)
-    logger.info("세션: %s (%s) - 중단은 Ctrl+C", session.session_id, session.profile)
-    if not args.no_browser:
-        webbrowser.open(server.url)
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        logger.info("서버를 닫는다")
-    finally:
-        server.shutdown()
-        server.server_close()
-    return 0
-
-
 def _resumed_session(
     base: Path,
     store: EventStore,
@@ -491,9 +465,7 @@ def cmd_open(args: argparse.Namespace) -> int:
 
 
 def _launch(session: ColdOpenSession, args: argparse.Namespace) -> int:
-    if getattr(args, "tui", False):
-        return _run_tui(session, Path(args.base_dir))
-    return _serve(session, args)
+    return _run_tui(session, Path(args.base_dir))
 
 
 def _grant_and_enable(base: Path) -> int:
@@ -663,7 +635,7 @@ def cmd_resume(args: argparse.Namespace) -> int:
         candidate.slots_used,
         candidate.slots_total,
     )
-    return _serve(session, args)
+    return _launch(session, args)
 
 
 @_runtime_exclusive
@@ -690,7 +662,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
         land_dir=base,
         history=store.load_completed(),
     )
-    return _serve(session, args)
+    return _launch(session, args)
 
 
 @_runtime_exclusive
@@ -719,7 +691,7 @@ def cmd_recheck(args: argparse.Namespace) -> int:
     except RecheckViolation as exc:
         logger.error("%s", exc)
         return 1
-    return _serve(session, args)
+    return _launch(session, args)
 
 
 def cmd_status(args: argparse.Namespace) -> int:
@@ -1034,18 +1006,11 @@ def _add_common(parser: argparse.ArgumentParser) -> None:
 
 def _add_serve_common(parser: argparse.ArgumentParser) -> None:
     _add_common(parser)
-    parser.add_argument("--host", default=HOST, help="바인딩할 주소")
-    parser.add_argument(
-        "--port", type=int, default=EPHEMERAL_PORT, help="바인딩할 포트"
-    )
     parser.add_argument(
         "--repo",
         type=Path,
         default=None,
         help="슬롯 치환에 쓸 대상 레포 경로. 생략하면 일반 skin을 쓴다",
-    )
-    parser.add_argument(
-        "--no-browser", action="store_true", help="브라우저를 자동으로 열지 않는다"
     )
 
 
@@ -1068,11 +1033,6 @@ def build_parser() -> argparse.ArgumentParser:
         "--new",
         action="store_true",
         help="미완료 일반 세션이 있어도 새 세션을 연다",
-    )
-    p_open.add_argument(
-        "--tui",
-        action="store_true",
-        help="브라우저 대신 터미널 안에서 세션을 진행한다",
     )
     p_open.set_defaults(func=cmd_open)
 

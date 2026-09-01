@@ -16,7 +16,7 @@ from xout.compiler import MANIFEST_JSON, OUTPUT_FILES, write_outputs
 from xout.events import Event, EventType, StrikeTarget, strike
 from xout.locking import LockTimeout, ProcessFileLock, base_runtime_lock
 from xout.store import EventStore
-from xout.web.state import ColdOpenSession
+from xout.state import ColdOpenSession
 
 
 def _append_worker(base: str, worker: int, count: int, barrier) -> None:
@@ -166,7 +166,7 @@ def test_base_runtime_admission_precedes_session_creation(tmp_path: Path) -> Non
     process.start()
     assert ready.wait(10)
     try:
-        assert main(["open", "--base-dir", str(tmp_path), "--no-browser", "--new"]) == 1
+        assert main(["open", "--base-dir", str(tmp_path), "--new"]) == 1
         assert EventStore(tmp_path).session_ids() == ()
     finally:
         release.set()

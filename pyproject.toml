@@ -28,7 +28,6 @@ classifiers = [
 
 [project.optional-dependencies]
 test = ["pytest>=8,<9", "PyYAML>=6,<7"]
-e2e = ["playwright>=1.50,<2"]
 release = ["build>=1.2,<2", "twine>=5,<7"]
 
 [project.scripts]
@@ -39,7 +38,6 @@ popper = "xout.cli:main"
 include = ["xout*"]
 
 [tool.setuptools.package-data]
-"xout.web" = ["index.html"]
 "xout" = [
     "_data/fixtures/*.json",
     "_data/ground_truth/*.sha256",

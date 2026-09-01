@@ -242,11 +242,6 @@ def test_brand_assets_are_local_deterministic_and_social_ready(tmp_path: Path) -
     assert struct.unpack(">II", payload[16:24]) == (1200, 630)
     demo = (ROOT / ".github" / "assets" / "demo.gif").read_bytes()
     assert _gif_timeline(demo) == (960, 608, 124, 1033)
-    capture_source = (ROOT / "scripts" / "capture_demo.py").read_text(encoding="utf-8")
-    assert "ColdOpenSession(" in capture_source
-    assert "for slot in range(1, 16):" in capture_source
-    assert 'page.locator("#stage-complete").wait_for(state="visible")' in capture_source
-    assert "frame(page, repeats=6)" in capture_source
     for name, dimensions in (
         ("logo.svg", 'viewBox="0 0 256 256"'),
         ("hero.svg", 'viewBox="0 0 1200 420"'),

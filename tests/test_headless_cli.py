@@ -77,7 +77,7 @@ def test_tui_completes_session_and_lands(
         return ""  # 적용 프롬프트 - 동의하지 않음
 
     monkeypatch.setattr(builtins, "input", scripted_input)
-    assert main(["open", "--tui", "--base-dir", str(tmp_path)]) == 0
+    assert main(["open", "--base-dir", str(tmp_path)]) == 0
     assert (tmp_path / XOUT_MD).is_file()
     manifest = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
     assert manifest

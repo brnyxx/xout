@@ -19,7 +19,7 @@ from xout.sessions import (
     summarize_sessions,
 )
 from xout.store import EventStore
-from xout.web.state import ColdOpenSession, SessionComplete
+from xout.state import ColdOpenSession, SessionComplete
 
 
 def test_event_log_hydrates_without_changing_event_identity() -> None:
@@ -234,12 +234,9 @@ def test_cli_full_slot_recovery_does_not_leave_an_idle_server(
     session.strike("left")
     monkeypatch.setattr(ColdOpenSession, "_finalize", original_finalize)
 
-    def must_not_build_server(**kwargs):
-        raise AssertionError("recovered terminal session must not open a server")
-
-    monkeypatch.setattr(xout.cli, "build_server", must_not_build_server)
+    monkeypatch.setattr("builtins.input", lambda *args: "")
     assert (
-        main(["resume", "cli-crash", "--base-dir", str(tmp_path), "--no-browser"])
+        main(["resume", "cli-crash", "--base-dir", str(tmp_path)])
         == 0
     )
     assert not summarize_session(store.load_session("cli-crash")).resumable
@@ -304,8 +301,8 @@ def test_open_auto_resumes_one_product_session(tmp_path: Path, monkeypatch) -> N
         observed["slots_used"] = session.snapshot().slots_used
         return 0
 
-    monkeypatch.setattr(xout.cli, "_serve", fake_serve)
-    assert main(["open", "--base-dir", str(tmp_path), "--no-browser"]) == 0
+    monkeypatch.setattr(xout.cli, "_launch", fake_serve)
+    assert main(["open", "--base-dir", str(tmp_path)]) == 0
     assert observed == {"session_id": "auto-resume", "slots_used": 3}
 
 
@@ -321,8 +318,8 @@ def test_open_requires_explicit_choice_for_multiple_incomplete_sessions(
         )
         session.strike("pair")
 
-    def must_not_serve(session, args):
-        raise AssertionError("ambiguous open must not start a server")
+    def must_not_launch(session, args):
+        raise AssertionError("ambiguous open must not start a session loop")
 
-    monkeypatch.setattr(xout.cli, "_serve", must_not_serve)
-    assert main(["open", "--base-dir", str(tmp_path), "--no-browser"]) == 1
+    monkeypatch.setattr(xout.cli, "_launch", must_not_launch)
+    assert main(["open", "--base-dir", str(tmp_path)]) == 1

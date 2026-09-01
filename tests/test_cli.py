@@ -27,7 +27,7 @@ from xout.judgment import fold_judgment
 from xout.compiler import MANIFEST_JSON, XOUT_MD, compile_rules
 from xout.session import DEFAULT_PREREG_PATH
 from xout.store import EventStore
-from xout.web.state import ColdOpenSession
+from xout.state import ColdOpenSession
 
 PRODUCT_CAP = 15
 

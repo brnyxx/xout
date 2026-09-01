@@ -14,7 +14,7 @@ from xout.cli import _activation_state, main
 from xout.doctor import run_doctor
 from xout.exporter import EXPORT_FORMATS, render_export, write_export
 from xout.store import EventStore
-from xout.web.state import ColdOpenSession
+from xout.state import ColdOpenSession
 from xout.writer import OwnedWriter
 
 
