@@ -178,6 +178,7 @@ class ConsentKind(str, Enum):
 
     IMPORT_PERMISSION_GRANTED = "import_permission_granted"
     MANUAL_RULE_OPTED_IN = "manual_rule_opted_in"
+    RECONCILE_APPLY_GRANTED = "reconcile_apply_granted"
 
 
 @dataclass(frozen=True, slots=True)

@@ -60,7 +60,9 @@ from xout.fixtures import (
     scan_repo_skin,
 )
 from xout.migrate import migrate_legacy_home
-from xout.mine import Conflict, find_conflicts, mine, summarize
+from xout.mine import Conflict, find_conflicts, mine, summarize, user_rule_files
+from xout.reconcile import apply_removals, plan as reconcile_plan, render_patch, write_patch
+from xout.savepoint import SavepointError, create as create_savepoint, list_savepoints, restore as restore_savepoint
 from xout.probe import (
     DEFAULT_RUNNER,
     DEFAULT_TIMEOUT,
@@ -528,6 +530,7 @@ _TUI_MSG: dict[str, dict[str, str]] = {
         "complete": "세션 완료 - 컴파일된 규칙:",
         "landed": "착지 완료: %s",
         "apply": "지금 CLAUDE.md에 적용할까요? [y/N] ",
+        "mined": "      ↳ 이미 있는 규칙 {path}:{line_no} \"{text}\" → {value}",
         "later": "나중에 적용하려면: xout enable --grant / 취소는 xout undo",
     },
     "en": {
@@ -540,6 +543,7 @@ _TUI_MSG: dict[str, dict[str, str]] = {
         "complete": "Session complete - compiled rules:",
         "landed": "landed: %s",
         "apply": "Apply to CLAUDE.md now? [y/N] ",
+        "mined": "      ↳ already in your files {path}:{line_no} \"{text}\" → {value}",
         "later": "Apply later with: xout enable --grant / undo with xout undo",
     },
     "ja": {
@@ -552,6 +556,7 @@ _TUI_MSG: dict[str, dict[str, str]] = {
         "complete": "セッション完了 - コンパイルされたルール:",
         "landed": "着地完了: %s",
         "apply": "今すぐ CLAUDE.md に適用しますか？ [y/N] ",
+        "mined": "      ↳ 既存の規則 {path}:{line_no} \"{text}\" → {value}",
         "later": "後で適用: xout enable --grant / 取り消し: xout undo",
     },
     "zh": {
@@ -564,9 +569,18 @@ _TUI_MSG: dict[str, dict[str, str]] = {
         "complete": "会话完成 - 编译出的规则:",
         "landed": "已落地: %s",
         "apply": "现在应用到 CLAUDE.md 吗？ [y/N] ",
+        "mined": "      ↳ 已有规则 {path}:{line_no} \"{text}\" → {value}",
         "later": "稍后应用: xout enable --grant / 撤销: xout undo",
     },
 }
+
+
+def _mined_by_axis(roots: Sequence[Path] | None = None) -> dict[str, list]:
+    """현재 디렉토리 + 사용자 레벨 규칙 파일의 관측을 축별로 묶는다 - 페어 옆에 보여 줄 맥락."""
+    by_axis: dict[str, list] = {}
+    for obs in mine(list(roots or [Path.cwd()]), include_user=True):
+        by_axis.setdefault(obs.axis, []).append(obs)
+    return by_axis
 
 
 def _run_tui(session: ColdOpenSession, base: Path, lang: str = DEFAULT_LANG) -> int:
@@ -574,6 +588,7 @@ def _run_tui(session: ColdOpenSession, base: Path, lang: str = DEFAULT_LANG) -> 
     msg = _TUI_MSG.get(lang, _TUI_MSG["ko"])
     print(msg["intro"])
     print(msg["keys"])
+    mined_by_axis = _mined_by_axis()
     while True:
         snap = session.snapshot()
         if snap.session_complete or snap.pair is None:
@@ -583,6 +598,8 @@ def _run_tui(session: ColdOpenSession, base: Path, lang: str = DEFAULT_LANG) -> 
         print(f"[{snap.slots_used + 1}/{snap.slots_total}] {pair.axis_label}")
         print("  (1) " + pair.left_text.replace("\n", "\n      "))
         print("  (2) " + pair.right_text.replace("\n", "\n      "))
+        for obs in mined_by_axis.get(pair.axis, ())[:2]:
+            print(msg["mined"].format(path=obs.path, line_no=obs.line_no, text=obs.line, value=obs.value))
         try:
             choice = input("X> ").strip().lower()
         except (EOFError, KeyboardInterrupt):
@@ -611,7 +628,9 @@ def _run_tui(session: ColdOpenSession, base: Path, lang: str = DEFAULT_LANG) -> 
     print(msg["complete"])
     for rule in snap.rules:
         print(f"  - {rule.text}")
-    conflicts = find_conflicts(mine([Path.cwd()]), _rules_by_axis(snap.rules))
+    conflicts = find_conflicts(
+        mine([Path.cwd()], include_user=True), _rules_by_axis(snap.rules)
+    )
     if conflicts:
         print()
         _print_conflicts(conflicts, lang)
@@ -787,7 +806,9 @@ def cmd_conflicts(args: argparse.Namespace) -> int:
             print(_CONFLICT_MSG.get(lang, _CONFLICT_MSG["ko"])["no_rules"])
         return 1
     roots = [Path(root) for root in (args.roots or ["."])]
-    conflicts = find_conflicts(mine(roots), _manifest_rules_by_axis(manifest))
+    conflicts = find_conflicts(
+        mine(roots, include_user=args.include_user), _manifest_rules_by_axis(manifest)
+    )
     if args.json_output:
         print(
             json.dumps(
@@ -952,6 +973,178 @@ def cmd_probe(args: argparse.Namespace) -> int:
     return 0
 
 
+_RECONCILE_MSG = {
+    "ko": {
+        "no_rules": "착지된 규칙이 없다 - 먼저 xout을 돌려라.",
+        "dup_header": "XOUT.md가 이미 커버하는 줄 {count}건 (중복):",
+        "conf_header": "XOUT.md와 반대로 말하는 줄 {count}건 (모순 - 손대지 않는다, 당신이 고른다):",
+        "line": "  - [{axis}] {value}  {path}:{line_no}  \"{text}\"",
+        "clean": "중복도 모순도 없다 - 기존 규칙 파일과 XOUT.md가 깔끔하게 나뉘어 있다.",
+        "patch": "제안 패치: {path}  (적용: xout reconcile --apply --grant)",
+        "need_grant": "--apply는 --grant가 있어야 실행된다 - 소유 디렉토리 밖 파일을 고치기 때문이다. 아무것도 바꾸지 않았다.",
+        "applied": "중복 줄을 지웠다: {files}",
+        "savepoint": "세이브포인트 {id} - 되돌리기: xout savepoint restore {id}",
+        "nothing": "지울 중복 줄이 없다.",
+    },
+    "en": {
+        "no_rules": "No landed rules yet - run xout first.",
+        "dup_header": "{count} line(s) XOUT.md already covers (duplicates):",
+        "conf_header": "{count} line(s) that say the opposite of XOUT.md (conflicts - never touched, you choose):",
+        "line": "  - [{axis}] {value}  {path}:{line_no}  \"{text}\"",
+        "clean": "No duplicates, no conflicts - your existing rule files and XOUT.md divide cleanly.",
+        "patch": "proposed patch: {path}  (apply: xout reconcile --apply --grant)",
+        "need_grant": "--apply needs --grant because it edits files outside xout's own directory. Nothing was changed.",
+        "applied": "removed duplicate lines in: {files}",
+        "savepoint": "savepoint {id} - roll back with: xout savepoint restore {id}",
+        "nothing": "No duplicate lines to remove.",
+    },
+    "ja": {
+        "no_rules": "着地した規則がない - 先に xout を実行する。",
+        "dup_header": "XOUT.md が既にカバーしている行 {count}件 (重複):",
+        "conf_header": "XOUT.md と逆のことを言う行 {count}件 (矛盾 - 触らない、あなたが選ぶ):",
+        "line": "  - [{axis}] {value}  {path}:{line_no}  \"{text}\"",
+        "clean": "重複も矛盾もない - 既存の規則ファイルと XOUT.md はきれいに分かれている。",
+        "patch": "提案パッチ: {path}  (適用: xout reconcile --apply --grant)",
+        "need_grant": "--apply には --grant が必要 - xout の所有ディレクトリ外を編集するため。何も変更していない。",
+        "applied": "重複行を削除した: {files}",
+        "savepoint": "セーブポイント {id} - 戻すには: xout savepoint restore {id}",
+        "nothing": "削除する重複行はない。",
+    },
+    "zh": {
+        "no_rules": "还没有落地的规则 - 先运行 xout。",
+        "dup_header": "XOUT.md 已经覆盖的行 {count} 条 (重复):",
+        "conf_header": "与 XOUT.md 相反的行 {count} 条 (冲突 - 绝不改动，由你决定):",
+        "line": "  - [{axis}] {value}  {path}:{line_no}  \"{text}\"",
+        "clean": "没有重复也没有冲突 - 现有规则文件与 XOUT.md 分工清晰。",
+        "patch": "建议补丁: {path}  (应用: xout reconcile --apply --grant)",
+        "need_grant": "--apply 需要 --grant，因为它会修改 xout 自有目录之外的文件。什么都没有改。",
+        "applied": "已删除重复行: {files}",
+        "savepoint": "存档点 {id} - 回滚: xout savepoint restore {id}",
+        "nothing": "没有可删除的重复行。",
+    },
+}
+
+_SAVEPOINT_MSG = {
+    "ko": {"created": "세이브포인트 {id} ({count}개 파일)", "none": "세이브포인트가 없다.", "restored": "복원: {path} ({action})", "unknown": "그런 세이브포인트가 없다: {id}", "hint": "되돌리기: xout savepoint restore {id}"},
+    "en": {"created": "savepoint {id} ({count} file(s))", "none": "No savepoints.", "restored": "restore: {path} ({action})", "unknown": "unknown savepoint: {id}", "hint": "roll back with: xout savepoint restore {id}"},
+    "ja": {"created": "セーブポイント {id} ({count} ファイル)", "none": "セーブポイントはない。", "restored": "復元: {path} ({action})", "unknown": "そのセーブポイントはない: {id}", "hint": "戻すには: xout savepoint restore {id}"},
+    "zh": {"created": "存档点 {id} ({count} 个文件)", "none": "没有存档点。", "restored": "恢复: {path} ({action})", "unknown": "没有这个存档点: {id}", "hint": "回滚: xout savepoint restore {id}"},
+}
+
+
+def cmd_reconcile(args: argparse.Namespace) -> int:
+    """기존 규칙 파일과 XOUT.md의 중복·모순을 보고하고, 허가가 있으면 중복 줄만 지운다."""
+    lang = _args_lang(args)
+    msg = _RECONCILE_MSG.get(lang, _RECONCILE_MSG["ko"])
+    base = Path(args.base_dir)
+    manifest = _load_manifest(base)
+    if manifest is None:
+        print(json.dumps({"error": "no_rules"}) if args.json_output else msg["no_rules"])
+        return 1
+    roots = [Path(root) for root in (args.roots or ["."])]
+    observations = mine(roots, include_user=args.include_user)
+    plan = reconcile_plan(observations, _manifest_rules_by_axis(manifest))
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+    patch_path = None
+    patch_text = render_patch(plan.duplicates) if plan.duplicates else ""
+    if patch_text:
+        patch_path = write_patch(base, patch_text, stamp)
+    payload: dict[str, Any] = plan.to_dict()
+    payload["patch_path"] = str(patch_path) if patch_path else None
+    if args.apply:
+        if not args.grant:
+            if args.json_output:
+                payload["error"] = "grant_required"
+                print(json.dumps(payload, ensure_ascii=False, indent=2))
+            else:
+                print(msg["need_grant"])
+            return 1
+        if plan.duplicates:
+            _persist_consent(
+                base,
+                ConsentRecord(
+                    kind=ConsentKind.RECONCILE_APPLY_GRANTED,
+                    subject=", ".join(plan.files_to_edit),
+                ),
+            )
+            savepoint, changed = apply_removals(base, plan.duplicates)
+            payload["savepoint_id"] = savepoint.savepoint_id
+            payload["changed_files"] = changed
+        else:
+            payload["savepoint_id"] = None
+            payload["changed_files"] = []
+    if args.json_output:
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 0
+    if not plan.duplicates and not plan.conflicts:
+        print(msg["clean"])
+        return 0
+    if plan.duplicates:
+        print(msg["dup_header"].format(count=len(plan.duplicates)))
+        for d in plan.duplicates:
+            print(msg["line"].format(axis=axis_label(d.axis, lang), value=d.value, path=d.path, line_no=d.line_no, text=d.line))
+    if plan.conflicts:
+        print(msg["conf_header"].format(count=len(plan.conflicts)))
+        for c in plan.conflicts:
+            print(msg["line"].format(axis=axis_label(c.axis, lang), value=c.observed_value, path=c.path, line_no=c.line_no, text=c.line))
+    if args.apply:
+        if payload.get("changed_files"):
+            print(msg["applied"].format(files=", ".join(payload["changed_files"])))
+            print(msg["savepoint"].format(id=payload["savepoint_id"]))
+        else:
+            print(msg["nothing"])
+    elif patch_path:
+        print(msg["patch"].format(path=patch_path))
+    return 0
+
+
+def _default_savepoint_paths() -> list[Path]:
+    paths = list(user_rule_files())
+    from xout.mine import _iter_rule_files
+
+    paths.extend(_iter_rule_files(Path.cwd()))
+    return paths
+
+
+def cmd_savepoint(args: argparse.Namespace) -> int:
+    """소유 디렉토리 밖 규칙 파일의 스냅샷을 만들고, 나열하고, 되돌린다."""
+    lang = _args_lang(args)
+    msg = _SAVEPOINT_MSG.get(lang, _SAVEPOINT_MSG["ko"])
+    base = Path(args.base_dir)
+    action = args.action
+    if action == "list":
+        points = list_savepoints(base)
+        if args.json_output:
+            print(json.dumps([p.to_dict() for p in points], ensure_ascii=False, indent=2))
+            return 0
+        if not points:
+            print(msg["none"])
+            return 0
+        for p in points:
+            print(f"{p.savepoint_id}  {p.created_at}  {len(p.files)} file(s)  {p.reason}")
+        return 0
+    if action == "restore":
+        try:
+            results = restore_savepoint(base, args.savepoint_id)
+        except SavepointError as exc:
+            print(json.dumps({"error": str(exc)}) if args.json_output else msg["unknown"].format(id=args.savepoint_id))
+            return 1
+        if args.json_output:
+            print(json.dumps([r.to_dict() for r in results], ensure_ascii=False, indent=2))
+            return 0
+        for r in results:
+            print(msg["restored"].format(path=r.path, action=r.action))
+        return 0
+    paths = [Path(p) for p in args.paths] if args.paths else _default_savepoint_paths()
+    savepoint = create_savepoint(base, paths, args.reason or "manual")
+    if args.json_output:
+        print(json.dumps(savepoint.to_dict(), ensure_ascii=False, indent=2))
+        return 0
+    print(msg["created"].format(id=savepoint.savepoint_id, count=len(savepoint.files)))
+    print(msg["hint"].format(id=savepoint.savepoint_id))
+    return 0
+
+
 _MINE_MSG = {
     "ko": {
         "none": "관측 없음 - 스캔한 규칙 파일에서 이 축을 겨눈 줄을 찾지 못했다.",
@@ -984,7 +1177,7 @@ def cmd_mine(args: argparse.Namespace) -> int:
     """로컬 규칙 파일에서 축 관측을 채굴한다 - 아무것도 쓰지 않는다."""
     lang = _args_lang(args)
     roots = [Path(root) for root in (args.roots or ["."])]
-    observations = mine(roots)
+    observations = mine(roots, include_user=args.include_user)
     if args.json_output:
         print(
             json.dumps(
@@ -1094,7 +1287,13 @@ def cmd_pair(args: argparse.Namespace) -> int:
     except (ValueError, SchemaViolation) as exc:
         logger.error("%s", exc)
         return 1
-    print(json.dumps(session.snapshot().to_dict(), ensure_ascii=False, indent=2))
+    payload = session.snapshot().to_dict()
+    pair = payload.get("pair")
+    if pair:
+        pair["mined"] = [
+            obs.to_dict() for obs in _mined_by_axis().get(pair["axis"], [])[:4]
+        ]
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
     return 0
 
 
@@ -1575,6 +1774,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_common(p_mine)
     p_mine.add_argument("roots", nargs="*", help="스캔할 루트 (기본: 현재 디렉토리)")
     p_mine.add_argument("--json", dest="json_output", action="store_true")
+    p_mine.add_argument("--no-user", dest="include_user", action="store_false", help="~/.claude/CLAUDE.md, ~/.claude/rules 는 읽지 않는다")
     p_mine.set_defaults(func=cmd_mine)
 
     p_conflicts = sub.add_parser(
@@ -1583,8 +1783,30 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_conflicts.add_argument("roots", nargs="*", help="스캔할 루트 (기본: 현재 디렉토리)")
     p_conflicts.add_argument("--json", dest="json_output", action="store_true")
+    p_conflicts.add_argument("--no-user", dest="include_user", action="store_false")
     _add_common(p_conflicts)
     p_conflicts.set_defaults(func=cmd_conflicts)
+
+    p_reconcile = sub.add_parser(
+        "reconcile",
+        help="기존 규칙 파일과 XOUT.md의 중복·모순 보고, 패치 제안, --apply --grant 로 중복 줄 제거",
+    )
+    p_reconcile.add_argument("roots", nargs="*", help="스캔할 루트 (기본: 현재 디렉토리)")
+    p_reconcile.add_argument("--no-user", dest="include_user", action="store_false")
+    p_reconcile.add_argument("--apply", action="store_true", help="중복 줄을 실제로 지운다 (세이브포인트 선행)")
+    p_reconcile.add_argument("--grant", action="store_true", help="소유 디렉토리 밖 편집을 허가한다")
+    p_reconcile.add_argument("--json", dest="json_output", action="store_true")
+    _add_common(p_reconcile)
+    p_reconcile.set_defaults(func=cmd_reconcile)
+
+    p_savepoint = sub.add_parser("savepoint", help="바깥 규칙 파일 스냅샷: create(기본) / list / restore <id>")
+    p_savepoint.add_argument("action", nargs="?", default="create", choices=("create", "list", "restore"))
+    p_savepoint.add_argument("savepoint_id", nargs="?", help="restore 대상 id")
+    p_savepoint.add_argument("--paths", nargs="*", help="스냅샷할 파일 (기본: 사용자 규칙 + 현재 디렉토리 규칙 파일)")
+    p_savepoint.add_argument("--reason", default=None)
+    p_savepoint.add_argument("--json", dest="json_output", action="store_true")
+    _add_common(p_savepoint)
+    p_savepoint.set_defaults(func=cmd_savepoint)
 
     p_probe = sub.add_parser(
         "probe",

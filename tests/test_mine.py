@@ -170,7 +170,7 @@ def test_conflicts_command_reports_file_line_against_landed_rules(
         "# rules\n" + _AUTONOMY_LINES[disagreeing] + "\n", encoding="utf-8"
     )
 
-    assert main(["conflicts", str(project), "--base-dir", str(base), "--json"]) == 0
+    assert main(["conflicts", str(project), "--base-dir", str(base), "--json", "--no-user"]) == 0
     payload = json.loads(capsys.readouterr().out)
     hit = [c for c in payload["conflicts"] if c["axis"] == "autonomy"]
     assert hit and hit[0]["observed_value"] == disagreeing
@@ -179,7 +179,7 @@ def test_conflicts_command_reports_file_line_against_landed_rules(
     (project / "CLAUDE.md").write_text(
         "# rules\n" + _AUTONOMY_LINES[autonomy["value"]] + "\n", encoding="utf-8"
     )
-    assert main(["conflicts", str(project), "--base-dir", str(base), "--lang", "en"]) == 0
+    assert main(["conflicts", str(project), "--base-dir", str(base), "--lang", "en", "--no-user"]) == 0
     out = capsys.readouterr().out
     assert "disagree" not in out or "No project rule file disagrees" in out
 

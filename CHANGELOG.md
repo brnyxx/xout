@@ -24,6 +24,18 @@ slow cadence: minor versions ship every 6-12 months, patches only for defects.
 - `xout conflicts [paths]` - lines in a project's CLAUDE.md/AGENTS.md/
   .cursorrules that ask for a different value than your rules, with file:line.
   The session completion screen shows them before asking to apply.
+- Your own prompts are part of the picture now: `mine`, `conflicts`, and
+  `reconcile` read `~/.claude/CLAUDE.md` and `~/.claude/rules/` by default
+  (`--no-user` to skip), and every pair in the session shows the lines your
+  files already say about that axis (`xout pair` JSON carries them as `mined`).
+- `xout reconcile [paths]` - lines your existing rule files repeat from
+  `XOUT.md` (duplicates) and lines that say the opposite (conflicts). Writes a
+  proposed patch under `~/.claude/xout/reconcile/`; `--apply --grant` removes
+  the duplicate lines only, always behind a savepoint. Conflicts are never
+  edited.
+- `xout savepoint [create|list|restore <id>]` - byte-exact snapshots of the
+  rule files outside xout's directory, stored under `~/.claude/xout/savepoints/`.
+  Restore rewrites only files that existed at snapshot time.
 
 ### Changed
 - `XOUT.md` is now written for the agent that reads it: a one-paragraph

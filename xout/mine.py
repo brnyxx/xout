@@ -201,6 +201,7 @@ class Observation:
     path: str
     line_no: int
     line: str
+    abs_path: str = ""
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -267,25 +268,66 @@ def _observe_file(path: Path, display: str) -> list[Observation]:
                         path=display,
                         line_no=line_no,
                         line=line,
+                        abs_path=str(path.resolve()),
                     )
                 )
     return found
 
 
-def mine(roots: list[Path]) -> list[Observation]:
-    """루트들을 읽기전용으로 스캔해 축 관측 목록을 낸다 (결정적 순서)."""
+#: 사용자 레벨 규칙 - Claude Code가 모든 프로젝트에 읽히는 파일들.
+USER_RULE_FILE = ".claude/CLAUDE.md"
+USER_RULE_DIR = ".claude/rules"
+
+
+def user_rule_files(home: Path | None = None) -> list[Path]:
+    """`~/.claude/CLAUDE.md`와 `~/.claude/rules/*.md|.mdc` - 존재하는 것만, 결정적 순서."""
+    home = (home or Path.home()).expanduser()
+    files: list[Path] = []
+    claude_md = home / USER_RULE_FILE
+    if claude_md.is_file():
+        files.append(claude_md)
+    rules_dir = home / USER_RULE_DIR
+    if rules_dir.is_dir():
+        files.extend(
+            child for child in sorted(rules_dir.iterdir())
+            if child.is_file() and child.suffix in (".md", ".mdc")
+        )
+    return files
+
+
+def mine(
+    roots: list[Path],
+    include_user: bool = False,
+    home: Path | None = None,
+) -> list[Observation]:
+    """루트들을 읽기전용으로 스캔해 축 관측 목록을 낸다 (결정적 순서).
+
+    include_user=True면 사용자 레벨 규칙(`~/.claude/CLAUDE.md`, `~/.claude/rules/`)을
+    루트 뒤에 덧붙인다 - 같은 파일이 루트에서 이미 읽혔으면 중복하지 않는다.
+    """
     observations: list[Observation] = []
+    seen: set[str] = set()
     for root in roots:
         root = root.expanduser()
         if root.is_file():
+            seen.add(str(root.resolve()))
             observations.extend(_observe_file(root, str(root)))
             continue
         if not root.is_dir():
             logger.warning("채굴 루트가 없다: %s", root)
             continue
         for path in _iter_rule_files(root):
+            seen.add(str(path.resolve()))
             observations.extend(
                 _observe_file(path, str(path.relative_to(root)))
+            )
+    if include_user:
+        home_dir = (home or Path.home()).expanduser()
+        for path in user_rule_files(home_dir):
+            if str(path.resolve()) in seen:
+                continue
+            observations.extend(
+                _observe_file(path, "~/" + path.relative_to(home_dir).as_posix())
             )
     return observations
 
@@ -344,3 +386,40 @@ def find_conflicts(
             Conflict(obs.axis, kept[0], obs.value, obs.path, obs.line_no, obs.line)
         )
     return conflicts
+
+
+@dataclass(frozen=True, slots=True)
+class Duplicate:
+    """프로젝트/사용자 규칙 파일의 한 줄이 이미 컴파일된 규칙과 같은 값을 말하는 지점."""
+
+    axis: str
+    value: str
+    path: str
+    line_no: int
+    line: str
+    abs_path: str
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "axis": self.axis,
+            "value": self.value,
+            "path": self.path,
+            "line": self.line_no,
+            "text": self.line,
+        }
+
+
+def find_duplicates(
+    observations: list[Observation],
+    rules: Mapping[str, tuple[str, str | None]],
+) -> list[Duplicate]:
+    """관측값이 두 맥락 중 한쪽 생존값과 같으면 XOUT.md가 이미 커버하는 줄이다."""
+    duplicates: list[Duplicate] = []
+    for obs in observations:
+        kept = rules.get(obs.axis)
+        if kept is None or obs.value not in {value for value in kept if value}:
+            continue
+        duplicates.append(
+            Duplicate(obs.axis, obs.value, obs.path, obs.line_no, obs.line, obs.abs_path)
+        )
+    return duplicates

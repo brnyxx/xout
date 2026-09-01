@@ -22,9 +22,12 @@ cannot enforce by itself.
    measures. The one deliberate exception lives outside sessions: `xout probe`
    is opt-in, calls an external runner the user names, and writes only a
    receipt under the owned directory.
-6. **Consent gates every write outside the owned directory.** The only file
-   xout touches outside `~/.claude/xout/` is one `@import` line in
-   `~/.claude/CLAUDE.md`, receipt-proofed for rollback.
+6. **Consent gates every write outside the owned directory.** Outside
+   `~/.claude/xout/` xout touches exactly two things, both explicit: the one
+   `@import` line in `~/.claude/CLAUDE.md` (receipt-proofed, `xout undo`), and
+   duplicate lines that `xout reconcile --apply --grant` removes from rule
+   files - never without a savepoint first (`xout savepoint restore <id>`).
+   Conflicting lines are reported, never edited.
 
 ## Duplicated surfaces (sync or the build fails)
 
