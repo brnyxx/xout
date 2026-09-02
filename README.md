@@ -178,6 +178,27 @@ The same profile, probed through the other agents on this machine (`--quick`: on
 
 Gemini CLI isn't in the table because this machine has no Gemini auth set up. Its runner is listed below so you can try it yourself.
 
+One answer per question is a thin measurement, so `--repeat` asks each question several times and the majority decides; every raw answer stays in the receipt. All fifteen cases, three trials each, same profile, same day:
+
+| Runner | Rule held (majority) | Held on every trial | Trials held | Rule moved the choice | Matched without rules |
+|---|---|---|---|---|---|
+| `codex exec` | 15/15 | 14/15 | 44/45 | 4 | 11 |
+| `opencode run` | 15/15 | 14/15 | 44/45 | 5 | 10 |
+| `gjc -p` | 15/15 | 15/15 | 45/45 | 5 | 10 |
+
+The two imperfect cases are both on the bugfix scene: Codex once retried past the "retry once, then report" rule, and OpenCode once wrote the failing test first. Everything else held all three times.
+
+Putting the rules in the prompt only shows the rules can work. Whether a tool actually reads the file xout wrote into is a separate question, so `xout probe --via-target codex` keeps the rules out of the prompt entirely: for the bare pass it takes the xout block out of `~/.codex/AGENTS.md`, for the ruled pass it puts the block back, and it restores the file afterwards (savepoint first). Same profile, one scene per axis:
+
+| Tool, through its own rules file | Rule held | Rule moved the choice | Matched without rules |
+|---|---|---|---|
+| Codex CLI, `~/.codex/AGENTS.md` | 8/8 | 3 | 5 |
+| gajae-code, `~/.gjc/agent/AGENTS.md` | 7/8 | 3 | 4 |
+| OpenCode, `~/.config/opencode/AGENTS.md` | 6/8 | 2 | 5 |
+| Kiro CLI, `~/.kiro/steering/xout.md` | 6/8 | 2 | 4 |
+
+Every tool read its file: in each row at least two answers changed because the block was there. The misses are worth reading too. gajae-code and Kiro acted on a bugfix instead of proposing first; Kiro also kept self-healing on an error; OpenCode's two misses were one long prose answer with no letter in it and one test-first habit. Kiro's documentation describes global steering for the IDE and workspace steering for the CLI; the CLI read the global file here regardless, which is the kind of thing a probe is for.
+
 A runner is any command that takes the prompt as its last argument and prints the answer. Claude Code is the default; the rest are each tool's documented headless mode:
 
 | Tool | `xout probe --runner "…"` |
