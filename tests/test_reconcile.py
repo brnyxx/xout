@@ -165,3 +165,84 @@ def test_savepoint_cli_defaults_to_user_and_project_rule_files(capsys, home: Pat
     assert main(["savepoint", "list", "--base-dir", str(base), "--lang", "en"]) == 0
     assert payload["savepoint_id"] in capsys.readouterr().out
     assert main(["savepoint", "restore", "sp-nope", "--base-dir", str(base), "--lang", "en"]) == 1
+
+
+# ---------------------------------------------------------------------------
+# 문장까지 거의 같은 줄 - 점수를 붙여 보고만 하고 --apply도 건드리지 않는다
+# ---------------------------------------------------------------------------
+
+NEAR_SUFFIX = {
+    "ko": " (팀 합의)",
+    "en": " (team rule)",
+    "ja": " (チームの決まり)",
+    "zh": " (团队约定)",
+}
+
+
+def _land_in(base: Path, lang: str) -> dict:
+    session = ColdOpenSession(store=EventStore(base), land_dir=base, lang=lang)
+    while True:
+        snap = session.snapshot()
+        if snap.session_complete or snap.pair is None:
+            break
+        session.strike("left", expected_pair_id=snap.pair.pair_id)
+    return json.loads((base / MANIFEST_JSON).read_text(encoding="utf-8"))
+
+
+def test_similarity_normalises_punctuation_case_and_script() -> None:
+    from xout.reconcile import NEAR_DUPLICATE_THRESHOLD, normalize, shingles, similarity
+
+    assert normalize("  Ask FIRST, then act!  ") == "ask first then act"
+    assert shingles("ask first") == {"ask", "first"}
+    assert shingles("커밋") == {"커밋"}
+    pairs = [
+        ("Always ask before adding a new dependency.", "Always ask before adding new dependencies!"),
+        ("새 의존성은 추가하기 전에 확인을 받는다.", "새 의존성은 추가하기 전에 확인을 받는다"),
+        ("新しい依存を追加する前に必ず確認を取る。", "新しい依存を追加する前に確認を取ること"),
+        ("加新依赖之前先问我。", "加新的依赖之前先问我"),
+    ]
+    for left, right in pairs:
+        assert similarity(left, right) >= NEAR_DUPLICATE_THRESHOLD, (left, right)
+    assert similarity("Never commit unless asked.", "Run the tests before you push.") < NEAR_DUPLICATE_THRESHOLD
+    assert similarity("주석은 최소한으로 남긴다.", "새 의존성은 추가 전에 확인을 받는다.") < NEAR_DUPLICATE_THRESHOLD
+    assert similarity("", "anything") == 0.0
+
+
+@pytest.mark.parametrize("lang", ["ko", "en", "ja", "zh"])
+def test_reconcile_reports_near_duplicates_and_apply_leaves_them(
+    capsys, home: Path, tmp_path: Path, lang: str
+) -> None:
+    from xout.mine import attribute
+
+    base = tmp_path / f"base-{lang}"
+    manifest = _land_in(base, lang)
+    line = cell = None
+    for entry in manifest["rules"]:
+        candidate = "- " + entry["rule"] + NEAR_SUFFIX[lang]
+        if (entry["axis"], entry["value"]) in attribute(candidate):
+            line, cell = candidate, (entry["axis"], entry["value"])
+            break
+    assert line is not None, f"{lang}: 규칙 문장을 되채굴하지 못했다"
+
+    target = home / ".claude" / "CLAUDE.md"
+    target.write_text(f"# global\n{line}\nkeep me\n", encoding="utf-8")
+    project = tmp_path / f"project-{lang}"
+    project.mkdir()
+
+    assert main(["reconcile", str(project), "--base-dir", str(base), "--lang", lang, "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    near = [n for n in payload["near_duplicates"] if (n["axis"], n["value"]) == cell]
+    assert near and near[0]["line"] == 2 and near[0]["text"] == line
+    assert near[0]["score"] >= 0.6
+    assert near[0]["rule"] in line
+    assert all(d["line"] != 2 for d in payload["duplicates"]), "거의 같은 줄은 제거 목록에 없다"
+
+    assert main(["reconcile", str(project), "--base-dir", str(base), "--lang", lang]) == 0
+    out = capsys.readouterr().out
+    assert line in out and f"{near[0]['score']:.2f}" in out
+
+    assert main(
+        ["reconcile", str(project), "--base-dir", str(base), "--lang", lang, "--apply", "--grant", "--json"]
+    ) == 0
+    json.loads(capsys.readouterr().out)
+    assert line in target.read_text(encoding="utf-8"), "거의 같은 줄을 지웠다"
