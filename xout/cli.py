@@ -62,6 +62,19 @@ from xout.fixtures import (
     scan_repo_skin,
 )
 from xout.migrate import migrate_legacy_home
+from xout.audit import (
+    BATCH_LINES as AUDIT_BATCH,
+    DEFAULT_LIMIT as AUDIT_LIMIT,
+    VERDICT_DEFAULT,
+    VERDICT_EFFECTIVE,
+    VERDICT_IGNORED,
+    VERDICT_UNCLEAR,
+    AuditReport,
+    audit,
+    build_generate_prompt,
+    select as audit_select,
+    write_receipt as write_audit_receipt,
+)
 from xout.judge import (
     candidates as judge_candidates,
     judge,
@@ -1147,6 +1160,204 @@ def cmd_probe(args: argparse.Namespace) -> int:
             every=summary["held_every_trial"], cases=summary["cases"],
         )
     print(line)
+    print(msg["receipt"].format(path=receipt))
+    return 0
+
+
+_AUDIT_MSG = {
+    "ko": {
+        "runner_missing": "러너를 시작할 수 없다: {error}",
+        "start": "규칙 파일 {files}개에서 줄 {lines}개를 잰다 - 러너: {runner}",
+        "repeat": " x {repeat}회 반복",
+        "skipped": "묻기 전에 걸러낸 줄 {skipped}개 (제목, 코드 블록, 표, 짧은 줄)",
+        "over_limit": "--limit {limit}에 걸려 남겨둔 줄 {over}개 - 더 보려면 값을 올려라",
+        "generated": "보낸 줄 {sent}개 중 {scenes}개가 에이전트에게 행동을 시키는 줄이다",
+        "head_default": "그 줄이 없어도 그렇게 한다 ({count}건):",
+        "head_effective": "그 줄이 일한다 ({count}건):",
+        "head_ignored": "그 줄을 무시했다 ({count}건):",
+        "head_unclear": "답을 읽지 못했다 ({count}건):",
+        "head_clash": "서로 당기는 줄 {count}건:",
+        "line": "  - {path}:{line_no}  \"{text}\"",
+        "clash_line": "  - {path}:{a} 와 :{b}  {why}",
+        "more": "  ... +{count}",
+        "summary": "물어본 줄 {sent}개 · 일한다 {effective} · 없어도 한다 {default} · 무시됨 {ignored} · 판독 불가 {unclear} · 지시가 아님 {not_an_instruction}",
+        "receipt": "영수증: {path}",
+        "dry": "규칙 파일 {files}개에서 줄 {lines}개를 보낼 참이었다 (러너는 부르지 않았다)",
+        "sample": "프롬프트 견본:",
+    },
+    "en": {
+        "runner_missing": "Cannot start the runner: {error}",
+        "start": "Measuring {lines} line(s) from {files} rule file(s) - runner: {runner}",
+        "repeat": " x {repeat} trials",
+        "skipped": "{skipped} line(s) left out before asking (headings, code blocks, table rows, short lines)",
+        "over_limit": "{over} line(s) held back by --limit {limit} - raise it to go further",
+        "generated": "{scenes} of the {sent} line(s) sent tell an agent what to do",
+        "head_default": "the agent does this anyway ({count}):",
+        "head_effective": "the line does work ({count}):",
+        "head_ignored": "the line was ignored ({count}):",
+        "head_unclear": "no readable answer ({count}):",
+        "head_clash": "lines that pull against each other ({count}):",
+        "line": "  - {path}:{line_no}  \"{text}\"",
+        "clash_line": "  - {path}:{a} vs :{b}  {why}",
+        "more": "  ... +{count}",
+        "summary": "{sent} line(s) asked · does work {effective} · already default {default} · ignored {ignored} · unclear {unclear} · not an instruction {not_an_instruction}",
+        "receipt": "receipt: {path}",
+        "dry": "{lines} line(s) from {files} rule file(s) would be sent; the runner was not called",
+        "sample": "sample prompt:",
+    },
+    "ja": {
+        "runner_missing": "ランナーを起動できない: {error}",
+        "start": "ルールファイル {files} 件から {lines} 行を測る - ランナー: {runner}",
+        "repeat": " x {repeat} 回",
+        "skipped": "尋ねる前に外した行 {skipped} 件 (見出し、コードブロック、表、短い行)",
+        "over_limit": "--limit {limit} で残した行 {over} 件 - もっと見るなら値を上げる",
+        "generated": "送った {sent} 行のうち {scenes} 行がエージェントへの指示だった",
+        "head_default": "その行がなくてもそうする ({count} 件):",
+        "head_effective": "その行が効いている ({count} 件):",
+        "head_ignored": "その行は無視された ({count} 件):",
+        "head_unclear": "答えを読み取れなかった ({count} 件):",
+        "head_clash": "互いに引っ張り合う行 {count} 件:",
+        "line": "  - {path}:{line_no}  \"{text}\"",
+        "clash_line": "  - {path}:{a} と :{b}  {why}",
+        "more": "  ... +{count}",
+        "summary": "尋ねた行 {sent} · 効いている {effective} · なくてもする {default} · 無視 {ignored} · 判読不能 {unclear} · 指示ではない {not_an_instruction}",
+        "receipt": "レシート: {path}",
+        "dry": "ルールファイル {files} 件から {lines} 行を送るところだった (ランナーは呼んでいない)",
+        "sample": "プロンプトの見本:",
+    },
+    "zh": {
+        "runner_missing": "运行器启动不了: {error}",
+        "start": "从 {files} 个规则文件里测 {lines} 行 - 运行器: {runner}",
+        "repeat": " x {repeat} 次",
+        "skipped": "开口前先剔掉的行 {skipped} 条 (标题、代码块、表格、太短的行)",
+        "over_limit": "被 --limit {limit} 挡下的行 {over} 条 - 想多看就把值调大",
+        "generated": "发出去的 {sent} 行里有 {scenes} 行是给智能体的指示",
+        "head_default": "没有这一行也会这么做 ({count} 条):",
+        "head_effective": "这一行在起作用 ({count} 条):",
+        "head_ignored": "这一行被无视了 ({count} 条):",
+        "head_unclear": "读不出答案 ({count} 条):",
+        "head_clash": "互相拉扯的行 {count} 条:",
+        "line": "  - {path}:{line_no}  \"{text}\"",
+        "clash_line": "  - {path}:{a} 和 :{b}  {why}",
+        "more": "  ... +{count}",
+        "summary": "问过的行 {sent} · 起作用 {effective} · 没有也会做 {default} · 被无视 {ignored} · 读不出 {unclear} · 不是指示 {not_an_instruction}",
+        "receipt": "回执: {path}",
+        "dry": "本来要从 {files} 个规则文件里发送 {lines} 行 (没有调用运行器)",
+        "sample": "提示词样例:",
+    },
+}
+
+#: 판정별 제목과 몇 줄까지 보여줄지. 무시된 줄과 일하는 줄은 전부 보여준다.
+_AUDIT_GROUPS: tuple[tuple[str, str, int], ...] = (
+    (VERDICT_DEFAULT, "head_default", 8),
+    (VERDICT_EFFECTIVE, "head_effective", 0),
+    (VERDICT_IGNORED, "head_ignored", 0),
+    (VERDICT_UNCLEAR, "head_unclear", 8),
+)
+
+
+def _print_audit(report: AuditReport, msg: Mapping[str, str]) -> None:
+    print(msg["generated"].format(sent=report.sent, scenes=len(report.outcomes)))
+    for verdict, head, limit in _AUDIT_GROUPS:
+        group = report.by_verdict(verdict)
+        if not group:
+            continue
+        print()
+        print(msg[head].format(count=len(group)))
+        shown = group[:limit] if limit else group
+        for outcome in shown:
+            cand = outcome.scene.candidate
+            print(msg["line"].format(path=cand.path, line_no=cand.line_no, text=cand.line))
+        if len(group) > len(shown):
+            print(msg["more"].format(count=len(group) - len(shown)))
+    if report.contradictions:
+        print()
+        print(msg["head_clash"].format(count=len(report.contradictions)))
+        for clash in report.contradictions:
+            print(
+                msg["clash_line"].format(
+                    path=clash.path, a=clash.a_line, b=clash.b_line, why=clash.why
+                )
+            )
+    print()
+    print(msg["summary"].format(**report.summary))
+
+
+def cmd_audit(args: argparse.Namespace) -> int:
+    """이미 가진 규칙 파일의 줄을 한 줄씩 외부 러너로 재본다 - 옵트인, 읽기전용."""
+    lang = _args_lang(args)
+    msg = _AUDIT_MSG.get(lang, _AUDIT_MSG["ko"])
+    roots = [Path(root) for root in (args.roots or ["."])]
+    selection = audit_select(
+        judge_candidates(roots, include_user=args.include_user), limit=args.limit
+    )
+    if args.dry_run:
+        sample = (
+            build_generate_prompt(
+                [(c.line_no, c.line) for c in selection.items[:AUDIT_BATCH]], lang
+            )
+            if selection.items
+            else ""
+        )
+        if args.json_output:
+            print(
+                json.dumps(
+                    {
+                        "lines": [
+                            {"path": c.path, "line_no": c.line_no, "line": c.line}
+                            for c in selection.items
+                        ],
+                        "scanned": selection.scanned,
+                        "skipped": selection.skipped,
+                        "over_limit": selection.over_limit,
+                        "prompt_sample": sample,
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                )
+            )
+            return 0
+        print(msg["dry"].format(lines=len(selection.items), files=selection.files))
+        print(msg["skipped"].format(skipped=selection.skipped))
+        if selection.over_limit:
+            print(msg["over_limit"].format(over=selection.over_limit, limit=args.limit))
+        if sample:
+            print()
+            print(msg["sample"])
+            print(sample)
+        return 0
+    # Windows 경로의 역슬래시를 이스케이프로 먹지 않도록 non-POSIX 분할.
+    command = shlex.split(args.runner, posix=os.name != "nt")
+    try:
+        runner = subprocess_runner(command, timeout=args.timeout)
+    except ProbeError as exc:
+        text = msg["runner_missing"].format(error=exc)
+        print(json.dumps({"error": str(exc)}) if args.json_output else text)
+        return 2
+    if not args.json_output:
+        print(
+            msg["start"].format(
+                lines=len(selection.items), files=selection.files, runner=args.runner
+            )
+            + (msg["repeat"].format(repeat=args.repeat) if args.repeat > 1 else "")
+        )
+        print(msg["skipped"].format(skipped=selection.skipped))
+        if selection.over_limit:
+            print(msg["over_limit"].format(over=selection.over_limit, limit=args.limit))
+    try:
+        report = audit(selection, runner, lang, command, repeat=args.repeat)
+    except (ProbeError, subprocess.TimeoutExpired) as exc:
+        text = msg["runner_missing"].format(error=exc)
+        print(json.dumps({"error": str(exc)}) if args.json_output else text)
+        return 2
+    receipt = write_audit_receipt(Path(args.base_dir), report)
+    if args.json_output:
+        payload = report.to_dict()
+        payload["receipt_path"] = str(receipt)
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 0
+    print()
+    _print_audit(report, msg)
     print(msg["receipt"].format(path=receipt))
     return 0
 
@@ -2356,6 +2567,25 @@ def build_parser() -> argparse.ArgumentParser:
     p_probe.add_argument("--json", dest="json_output", action="store_true", help="JSON으로 출력")
     _add_common(p_probe)
     p_probe.set_defaults(func=cmd_probe)
+
+    p_audit = sub.add_parser(
+        "audit",
+        help="이미 가진 규칙 파일의 줄을 하나씩 외부 러너로 재본다 (옵트인, 세션 밖, 읽기전용)",
+    )
+    p_audit.add_argument("roots", nargs="*", help="스캔할 루트 (기본: 현재 디렉토리)")
+    p_audit.add_argument(
+        "--runner",
+        default=" ".join(DEFAULT_RUNNER),
+        help="프롬프트를 마지막 인자로 받아 stdout에 답하는 명령 (기본: claude -p --output-format text)",
+    )
+    p_audit.add_argument("--no-user", dest="include_user", action="store_false", help="~/.claude/CLAUDE.md, ~/.claude/rules 는 읽지 않는다")
+    p_audit.add_argument("--limit", type=int, default=AUDIT_LIMIT, help=f"러너에 보낼 줄 수 상한 (기본 {AUDIT_LIMIT})")
+    p_audit.add_argument("--repeat", type=int, default=1, help="줄마다 시행 횟수 (다수결 판정, 원문은 전부 영수증에)")
+    p_audit.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT)
+    p_audit.add_argument("--dry-run", dest="dry_run", action="store_true", help="러너 호출 없이 보낼 줄 수와 프롬프트 견본만 보여준다")
+    p_audit.add_argument("--json", dest="json_output", action="store_true", help="JSON으로 출력")
+    _add_common(p_audit)
+    p_audit.set_defaults(func=cmd_audit)
 
     p_own = sub.add_parser(
         "own",
