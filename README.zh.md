@@ -18,6 +18,10 @@
 
 **每个 AI 编码工具都读一份规则文件，可几乎没人把它写得好。** xout 替你写。它不问问题，只把 AI 可能的两种做法摆在你面前，让你划掉再也不想看到的那个。十五个 X，两分钟左右。留下来的选择会变成 8 条大白话规则，接进你真正在用的工具：Claude Code、Codex、OpenCode、Gemini CLI、Copilot CLI、pi、oh-my-pi、Kiro，或者任何会读 `AGENTS.md` 的工具。
 
+<img src=".github/assets/how-it-works.zh.gif" alt="三个面板：“修这个 bug”的两种做法，不要的那个被划掉；一个漏斗，6,561 个可能的智能体经过 15 个 X 只剩一个；八条规则靠一行 import 进了 CLAUDE.md" width="920">
+
+<sub>从左到右：一个 X 去掉一种行为，15 个 X 只剩一个智能体，这个智能体再写成 8 条规则。</sub>
+
 ```bash
 uvx xout --lang zh
 ```
@@ -94,10 +98,6 @@ xout 自有区块长这样，也是 xout 在那个文件里唯一会动的地方
 gajae-code 的公开文档没写规则文件在哪。上面的路径来自已安装包的源码（`@gajae-code/coding-agent` 0.15.6，`system-prompt.d.ts`: "Native user-global files (`~/.gjc/agent/AGENTS.md`) come first"），算源码核实，不算文档核实。
 
 ## 工作原理
-
-<img src=".github/assets/how-it-works.zh.gif" alt="三个面板：“修这个 bug”的两种做法，不要的那个被划掉；一个漏斗，6,561 个可能的智能体经过 15 个 X 只剩一个；八条规则靠一行 import 进了 CLAUDE.md" width="920">
-
-<sub>从左到右：一个 X 去掉一种行为，15 个 X 只剩一个智能体，这个智能体再写成 8 条规则。</sub>
 
 1. **你划掉**讨厌的行为，三个真实场景：修一个日常 bug、加一个新功能、做一次有风险的生产迁移。每一对都是两种具体的智能体做法：先问再做还是先做再说、只用标准库还是装个包、先演练迁移还是觉得再读一遍代码就够了。
 2. **xout 编译**留下来的选择，生成 8 条能直接执行的规则，连依据和来源一起原子写入 `~/.claude/xout/`。你在日常工作和难以撤销的工作里画的 X 不一样时，规则会**把这个条件一起编译进去**：

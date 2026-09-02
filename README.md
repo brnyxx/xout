@@ -18,6 +18,10 @@
 
 **Every AI coding tool follows a rules file. Almost nobody writes a good one.** xout writes it for you. It doesn't ask you questions. It shows you two things your agent could do, and you cross out the one you never want to see again. Fifteen X's, about two minutes. What's left becomes 8 plain rules, plugged into the tool you actually use: Claude Code, Codex, OpenCode, Gemini CLI, Copilot CLI, pi, oh-my-pi, Kiro, or anything that reads `AGENTS.md`.
 
+<img src=".github/assets/how-it-works.gif" alt="Three panels: two behaviors for Fix the bug with the wrong one crossed out, a funnel from 6,561 possible agents down to one after 15 X's, and eight rules landing in CLAUDE.md through one import line" width="920">
+
+<sub>Every X cuts what's left in half and drops the half you never want. Eight cuts, eight rules, plugged into your tool. Rendered from the real timeline with Remotion; source in `video/`.</sub>
+
 ```bash
 uvx xout --lang en
 ```
@@ -94,10 +98,6 @@ An owned block looks like this, and it is the only thing xout will ever edit ins
 gajae-code's public docs don't name its rules file. The path above comes from the installed package source (`@gajae-code/coding-agent` 0.15.6, `system-prompt.d.ts`: "Native user-global files (`~/.gjc/agent/AGENTS.md`) come first"), so treat it as verified against source, not against docs.
 
 ## How it works
-
-<img src=".github/assets/how-it-works.gif" alt="Three panels: two behaviors for Fix the bug with the wrong one crossed out, a funnel from 6,561 possible agents down to one after 15 X's, and eight rules landing in CLAUDE.md through one import line" width="920">
-
-<sub>Every X cuts what's left in half and drops the half you never want. Eight cuts, eight rules, plugged into your tool. Rendered from the real timeline with Remotion; source in `video/`.</sub>
 
 1. **You X out** the behavior you hate, across three real scenes: a routine bugfix, a new feature, and a risky production migration. Each pair shows two concrete agent behaviors - ask first vs act first, standard library vs install a package, rehearse the migration vs trust a re-read.
 2. **xout compiles** what's left into 8 rules, written atomically under `~/.claude/xout/` along with the evidence behind each one. When your X's differ between routine and hard-to-reverse work, the rule is compiled **with that condition attached**:
