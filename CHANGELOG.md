@@ -7,6 +7,11 @@ slow cadence: minor versions ship every 6-12 months, patches only for defects.
 
 ## [Unreleased]
 
+### Changed
+- The npm package is `@brnyxx/xout` (it was never published under the
+  earlier placeholder name). The Release workflow can publish it on demand
+  (`workflow_dispatch`) as well as on a tag.
+
 ### Added
 - `xout mine --runner "…"` and `xout conflicts --runner "…"`: an opt-in
   second layer that hands the lines of your rule files to your own agent

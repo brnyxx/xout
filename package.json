@@ -1,5 +1,5 @@
 {
-  "name": "xout-skills",
+  "name": "@brnyxx/xout",
   "version": "1.1.0",
   "description": "X out the AI behavior you never want again. Cross out the wrong one of two concrete agent behaviors; the survivors compile into rules with evidence, plugged into Claude Code, Codex, OpenCode, Gemini CLI, Copilot, pi, Kiro or any AGENTS.md reader, with consent, savepoints, and one-command rollback.",
   "keywords": [
