@@ -178,6 +178,27 @@ receipt: ~/.claude/xout/probes/probe-20260902T003141.json
 
 Gemini CLI 没跑，因为这台机器没配 Gemini 的认证；运行器列在下表，你可以自己跑。
 
+一道题只问一遍，测得太薄，所以 `--repeat` 会把每道题问上几遍，按多数决定；每一条原始回答都留在回执里。十五例全跑，各三遍，同一份档案，同一天：
+
+| 运行器 | 规则守住（多数） | 三遍都守住 | 守住的遍数 | 规则改变了选择 | 不带规则也一致 |
+|---|---|---|---|---|---|
+| `codex exec` | 15/15 | 14/15 | 44/45 | 4 | 11 |
+| `opencode run` | 15/15 | 14/15 | 44/45 | 5 | 10 |
+| `gjc -p` | 15/15 | 15/15 | 45/45 | 5 | 10 |
+
+两个不圆满的例子都出在修 bug 的场景：Codex 有一遍越过“只重试一次，然后报告”这条规则接着重试，OpenCode 有一遍先写了失败测试。其余的三遍都守住了。
+
+把规则塞进提示词里问，只说明规则有可能管用。工具究竟有没有读 xout 写进去的那个文件，是另一个问题，所以 `xout probe --via-target codex` 干脆不把规则放进提示词：不带规则那一遍，它把 xout 区块从 `~/.codex/AGENTS.md` 里取走；带规则那一遍，再把区块放回去；跑完把文件还原（先做存档点）。同一份档案，每个轴一个场景：
+
+| 工具，经由它自己的规则文件 | 规则守住 | 规则改变了选择 | 不带规则也一致 |
+|---|---|---|---|
+| Codex CLI, `~/.codex/AGENTS.md` | 8/8 | 3 | 5 |
+| gajae-code, `~/.gjc/agent/AGENTS.md` | 7/8 | 3 | 4 |
+| OpenCode, `~/.config/opencode/AGENTS.md` | 6/8 | 2 | 5 |
+| Kiro CLI, `~/.kiro/steering/xout.md` | 6/8 | 2 | 4 |
+
+每个工具都读了自己的文件：每一行里都至少有两个答案，是因为区块在那儿才变的。不符的地方同样值得看。gajae-code 和 Kiro 在修 bug 时没先提方案就直接动手；Kiro 还在报错之后一直自己修；OpenCode 的两处不符，一处是一段没有选项字母的长篇散文，一处是先写测试的老习惯。Kiro 的文档说全局 steering 给 IDE 用、工作区 steering 给 CLI 用，可这里的 CLI 照样读了全局那份文件——探针就是用来发现这种事的。
+
 运行器可以是任何一条命令，只要它把提示词当最后一个参数、并把回答打印出来。默认是 Claude Code；下面其他几个都是各工具文档里写明的无头模式：
 
 | 工具 | `xout probe --runner "…"` |
@@ -197,8 +218,9 @@ Gemini CLI 没跑，因为这台机器没配 Gemini 的认证；运行器列在�
 你多半已经有规则文件了。xout 把它们当依据，不当对手。
 
 - **会话里**，每一对旁边都会显示你的文件里已经对这个行为表过态的那几行，比如 `~/.claude/CLAUDE.md:12 "Always ask before editing" → ask_first`，让你确认或者推翻自己当初写的东西。
+- **读这些文件，默认走的是模式匹配**：没有依赖，离线可用，每一处命中都会说明是哪条模式抓到的。这些模式拿一份标注过的语料测过，四种语言共 276 行规则（精确率 1.00，最弱那个轴上召回率 0.96；任意一项掉下来，测试就失败）。语料之外的说法它还是会漏，所以 `xout mine --runner "claude -p --output-format text"`（下表里的运行器都行）会把同样这些行交给你自己的智能体，让它逐行说出这句话表的是哪个轴的哪个取值。两层结果随后互相比对，原始回答全部留在回执里。在写这个工具的人那份 187 行的 `~/.claude/CLAUDE.md` 上，两层在 8 行上一致，智能体又多找出模式漏掉的 5 行（“Minimal change principle”属于改动范围，“No unsolicited docstrings, comments, or type annotations”属于注释），还剔掉了 10 处根本算不上偏好的模式命中。`xout conflicts --runner …` 也接受同一个参数。不加它，什么都不会变。
 - **落地之后**，`xout conflicts` 会列出和你新规则相反的那些行，带 file:line。冲突的行从来不会被改：规则文件里已经写明，项目自己的指令优先。
-- **`xout reconcile`** 会列出旧文件里现在和 `XOUT.md` 重复的行，并在 `~/.claude/xout/reconcile/` 下写一份补丁提案。只有 `xout reconcile --apply --grant` 才会真的删掉这些重复行，而且一定先做存档点。
+- **`xout reconcile`** 会列出旧文件里现在和 `XOUT.md` 重复的行，并在 `~/.claude/xout/reconcile/` 下写一份补丁提案。只有 `xout reconcile --apply --grant` 才会真的删掉这些重复行，而且一定先做存档点。只是读起来像你某条规则的行，会带着相似度分数单独列出来，永远不会被删。
 - **`xout savepoint`** 随时能把你的规则文件逐字节快照下来；`xout savepoint restore <id>` 再放回去。每次 `enable`、`undo`、`reconcile --apply` 都会自动做一个。
 
 ## 你会得到什么
@@ -212,6 +234,8 @@ Gemini CLI 没跑，因为这台机器没配 Gemini 的认证；运行器列在�
 | `settings.xout.json` | 一份给你过目的设置提案 |
 
 你亲手画 X 确认过的规则会标成**已确认**；xout 没问过你、自己猜的默认值会老老实实标成**猜测**，并排进一条快速重选的队列。没有你明确点头，什么都不会生效。
+
+八个轴装不下你在意的全部东西，而这份目录也不会为了腾地方就变长。剩下的自己写：`xout own add "别从本地 shell 碰生产数据库。"` 这句话会作为单独一节落在 `XOUT.md` 末尾，一字不改，就是你敲进去的样子——xout 不测量它、不给它排序、也不替它改写。`xout own list` 把你的句子连同各自的 id 列出来，`xout own drop <id>` 收回其中一句，两条命令都会当场把 `XOUT.md` 重新落地一次。这些句子和你的 X 待在同一本只追加的账本里，所以什么都不会被抹掉：收回一句只是追加一块墓碑，下次落地时把它折掉。
 
 *（Popper 1.x 把同样的文件叫 `POPPER.md` 和 `settings.popper.json`，放在 `~/.claude/popper/` 下；xout 第一次运行时会自动搬过来。）*
 
@@ -253,10 +277,15 @@ Gemini CLI 没跑，因为这台机器没配 Gemini 的认证；运行器列在�
 | `xout enable --grant [--target …]` | 接入：一行自有 `@import`（Claude Code）或一个自有区块（其他工具） | 一行 / 一个自有区块，先做存档点 | 明确同意 |
 | `xout undo [--target …]` | 只删 xout 自己写的内容，完整回滚 | 一行 / 一个自有区块 | - |
 | `xout mine [paths]` | 把你已有的规则文件（项目 + `~/.claude`）读成各轴的观测，附 file:line 凭据 | 不写 | - |
-| `xout conflicts [paths]` | 规则文件里和你的规则相反的行 | 不写 | - |
+| `xout mine --runner "…"` | 同上，但由你自己的智能体逐行判定，再把结果和模式那边比对 | 自有目录（`judgments/`） | 要手动开启 |
+| `xout conflicts [paths] [--runner "…"]` | 规则文件里和你的规则相反的行 | 不写（带 `--runner` 时写回执） | - |
 | `xout reconcile [paths]` | 规则文件里现在和 `XOUT.md` 重复的行；给出一份补丁；`--apply --grant` 会先做存档点再删掉它们 | 自有目录；只有 `--apply --grant` 时才写规则文件 | 明确同意 |
 | `xout savepoint [list\|restore <id>]` | 逐字节快照你的规则文件，或者放回去 | 自有目录；restore 会改写快照过的文件 | - |
 | `xout probe` | 向外部运行器把同一道 A/B 题问两遍，一遍不带规则、一遍带上你的规则，再把每条规则守没守住写成回执 | 自有目录（`probes/`） | 要手动开启 |
+| `xout probe --repeat N` | 每道题问 N 遍，按多数决定，每条回答都留着 | 自有目录（`probes/`） | 要手动开启 |
+| `xout probe --context-file FILE` | 把一份真实的项目文档放在规则前面，看规则被埋住还撑不撑得住 | 自有目录（`probes/`） | 要手动开启 |
+| `xout probe --via-target ID` | 规则不进提示词：不带规则那遍从该工具自己的规则文件里取走区块，带规则那遍再放回去 | 该工具的文件（先做存档点），跑完还原 | 要手动开启 |
+| `xout own add "…"` / `list` / `drop <id>` | 用你自己的话写的句子，摆在那 8 条规则旁边 | 只写自有目录 | - |
 | `xout pair` / `xout strike` | 给智能体和脚本用的无头 JSON 会话 | 只写自有目录 | - |
 
 ## 为什么值得信任
