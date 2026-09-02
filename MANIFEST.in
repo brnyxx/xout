@@ -12,6 +12,7 @@ recursive-include scripts *.py
 recursive-include site *.css *.html *.json
 recursive-include skills *.md
 recursive-include tests *.py
+recursive-include tests/data *.json
 recursive-include fixtures *.json
 recursive-exclude .github/assets *.gif *.png
 prune video
