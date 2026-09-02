@@ -5,6 +5,30 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and xout follows [Semantic Versioning](https://semver.org/) with a deliberately
 slow cadence: minor versions ship every 6-12 months, patches only for defects.
 
+## [Unreleased]
+
+### Added
+- `xout mine --runner "…"` and `xout conflicts --runner "…"`: an opt-in
+  second layer that hands the lines of your rule files to your own agent
+  (`claude -p`, `codex exec`, any runner from the probe table) and asks it to
+  name the axis and value each line states. Its verdicts are merged with the
+  pattern layer and the two are compared (agreed / agent only / pattern only /
+  different value); the receipt under `~/.claude/xout/judgments/` keeps every
+  raw answer. Without the flag nothing changes.
+- `xout probe --repeat N`: every question is asked N times, the majority
+  decides, and the receipt keeps each trial. The summary adds the by-trial
+  count and how many rules held every single time.
+- `xout probe --context-file FILE`: a real project document goes in front of
+  the rules in both passes, so the rules have to hold while buried under other
+  instructions.
+- `xout probe --via-target ID`: the rules stay out of the prompt. For the bare
+  pass the block (or the `@import` line) is taken out of that tool's own rules
+  file, for the ruled pass it is put back, and the file is restored at the end
+  (savepoint first). This measures whether the tool actually reads the file
+  xout wrote into.
+- `xout probe` strips terminal colour codes before reading the answer
+  (kiro-cli prints them).
+
 ## [1.1.0] - 2026-09-02
 
 ### Added

@@ -197,6 +197,7 @@ A runner is any command that takes the prompt as its last argument and prints th
 You probably already have rule files. xout treats them as evidence, not as competition.
 
 - **During the session**, each pair shows what your files already say about that behavior - `~/.claude/CLAUDE.md:12 "Always ask before editing" → ask_first` - so you can confirm or overrule what you wrote back then.
+- **Reading those files is pattern matching by default**: no dependencies, works offline, and every hit is explained by the pattern that caught it. Patterns miss rephrasings and catch a few false friends, so `xout mine --runner "claude -p --output-format text"` (or any runner from the table below) hands the same lines to your own agent and asks it to say, per line, which axis and value it states. The two layers are then compared and the receipt keeps every raw answer. On the 187-line `~/.claude/CLAUDE.md` of the person who wrote this, the two agreed on 8 lines, the agent found 5 more the patterns had missed ("Minimal change principle" is scope, "No unsolicited docstrings, comments, or type annotations" is comments), and it dropped 10 pattern hits that were not preferences at all. `xout conflicts --runner …` accepts the same flag. Nothing changes without it.
 - **After landing**, `xout conflicts` lists the lines that contradict your new rules, with file:line. xout never edits those; the rules file already says a project's own instructions win.
 - **`xout reconcile`** lists the lines in your old files that `XOUT.md` now covers and writes a proposed patch under `~/.claude/xout/reconcile/`. Only `xout reconcile --apply --grant` actually removes those lines, and only after taking a savepoint.
 - **`xout savepoint`** snapshots your rule files byte for byte whenever you like; `xout savepoint restore <id>` puts them back. Every `enable`, `undo`, and `reconcile --apply` takes one automatically.
@@ -253,10 +254,14 @@ That X is the whole product.
 | `xout enable --grant [--target …]` | Plug in: one owned `@import` line (Claude Code) or one owned block (other tools) | one owned line / block, savepoint first | explicit |
 | `xout undo [--target …]` | Remove exactly what xout wrote - full rollback | one owned line / block | - |
 | `xout mine [paths]` | Read your existing rule files (project + `~/.claude`) and report what they say about each axis, with file:line receipts | nothing | - |
-| `xout conflicts [paths]` | Lines in your rule files that contradict your rules | nothing | - |
+| `xout mine --runner "…"` | Same, but your own agent judges each line and the result is compared with the patterns | own dir (`judgments/`) | opt-in |
+| `xout conflicts [paths] [--runner "…"]` | Lines in your rule files that contradict your rules | nothing (receipt with `--runner`) | - |
 | `xout reconcile [paths]` | Lines in your rule files that `XOUT.md` now covers; proposes a patch; `--apply --grant` removes them after a savepoint | own dir; rule files only with `--apply --grant` | explicit |
 | `xout savepoint [list\|restore <id>]` | Snapshot your rule files byte for byte, and put them back | own dir; restore rewrites saved files | - |
 | `xout probe` | Ask an external runner the same A/B twice, bare and with your rules, and record whether each rule held | own dir (`probes/`) | opt-in |
+| `xout probe --repeat N` | Ask each question N times; majority decides, every answer is kept | own dir (`probes/`) | opt-in |
+| `xout probe --context-file FILE` | Put a real project document in front of the rules, so they have to survive being buried | own dir (`probes/`) | opt-in |
+| `xout probe --via-target ID` | Keep the rules out of the prompt; take the block out of that tool's own rules file for the bare pass and put it back for the ruled pass | that tool's file (savepoint first), restored at the end | opt-in |
 | `xout pair` / `xout strike` | Headless JSON session for agents and scripts | own dir only | - |
 
 ## Why you can trust it

@@ -24,6 +24,7 @@ import os
 import shlex
 import subprocess
 import sys
+from dataclasses import replace
 from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
@@ -60,7 +61,13 @@ from xout.fixtures import (
     scan_repo_skin,
 )
 from xout.migrate import migrate_legacy_home
-from xout.mine import Conflict, find_conflicts, mine, summarize, user_rule_files
+from xout.judge import (
+    candidates as judge_candidates,
+    judge,
+    merge as judge_merge,
+    write_receipt as write_judge_receipt,
+)
+from xout.mine import Conflict, Observation, find_conflicts, mine, summarize, user_rule_files
 from xout.reconcile import apply_removals, plan as reconcile_plan, render_patch, write_patch
 from xout.targets import MODE_IMPORT, REGISTRY, block_state, ensure_block, remove_block, targets_by_id
 from xout.savepoint import SavepointError, create as create_savepoint, list_savepoints, restore as restore_savepoint
@@ -727,6 +734,65 @@ _WHY_MSG: dict[str, dict[str, str]] = {
 }
 
 
+_JUDGE_MSG = {
+    "ko": {
+        "judged": "에이전트 판정 ({runner}): 파일 {files}개 · 줄 {lines}개 → 두 계층 일치 {agreed} · 에이전트만 잡음 {added} · 정규식만 잡음 (탈락) {dropped} · 값이 다름 {disagreed}",
+        "receipt": "판정 영수증: {path}",
+        "runner_missing": "러너를 시작할 수 없다: {error}",
+    },
+    "en": {
+        "judged": "agent verdicts ({runner}): {files} file(s) · {lines} line(s) → both layers agree {agreed} · agent only {added} · pattern only (dropped) {dropped} · different value {disagreed}",
+        "receipt": "verdict receipt: {path}",
+        "runner_missing": "Cannot start the runner: {error}",
+    },
+    "ja": {
+        "judged": "エージェント判定 ({runner}): ファイル {files} 件 · 行 {lines} 件 → 両層一致 {agreed} · エージェントのみ {added} · パターンのみ (除外) {dropped} · 値が異なる {disagreed}",
+        "receipt": "判定レシート: {path}",
+        "runner_missing": "ランナーを起動できない: {error}",
+    },
+    "zh": {
+        "judged": "智能体判定 ({runner}): 文件 {files} 个 · 行 {lines} 条 → 两层一致 {agreed} · 仅智能体 {added} · 仅模式 (剔除) {dropped} · 值不同 {disagreed}",
+        "receipt": "判定回执: {path}",
+        "runner_missing": "运行器启动不了: {error}",
+    },
+}
+
+
+def _judged_observations(
+    args: argparse.Namespace, lang: str, roots: list[Path], pattern: list[Observation]
+) -> tuple[list[Observation], dict[str, Any]]:
+    """옵트인 두 번째 계층: 사용자의 에이전트가 같은 줄들을 판정하고, 정규식과 대조한다."""
+    command = shlex.split(args.runner, posix=os.name != "nt")
+    runner = subprocess_runner(command, timeout=args.timeout)
+    items = judge_candidates(roots, include_user=args.include_user)
+    report = judge(items, runner, lang, command)
+    merged, agreement, source = judge_merge(pattern, report.observations)
+    report = replace(report, agreement=agreement)
+    receipt = write_judge_receipt(Path(args.base_dir), report)
+    meta = {
+        "runner": args.runner,
+        "files": len({item.abs_path for item in items}),
+        "lines": len(items),
+        "agreement": agreement,
+        "source": source,
+        "receipt_path": str(receipt),
+    }
+    return merged, meta
+
+
+def _print_judged(meta: Mapping[str, Any], lang: str) -> None:
+    msg = _JUDGE_MSG.get(lang, _JUDGE_MSG["ko"])
+    print(msg["judged"].format(runner=meta["runner"], files=meta["files"], lines=meta["lines"], **meta["agreement"]))
+    print(msg["receipt"].format(path=meta["receipt_path"]))
+
+
+def _obs_dict(obs: Observation, source: Mapping[tuple[str, int, str], str] | None) -> dict[str, Any]:
+    payload = obs.to_dict()
+    if source is not None:
+        payload["source"] = source.get((obs.abs_path or obs.path, obs.line_no, obs.axis), "pattern")
+    return payload
+
+
 _CONFLICT_MSG = {
     "ko": {
         "header": "프로젝트 규칙과 갈리는 줄 {count}건 (정면 충돌이면 프로젝트가 이긴다):",
@@ -802,18 +868,24 @@ def cmd_conflicts(args: argparse.Namespace) -> int:
             print(_CONFLICT_MSG.get(lang, _CONFLICT_MSG["ko"])["no_rules"])
         return 1
     roots = [Path(root) for root in (args.roots or ["."])]
-    conflicts = find_conflicts(
-        mine(roots, include_user=args.include_user), _manifest_rules_by_axis(manifest)
-    )
+    observations = mine(roots, include_user=args.include_user)
+    meta: dict[str, Any] | None = None
+    if getattr(args, "runner", None):
+        try:
+            observations, meta = _judged_observations(args, lang, roots, observations)
+        except (ProbeError, subprocess.TimeoutExpired) as exc:
+            text = _JUDGE_MSG.get(lang, _JUDGE_MSG["ko"])["runner_missing"].format(error=exc)
+            print(json.dumps({"error": str(exc)}) if args.json_output else text)
+            return 2
+    conflicts = find_conflicts(observations, _manifest_rules_by_axis(manifest))
     if args.json_output:
-        print(
-            json.dumps(
-                {"conflicts": [conflict.to_dict() for conflict in conflicts]},
-                ensure_ascii=False,
-                indent=2,
-            )
-        )
+        payload: dict[str, Any] = {"conflicts": [conflict.to_dict() for conflict in conflicts]}
+        if meta is not None:
+            payload["agent"] = {k: v for k, v in meta.items() if k != "source"}
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
         return 0
+    if meta is not None:
+        _print_judged(meta, lang)
     _print_conflicts(conflicts, lang)
     return 0
 
@@ -831,6 +903,13 @@ _PROBE_MSG = {
         "summary": "규칙 지킴 {held}/{cases} · 규칙이 답을 바꿈 {moved} · 규칙 없이도 같은 답 {bare} · 판독 불가 {unparsed}",
         "receipt": "영수증: {path}",
         "dry": "탐침 {n}건 준비만 함 (러너 호출 없음)",
+        "repeat": " x {repeat}회 반복",
+        "via": "규칙 전달: {path} 의 xout 블록/한 줄로만 (프롬프트에는 넣지 않음) - 세이브포인트 {savepoint}",
+        "context": "방해 문서: {path}",
+        "not_active": "[{id}]가 활성 상태가 아니다 - 먼저: xout enable --grant --target {id}",
+        "unknown_target": "모르는 타깃: {id} (xout targets 로 목록 확인)",
+        "restore_failed": "주의: [{id}] 원상복구 실패 - xout enable --grant --target {id} 로 되돌려라: {error}",
+        "trials": " · 시행 기준 {trials_held}/{trials} · 매 시행 지킴 {every}/{cases}",
     },
     "en": {
         "no_rules": "No landed rules yet - run xout first.",
@@ -844,6 +923,13 @@ _PROBE_MSG = {
         "summary": "rule held {held}/{cases} · rule moved the choice {moved} · matched without rules {bare} · unparsed {unparsed}",
         "receipt": "receipt: {path}",
         "dry": "{n} cases prepared; runner not called",
+        "repeat": " x {repeat} trials",
+        "via": "rules delivered only through {path} (not in the prompt) - savepoint {savepoint}",
+        "context": "distractor document: {path}",
+        "not_active": "[{id}] is not active - first: xout enable --grant --target {id}",
+        "unknown_target": "unknown target: {id} (see xout targets)",
+        "restore_failed": "warning: could not restore [{id}] - run xout enable --grant --target {id}: {error}",
+        "trials": " · by trial {trials_held}/{trials} · held every trial {every}/{cases}",
     },
     "ja": {
         "no_rules": "着地した規則がない - 先に xout を実行すること。",
@@ -857,6 +943,13 @@ _PROBE_MSG = {
         "summary": "規則維持 {held}/{cases} · 規則が選択を動かした {moved} · 規則なしでも一致 {bare} · 判読不能 {unparsed}",
         "receipt": "レシート: {path}",
         "dry": "プローブ {n}件を準備した (ランナーは呼んでいない)",
+        "repeat": " x {repeat} 回",
+        "via": "規則の受け渡しは {path} の xout ブロック/1 行のみ (プロンプトには入れない) - セーブポイント {savepoint}",
+        "context": "妨害文書: {path}",
+        "not_active": "[{id}] は有効になっていない - 先に: xout enable --grant --target {id}",
+        "unknown_target": "不明なターゲット: {id} (xout targets で一覧)",
+        "restore_failed": "注意: [{id}] を元に戻せなかった - xout enable --grant --target {id} で戻すこと: {error}",
+        "trials": " · 試行ベース {trials_held}/{trials} · 毎回維持 {every}/{cases}",
     },
     "zh": {
         "no_rules": "还没有落地的规则 - 先跑一次 xout。",
@@ -870,6 +963,13 @@ _PROBE_MSG = {
         "summary": "规则保持 {held}/{cases} · 规则改变了选择 {moved} · 不带规则也一致 {bare} · 无法判读 {unparsed}",
         "receipt": "回执: {path}",
         "dry": "已准备好 {n} 例 (没有调用运行器)",
+        "repeat": " x {repeat} 次",
+        "via": "规则只通过 {path} 里的 xout 区块/一行传递 (不放进提示) - 存档点 {savepoint}",
+        "context": "干扰文档: {path}",
+        "not_active": "[{id}] 没有启用 - 先执行: xout enable --grant --target {id}",
+        "unknown_target": "未知目标: {id} (用 xout targets 查看)",
+        "restore_failed": "注意: [{id}] 没能恢复原状 - 用 xout enable --grant --target {id} 恢复: {error}",
+        "trials": " · 按次数 {trials_held}/{trials} · 每次都保持 {every}/{cases}",
     },
 }
 
@@ -933,8 +1033,59 @@ def cmd_probe(args: argparse.Namespace) -> int:
     except ProbeError as exc:
         print(json.dumps({"error": str(exc)}) if args.json_output else msg["runner_missing"].format(error=exc))
         return 2
+    context_text: str | None = None
+    if args.context_file:
+        context_text = Path(args.context_file).read_text(encoding="utf-8")
+    rules_text = xout_path.read_text(encoding="utf-8")
+    deliver: Callable[[bool], None] | None = None
+    delivery = "prompt"
+    via_line = ""
+    if args.via_target:
+        target = REGISTRY.get(args.via_target)
+        if target is None:
+            text = msg["unknown_target"].format(id=args.via_target)
+            print(json.dumps({"error": "unknown_target"}) if args.json_output else text)
+            return 1
+        path = target.resolve(Path.home(), Path.cwd())
+        if target.mode == MODE_IMPORT:
+            active = _activation_state(base)["status"] == "active"
+            path = OwnedWriter(base_dir=base).claude_md_path
+        else:
+            active = block_state(base, target.target_id, path)["active"]
+        if not active:
+            text = msg["not_active"].format(id=target.target_id)
+            print(json.dumps({"error": "target_not_active"}) if args.json_output else text)
+            return 1
+        record = ConsentRecord(kind=ConsentKind.IMPORT_PERMISSION_GRANTED, subject=str(path))
+        _persist_consent(base, record)
+        savepoint = create_savepoint(base, [path], f"probe via {target.target_id}")
+
+        def deliver(on: bool) -> None:
+            if target.mode == MODE_IMPORT:
+                writer = OwnedWriter(base_dir=base)
+                outcome = writer.ensure_import(record) if on else writer.remove_import()
+                ok = outcome.reason in (("added", "already_present") if on else ("removed", "not_present"))
+            else:
+                outcome = (
+                    ensure_block(base, target.target_id, path, rules_text, record, preamble=target.preamble)
+                    if on
+                    else remove_block(base, target.target_id, path)
+                )
+                ok = outcome.reason in (("added", "updated", "already_present") if on else ("removed", "not_present"))
+            if not ok:
+                raise ProbeError(f"[{target.target_id}] {'restore' if on else 'remove'} failed: {outcome.reason}")
+
+        delivery = f"target:{target.target_id}"
+        via_line = msg["via"].format(path=path, savepoint=savepoint.savepoint_id)
     if not args.json_output:
-        print(msg["start"].format(n=len(cases), runner=args.runner))
+        print(
+            msg["start"].format(n=len(cases), runner=args.runner)
+            + (msg["repeat"].format(repeat=args.repeat) if args.repeat > 1 else "")
+        )
+        if via_line:
+            print(via_line)
+        if args.context_file:
+            print(msg["context"].format(path=args.context_file))
 
     def on_outcome(outcome: ProbeOutcome) -> None:
         if args.json_output:
@@ -952,11 +1103,27 @@ def cmd_probe(args: argparse.Namespace) -> int:
 
     try:
         report = probe(
-            cases, xout_path.read_text(encoding="utf-8"), runner, lang, command, on_outcome
+            cases,
+            rules_text,
+            runner,
+            lang,
+            command,
+            on_outcome,
+            repeat=args.repeat,
+            context_text=context_text,
+            rules_in_prompt=deliver is None,
+            phase_hook=(lambda phase: deliver(phase == "ruled")) if deliver else None,
+            delivery=delivery,
         )
     except (ProbeError, subprocess.TimeoutExpired) as exc:
         print(json.dumps({"error": str(exc)}) if args.json_output else msg["runner_missing"].format(error=exc))
         return 2
+    finally:
+        if deliver is not None:
+            try:
+                deliver(True)
+            except ProbeError as exc:
+                print(msg["restore_failed"].format(id=args.via_target, error=exc), file=sys.stderr)
     receipt = write_receipt(base, report)
     if args.json_output:
         payload = report.to_dict()
@@ -964,7 +1131,14 @@ def cmd_probe(args: argparse.Namespace) -> int:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         return 0
     print()
-    print(msg["summary"].format(bare=report.summary["bare_matched"], **report.summary))
+    summary = report.summary
+    line = msg["summary"].format(bare=summary["bare_matched"], **summary)
+    if report.repeat > 1:
+        line += msg["trials"].format(
+            trials_held=summary["trials_held"], trials=summary["trials"],
+            every=summary["held_every_trial"], cases=summary["cases"],
+        )
+    print(line)
     print(msg["receipt"].format(path=receipt))
     return 0
 
@@ -1174,17 +1348,23 @@ def cmd_mine(args: argparse.Namespace) -> int:
     lang = _args_lang(args)
     roots = [Path(root) for root in (args.roots or ["."])]
     observations = mine(roots, include_user=args.include_user)
+    meta: dict[str, Any] | None = None
+    if getattr(args, "runner", None):
+        try:
+            observations, meta = _judged_observations(args, lang, roots, observations)
+        except (ProbeError, subprocess.TimeoutExpired) as exc:
+            text = _JUDGE_MSG.get(lang, _JUDGE_MSG["ko"])["runner_missing"].format(error=exc)
+            print(json.dumps({"error": str(exc)}) if args.json_output else text)
+            return 2
     if args.json_output:
-        print(
-            json.dumps(
-                {
-                    "observations": [obs.to_dict() for obs in observations],
-                    "summary": summarize(observations),
-                },
-                ensure_ascii=False,
-                indent=2,
-            )
-        )
+        source = meta["source"] if meta is not None else None
+        payload: dict[str, Any] = {
+            "observations": [_obs_dict(obs, source) for obs in observations],
+            "summary": summarize(observations),
+        }
+        if meta is not None:
+            payload["agent"] = {k: v for k, v in meta.items() if k != "source"}
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
         return 0
     msg = _MINE_MSG.get(lang, _MINE_MSG["ko"])
     if not observations:
@@ -1193,6 +1373,8 @@ def cmd_mine(args: argparse.Namespace) -> int:
         ) else msg["header"].format(count=0))
     else:
         print(msg["header"].format(count=len(observations)))
+    if meta is not None:
+        _print_judged(meta, lang)
     counts = summarize(observations)
     by_axis: dict[str, list] = {}
     for obs in observations:
@@ -1931,6 +2113,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_mine.add_argument("roots", nargs="*", help="스캔할 루트 (기본: 현재 디렉토리)")
     p_mine.add_argument("--json", dest="json_output", action="store_true", help="JSON으로 출력")
     p_mine.add_argument("--no-user", dest="include_user", action="store_false", help="~/.claude/CLAUDE.md, ~/.claude/rules 는 읽지 않는다")
+    p_mine.add_argument("--runner", default=None, help="옵트인: 이 명령(예: claude -p --output-format text)에게 줄 판정을 맡기고 정규식과 대조한다")
+    p_mine.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT)
     p_mine.set_defaults(func=cmd_mine)
 
     p_conflicts = sub.add_parser(
@@ -1940,6 +2124,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_conflicts.add_argument("roots", nargs="*", help="스캔할 루트 (기본: 현재 디렉토리)")
     p_conflicts.add_argument("--json", dest="json_output", action="store_true", help="JSON으로 출력")
     p_conflicts.add_argument("--no-user", dest="include_user", action="store_false", help="~/.claude/CLAUDE.md, ~/.claude/rules 는 읽지 않는다")
+    p_conflicts.add_argument("--runner", default=None, help="옵트인: 이 명령에게 줄 판정을 맡기고 정규식과 대조한다")
+    p_conflicts.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT)
     _add_common(p_conflicts)
     p_conflicts.set_defaults(func=cmd_conflicts)
 
@@ -1976,6 +2162,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_probe.add_argument("--axes", nargs="*", help="이 축만 탐침")
     p_probe.add_argument("--quick", action="store_true", help="축당 한 장면만")
     p_probe.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT)
+    p_probe.add_argument("--repeat", type=int, default=1, help="케이스마다 시행 횟수 (다수결 판정, 원문은 전부 영수증에)")
+    p_probe.add_argument("--context-file", dest="context_file", default=None, help="이 문서를 규칙 앞에 깔아 규칙이 묻힌 상태에서 잰다 (예: 프로젝트 CLAUDE.md)")
+    p_probe.add_argument("--via-target", dest="via_target", default=None, help="규칙을 프롬프트에 넣지 않고 이 타깃의 실제 규칙 파일(블록/한 줄)을 뺐다 넣으며 잰다 - 활성 상태여야 한다")
     p_probe.add_argument("--dry-run", dest="dry_run", action="store_true", help="러너 호출 없이 준비된 탐침만 보고")
     p_probe.add_argument("--json", dest="json_output", action="store_true", help="JSON으로 출력")
     _add_common(p_probe)

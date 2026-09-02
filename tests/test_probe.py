@@ -56,6 +56,7 @@ def test_parse_choice_is_strict_about_standalone_letters() -> None:
     assert parse_choice("Both are fine") is None
     assert parse_choice("") is None
     assert parse_choice("BA") is None
+    assert parse_choice("\x1b[38;5;141m> \x1b[0mA\x1b[0m\n Credits: 0.06") == "A"
 
 
 def test_build_cases_covers_every_measured_slot_with_mixed_order(landed: Path) -> None:

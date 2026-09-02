@@ -7,6 +7,13 @@
 
 측정 단위는 페어와 같다: 한 장면, 한 축, 생존값 대 대안. 두 응답의 A/B
 순서는 장면·축 해시로 섞어 자리 편향을 흩는다.
+
+세 가지 강화 모드가 있다. `repeat`는 같은 질문을 여러 번 던져 다수결로
+판정하고 시행별 원문을 전부 남긴다. `context_text`는 실제 프로젝트 규칙
+문서를 앞에 깔아 규칙이 다른 지시들 사이에 묻혔을 때도 버티는지 본다.
+`rules_in_prompt=False`는 규칙을 프롬프트에 넣지 않는다 - 호출자가
+phase_hook으로 도구의 실제 규칙 파일에 블록을 넣었다 뺐다 하며, 도구가
+자기 파일을 통해 규칙을 읽는지를 잰다.
 """
 
 from __future__ import annotations
@@ -19,6 +26,7 @@ import subprocess
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from collections import Counter
 from typing import Callable, Mapping, Sequence
 
 from xout.counter import DEFAULT_CATALOG
@@ -44,6 +52,7 @@ PROMPT: dict[str, dict[str, str]] = {
             "A 또는 B 한 글자로만 답하라."
         ),
         "ruled": "당신과 함께 일하는 사람의 고정 지시:\n\n{rules}\n---\n\n",
+        "context": "이 프로젝트에 이미 있는 지시 문서:\n\n{context}\n---\n\n",
     },
     "en": {
         "frame": (
@@ -53,6 +62,7 @@ PROMPT: dict[str, dict[str, str]] = {
             "Answer with exactly one letter, A or B, and nothing else."
         ),
         "ruled": "Standing instructions from the person you work for:\n\n{rules}\n---\n\n",
+        "context": "Instructions already in place in this project:\n\n{context}\n---\n\n",
     },
     "ja": {
         "frame": (
@@ -62,6 +72,7 @@ PROMPT: dict[str, dict[str, str]] = {
             "A か B の一文字だけで答えてください。"
         ),
         "ruled": "一緒に働く相手から常に受けている指示:\n\n{rules}\n---\n\n",
+        "context": "このプロジェクトに既にある指示文書:\n\n{context}\n---\n\n",
     },
     "zh": {
         "frame": (
@@ -70,6 +81,7 @@ PROMPT: dict[str, dict[str, str]] = {
             "按照你现在实际遵循的指示，你会选哪一个? 只回答一个字母，A 或 B。"
         ),
         "ruled": "和你一起工作的人给的固定指示:\n\n{rules}\n---\n\n",
+        "context": "这个项目里已有的指示文档:\n\n{context}\n---\n\n",
     },
 }
 
@@ -116,23 +128,62 @@ class ProbeCase:
         return None
 
 
+def majority(values: Sequence[str | None]) -> str | None:
+    """시행 다수결 - 파싱 실패는 표가 아니고, 동률이면 판정하지 않는다."""
+    votes = Counter(v for v in values if v is not None)
+    if not votes:
+        return None
+    ranked = votes.most_common(2)
+    if len(ranked) == 2 and ranked[0][1] == ranked[1][1]:
+        return None
+    return ranked[0][0]
+
+
 @dataclass(frozen=True, slots=True)
 class ProbeOutcome:
     case: ProbeCase
-    bare_raw: str
-    ruled_raw: str
+    bare_raws: tuple[str, ...]
+    ruled_raws: tuple[str, ...]
+
+    @property
+    def bare_raw(self) -> str:
+        return self.bare_raws[0] if self.bare_raws else ""
+
+    @property
+    def ruled_raw(self) -> str:
+        return self.ruled_raws[0] if self.ruled_raws else ""
+
+    @property
+    def bare_values(self) -> tuple[str | None, ...]:
+        return tuple(self.case.value_of(parse_choice(raw)) for raw in self.bare_raws)
+
+    @property
+    def ruled_values(self) -> tuple[str | None, ...]:
+        return tuple(self.case.value_of(parse_choice(raw)) for raw in self.ruled_raws)
 
     @property
     def bare_value(self) -> str | None:
-        return self.case.value_of(parse_choice(self.bare_raw))
+        return majority(self.bare_values)
 
     @property
     def ruled_value(self) -> str | None:
-        return self.case.value_of(parse_choice(self.ruled_raw))
+        return majority(self.ruled_values)
+
+    @property
+    def trials(self) -> int:
+        return len(self.ruled_raws)
+
+    @property
+    def held_trials(self) -> int:
+        return sum(v == self.case.survivor for v in self.ruled_values)
 
     @property
     def held(self) -> bool:
         return self.ruled_value == self.case.survivor
+
+    @property
+    def held_every_trial(self) -> bool:
+        return self.trials > 0 and self.held_trials == self.trials
 
     @property
     def moved(self) -> bool:
@@ -147,9 +198,22 @@ class ProbeOutcome:
             "survivor": c.survivor,
             "alternative": c.alternative,
             "shown_as_a": c.first,
-            "bare": {"raw": self.bare_raw, "value": self.bare_value},
-            "ruled": {"raw": self.ruled_raw, "value": self.ruled_value},
+            "bare": {
+                "raw": self.bare_raw,
+                "value": self.bare_value,
+                "raws": list(self.bare_raws),
+                "values": list(self.bare_values),
+            },
+            "ruled": {
+                "raw": self.ruled_raw,
+                "value": self.ruled_value,
+                "raws": list(self.ruled_raws),
+                "values": list(self.ruled_values),
+            },
+            "trials": self.trials,
+            "held_trials": self.held_trials,
             "held": self.held,
+            "held_every_trial": self.held_every_trial,
             "moved": self.moved,
         }
 
@@ -162,6 +226,9 @@ class ProbeReport:
     started_at: str
     outcomes: tuple[ProbeOutcome, ...]
     receipt_path: str | None = None
+    repeat: int = 1
+    delivery: str = "prompt"
+    context_sha256: str | None = None
 
     @property
     def summary(self) -> dict[str, int]:
@@ -169,6 +236,7 @@ class ProbeReport:
         return {
             "cases": n,
             "held": sum(o.held for o in self.outcomes),
+            "held_every_trial": sum(o.held_every_trial for o in self.outcomes),
             "moved": sum(o.moved for o in self.outcomes),
             "bare_matched": sum(
                 o.bare_value == o.case.survivor for o in self.outcomes
@@ -176,6 +244,8 @@ class ProbeReport:
             "unparsed": sum(
                 o.bare_value is None or o.ruled_value is None for o in self.outcomes
             ),
+            "trials": sum(o.trials for o in self.outcomes),
+            "trials_held": sum(o.held_trials for o in self.outcomes),
         }
 
     def to_dict(self) -> dict[str, object]:
@@ -185,17 +255,24 @@ class ProbeReport:
             "runner": list(self.runner),
             "rules_sha256": self.rules_sha256,
             "started_at": self.started_at,
+            "repeat": self.repeat,
+            "delivery": self.delivery,
+            "context_sha256": self.context_sha256,
             "summary": self.summary,
             "outcomes": [o.to_dict() for o in self.outcomes],
         }
 
 
 _CHOICE = re.compile(r"(?<![A-Za-z])([AaBb])(?![A-Za-z])")
+_ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
 
 
 def parse_choice(raw: str) -> str | None:
-    """응답에서 홀로 선 첫 A/B 글자 - 없으면 None (파싱 실패는 실패로 센다)."""
-    match = _CHOICE.search(raw or "")
+    """응답에서 홀로 선 첫 A/B 글자 - 없으면 None (파싱 실패는 실패로 센다).
+
+    터미널 색상 코드(kiro-cli 같은 러너가 섞어 낸다)는 먼저 걷어낸다.
+    """
+    match = _CHOICE.search(_ANSI.sub("", raw or ""))
     return match.group(1).upper() if match else None
 
 
@@ -286,12 +363,20 @@ def build_cases(
     return tuple(cases)
 
 
-def build_prompt(case: ProbeCase, lang: str, rules_text: str | None) -> str:
+def build_prompt(
+    case: ProbeCase,
+    lang: str,
+    rules_text: str | None,
+    context_text: str | None = None,
+) -> str:
+    """방해 문서(context) -> 규칙 -> 장면 순서. 규칙이 문서 뒤에 묻히는 어려운 배치다."""
     texts = PROMPT.get(lang) or PROMPT["ko"]
     body = texts["frame"].format(task=case.task, a=case.a_text, b=case.b_text)
-    if rules_text is None:
-        return body
-    return texts["ruled"].format(rules=rules_text.rstrip("\n") + "\n") + body
+    if rules_text is not None:
+        body = texts["ruled"].format(rules=rules_text.rstrip("\n") + "\n") + body
+    if context_text is not None and context_text.strip():
+        body = texts["context"].format(context=context_text.rstrip("\n") + "\n") + body
+    return body
 
 
 Runner = Callable[[str], str]
@@ -330,21 +415,53 @@ def probe(
     runner_command: Sequence[str] = DEFAULT_RUNNER,
     on_outcome: Callable[[ProbeOutcome], None] | None = None,
     now: str | None = None,
+    repeat: int = 1,
+    context_text: str | None = None,
+    rules_in_prompt: bool = True,
+    phase_hook: Callable[[str], None] | None = None,
+    delivery: str = "prompt",
 ) -> ProbeReport:
+    """케이스마다 bare/ruled를 repeat번씩 묻는다.
+
+    rules_in_prompt=False면 두 프롬프트가 같고, 차이는 phase_hook("bare") /
+    phase_hook("ruled")가 바깥에서 만든다 (도구의 규칙 파일에서 블록을 뺐다 넣기).
+    그때는 bare 패스를 전부 돌린 뒤 ruled 패스를 돈다 - 파일을 케이스마다
+    뒤집지 않기 위해서다.
+    """
+    repeat = max(1, int(repeat))
+    ruled_text = rules_text if rules_in_prompt else None
+
+    def ask(case: ProbeCase, with_rules: bool) -> tuple[str, ...]:
+        prompt = build_prompt(case, lang, ruled_text if with_rules else None, context_text)
+        return tuple(runner(prompt) for _ in range(repeat))
+
     outcomes: list[ProbeOutcome] = []
-    for case in cases:
-        bare = runner(build_prompt(case, lang, None))
-        ruled = runner(build_prompt(case, lang, rules_text))
-        outcome = ProbeOutcome(case=case, bare_raw=bare, ruled_raw=ruled)
-        outcomes.append(outcome)
-        if on_outcome is not None:
-            on_outcome(outcome)
+    if phase_hook is None:
+        for case in cases:
+            outcome = ProbeOutcome(case=case, bare_raws=ask(case, False), ruled_raws=ask(case, True))
+            outcomes.append(outcome)
+            if on_outcome is not None:
+                on_outcome(outcome)
+    else:
+        phase_hook("bare")
+        bare_by_case = [ask(case, False) for case in cases]
+        phase_hook("ruled")
+        for case, bare in zip(cases, bare_by_case):
+            outcome = ProbeOutcome(case=case, bare_raws=bare, ruled_raws=ask(case, True))
+            outcomes.append(outcome)
+            if on_outcome is not None:
+                on_outcome(outcome)
     return ProbeReport(
         lang=lang,
         runner=tuple(runner_command),
         rules_sha256=hashlib.sha256(rules_text.encode("utf-8")).hexdigest(),
         started_at=now or datetime.now(timezone.utc).isoformat(timespec="seconds"),
         outcomes=tuple(outcomes),
+        repeat=repeat,
+        delivery=delivery,
+        context_sha256=(
+            hashlib.sha256(context_text.encode("utf-8")).hexdigest() if context_text else None
+        ),
     )
 
 
