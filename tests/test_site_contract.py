@@ -25,8 +25,8 @@ EXPECTED_ARTIFACTS = {
     "assets/site.css",
     "assets/logo.svg",
     "assets/hero.svg",
-    "assets/how-it-works.svg",
-    "assets/how-it-works.ko.svg",
+    "assets/how-it-works.gif",
+    "assets/how-it-works.ko.gif",
     "assets/social-card.png",
     "assets/demo.gif",
     "assets/demo.en.gif",
@@ -254,17 +254,15 @@ def test_brand_assets_are_local_deterministic_and_social_ready(tmp_path: Path) -
         assert "check" not in body.lower()
         assert body.count("#D92332") == 1
     for name in (
-        "how-it-works.svg",
-        "how-it-works.ko.svg",
-        "how-it-works.ja.svg",
-        "how-it-works.zh.svg",
+        "how-it-works.gif",
+        "how-it-works.ko.gif",
+        "how-it-works.ja.gif",
+        "how-it-works.zh.gif",
     ):
-        body = (ROOT / ".github" / "assets" / name).read_text(encoding="utf-8")
-        assert 'viewBox="0 0 1200 470"' in body
-        assert "<script" not in body.lower()
-        assert not re.search(r"(?:xlink:)?href\s*=", body, re.I)
-        assert "url(" not in body.lower()
-        assert "6,561" in body and "CLAUDE.md" in body
+        motion = (ROOT / ".github" / "assets" / name).read_bytes()
+        assert motion[:6] in {b"GIF87a", b"GIF89a"}, name
+        assert struct.unpack("<HH", motion[6:10]) == (960, 540), name
+        assert len(motion) < 6_000_000, name
     hero = (ROOT / ".github" / "assets" / "hero.svg").read_text(encoding="utf-8")
     for message in (
         "FIX THE BUG.",

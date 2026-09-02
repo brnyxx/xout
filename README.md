@@ -75,6 +75,7 @@ xout's rules are plain markdown, so the only thing that differs per tool is *whe
 | [GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-custom-instructions) | `~/.copilot/copilot-instructions.md` | owned block | `copilot` |
 | [pi](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/README.md) | `~/.pi/agent/AGENTS.md` | owned block | `pi` |
 | [oh-my-pi](https://github.com/can1357/oh-my-pi/blob/main/docs/context-files.md) | `~/.omp/agent/AGENTS.md` | owned block | `omp` |
+| [gajae-code](https://github.com/Yeachan-Heo/gajae-code/blob/main/docs/customization.md) | `~/.gjc/agent/AGENTS.md` | owned block | `gjc` |
 | [Kiro](https://kiro.dev/docs/steering/) | `~/.kiro/steering/xout.md` | owned steering file | `kiro` |
 | [Anything that reads AGENTS.md](https://agents.md) | `./AGENTS.md` in the project | owned block | `agents` |
 
@@ -90,13 +91,13 @@ An owned block looks like this and is the only thing xout will ever edit inside 
 <!-- xout:end -->
 ```
 
-gajae-code: its documentation does not state which rules file it reads, so xout does not register a target for it. It is a fork of pi, so the `pi` target may apply, but that is not confirmed by its docs.
+gajae-code's public docs do not name its rules file; the path above comes from the installed package source (`@gajae-code/coding-agent` 0.15.6, `system-prompt.d.ts`: "Native user-global files (`~/.gjc/agent/AGENTS.md`) come first"). Treat it as source-verified, not doc-verified.
 
 ## How it works
 
-<img src=".github/assets/how-it-works.svg" alt="Three panels: two behaviors for Fix the bug with the wrong one crossed out, a funnel from 6,561 possible agents down to one after 15 X's, and eight rules landing in CLAUDE.md through one import line" width="920">
+<img src=".github/assets/how-it-works.gif" alt="Three panels: two behaviors for Fix the bug with the wrong one crossed out, a funnel from 6,561 possible agents down to one after 15 X's, and eight rules landing in CLAUDE.md through one import line" width="920">
 
-<sub>Left to right: one X removes one behavior, 15 X's leave one agent, and that agent is written down as 8 rules.</sub>
+<sub>Every X cuts what's left in half and drops the half you never want. Eight cuts, eight rules, plugged into your tool. Rendered from the real timeline with Remotion; source in `video/`.</sub>
 
 1. **You X out** the behavior you hate, across three real scenes: a routine bugfix, a new feature, and a risky production migration. Each pair shows two concrete agent behaviors - ask first vs act first, standard library vs install-a-package, rehearse the migration vs trust a re-read.
 2. **xout compiles** the survivors into 8 executable rules, written atomically under `~/.claude/xout/` with evidence and provenance. And when your X's diverge between routine and irreversible work, the rule compiles **with that condition attached**:
@@ -166,17 +167,28 @@ receipt: ~/.claude/xout/probes/probe-20260901T231554.json
 
 Read it the way it is meant. Nine choices already matched without rules, so the model's defaults agree with this profile there. Four were moved by the rules. Two missed: the agent kept writing the failing test first on a bugfix, and treated "favor existing dependencies" as already satisfying "ask before installing" in the risky scene. Misses are the useful part - they name the rule sentence to sharpen, and a probe takes a minute, so you can check the fix. What a probe is not: a forced A/B answer measures stated intent under the instructions, not behavior deep inside an agent loop, and this is one run on one model. The receipt keeps every raw answer so anyone can re-read it.
 
+The same profile, probed through other agents on this machine (`--quick`: one scene per axis, 8 cases each):
+
+| Runner | Rule held | Rule moved the choice | Matched without rules |
+|---|---|---|---|
+| `codex exec` (OpenAI Codex CLI) | 8/8 | 2 | 6 |
+| `opencode run` (OpenCode) | 8/8 | 3 | 5 |
+| `gjc -p` (gajae-code) | 8/8 | 2 | 6 |
+
+Gemini CLI was not probed here because this machine has no Gemini auth configured; its runner is listed below so you can run it yourself.
+
 The runner is any command that takes the prompt as its last argument and prints the answer. The default is Claude Code; the others below are the documented headless modes of each tool:
 
 | Tool | `xout probe --runner "…"` |
 |---|---|
 | Claude Code | `claude -p --output-format text` (default) |
-| OpenAI Codex CLI | `codex exec` |
+| OpenAI Codex CLI | `codex exec` (outside a git repo add `--skip-git-repo-check`) |
 | OpenCode | `opencode run` |
 | Gemini CLI | `gemini -p` |
 | GitHub Copilot CLI | `copilot -p` |
 | pi | `pi -p` |
 | oh-my-pi | `omp -p` |
+| gajae-code | `gjc -p` |
 | Kiro | `kiro-cli chat --no-interactive` |
 
 ## Your existing prompts

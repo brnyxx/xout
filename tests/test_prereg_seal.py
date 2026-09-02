@@ -18,7 +18,7 @@ SCANNED_SUFFIXES = frozenset(
 
 # 스캔 제외 - docs/는 봉인 문서가 사는 곳, tests/는 그 값을 검증해야 하는 코드,
 # seed.yaml은 이 프로젝트가 런타임에 읽지 않는 상위 Seed 규격서다.
-NON_RUNTIME_PREFIXES = ("build/", "docs/", "tests/")
+NON_RUNTIME_PREFIXES = ("build/", "docs/", "tests/", "video/")
 NON_RUNTIME_FILES = frozenset({"seed.yaml"})
 
 REQUIRED_SECTIONS = (

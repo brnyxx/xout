@@ -11,3 +11,5 @@ _site/
 .gjc/
 .ouroboros_eval_artifact.md
 recordings/
+video/node_modules/
+video/out/

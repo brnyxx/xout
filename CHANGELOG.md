@@ -40,8 +40,12 @@ slow cadence: minor versions ship every 6-12 months, patches only for defects.
   `~/.omp/agent/AGENTS.md`, `~/.kiro/steering/xout.md`, `./AGENTS.md`), behind a
   receipt and a savepoint; `xout undo` removes exactly that block. Claude Code
   keeps the one `@import` line. `xout targets` lists every target with its live
-  state. Paths come from each tool's own documentation; gajae-code is not
-  registered because its docs do not state a rules file.
+  state. Paths come from each tool's own documentation; gajae-code's path
+  (`~/.gjc/agent/AGENTS.md`) comes from its installed package source, which
+  the README says explicitly.
+- `xout probe` closes stdin for the runner (codex exec otherwise waits on it)
+  and the README records real cross-tool probes: codex, opencode and
+  gajae-code each held 8/8 rules on the same landed profile.
 - `xout savepoint [create|list|restore <id>] - byte-exact snapshots of the
   rule files outside xout's directory, stored under `~/.claude/xout/savepoints/`.
   Restore rewrites only files that existed at snapshot time.

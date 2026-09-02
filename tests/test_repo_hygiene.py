@@ -55,8 +55,10 @@ def test_every_language_owns_its_surfaces() -> None:
         payload = gif.read_bytes()
         assert payload[:6] in {b"GIF87a", b"GIF89a"}, gif.name
         assert struct.unpack("<HH", payload[6:10]) == (960, 608), gif.name
-        diagram = assets / ("how-it-works.svg" if lang == "en" else f"how-it-works.{lang}.svg")
-        assert 'viewBox="0 0 1200 470"' in diagram.read_text(encoding="utf-8")
+        diagram = assets / ("how-it-works.gif" if lang == "en" else f"how-it-works.{lang}.gif")
+        motion = diagram.read_bytes()
+        assert motion[:6] in {b"GIF87a", b"GIF89a"}, diagram.name
+        assert struct.unpack("<HH", motion[6:10]) == (960, 540), diagram.name
         readme = ROOT / ("README.md" if lang == "en" else f"README.{lang}.md")
         body = readme.read_text(encoding="utf-8")
         assert diagram.name in body, readme.name

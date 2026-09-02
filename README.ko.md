@@ -75,6 +75,7 @@ xout의 규칙은 평범한 마크다운이라 도구마다 다른 건 *그 도�
 | [GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-custom-instructions) | `~/.copilot/copilot-instructions.md` | 소유 블록 | `copilot` |
 | [pi](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/README.md) | `~/.pi/agent/AGENTS.md` | 소유 블록 | `pi` |
 | [oh-my-pi](https://github.com/can1357/oh-my-pi/blob/main/docs/context-files.md) | `~/.omp/agent/AGENTS.md` | 소유 블록 | `omp` |
+| [gajae-code](https://github.com/Yeachan-Heo/gajae-code/blob/main/docs/customization.md) | `~/.gjc/agent/AGENTS.md` | 소유 블록 | `gjc` |
 | [Kiro](https://kiro.dev/docs/steering/) | `~/.kiro/steering/xout.md` | 소유 steering 파일 | `kiro` |
 | [AGENTS.md를 읽는 모든 도구](https://agents.md) | 프로젝트의 `./AGENTS.md` | 소유 블록 | `agents` |
 
@@ -90,13 +91,13 @@ xout의 규칙은 평범한 마크다운이라 도구마다 다른 건 *그 도�
 <!-- xout:end -->
 ```
 
-gajae-code는 어떤 규칙 파일을 읽는지 문서에서 확인하지 못해 타깃을 등록하지 않았습니다. pi의 포크라 `pi` 타깃이 통할 수 있지만 그 도구의 문서가 확인해 주지는 않습니다.
+gajae-code는 공개 문서에 규칙 파일이 적혀 있지 않습니다. 위 경로는 설치된 패키지 소스(`@gajae-code/coding-agent` 0.15.6, `system-prompt.d.ts`: "Native user-global files (`~/.gjc/agent/AGENTS.md`) come first")에서 확인한 것이라 문서 검증이 아니라 소스 검증으로 봐야 합니다.
 
 ## 동작 방식
 
-<img src=".github/assets/how-it-works.ko.svg" alt="세 칸 그림: 버그 고쳐줘에 대한 두 행동 중 아닌 쪽에 X, 15번의 X로 6,561개의 가능한 에이전트가 하나로 줄어드는 깔때기, 그리고 import 한 줄로 CLAUDE.md에 착지하는 규칙 8줄" width="920">
+<img src=".github/assets/how-it-works.ko.gif" alt="세 칸 그림: 버그 고쳐줘에 대한 두 행동 중 아닌 쪽에 X, 15번의 X로 6,561개의 가능한 에이전트가 하나로 줄어드는 깔때기, 그리고 import 한 줄로 CLAUDE.md에 착지하는 규칙 8줄" width="920">
 
-<sub>왼쪽부터: X 하나가 행동 하나를 지우고 15번의 X가 에이전트 하나를 남기며 그 에이전트가 규칙 8줄로 적힙니다.</sub>
+<sub>X 하나가 남은 것을 반으로 갈라 싫은 반을 버립니다. 여덟 번 자르면 규칙 여덟 줄이 되어 당신의 도구에 꽂힙니다. Remotion으로 렌더했고 소스는 `video/`에 있습니다.</sub>
 
 1. **세 장면에서 싫은 행동에 X를 칩니다.** 일상 버그픽스, 신규 기능, 그리고 운영 DB 마이그레이션. 매 페어는 실제 에이전트 행동 둘을 비교합니다: 먼저 물어보기 vs 먼저 실행하기, 표준 라이브러리 vs 패키지 설치, 사본 리허설 vs 재독으로 충분.
 2. **xout이 컴파일합니다.** 살아남은 선택들이 실행 가능한 규칙 8줄이 되어 근거와 출처를 담은 채 `~/.claude/xout/`에 원자적으로 기록됩니다. 그리고 일상 작업과 고위험 작업에서 당신의 X가 갈리면, 규칙에 **그 조건이 그대로 붙습니다**:
@@ -166,17 +167,28 @@ receipt: ~/.claude/xout/probes/probe-20260901T231554.json
 
 읽는 법은 이렇습니다. 9개는 규칙 없이도 이미 일치했으니 그 부분은 모델의 기본값이 이 프로필과 같은 겁니다. 4개는 규칙이 선택을 움직였습니다. 2개는 불일치입니다. 버그픽스에서 에이전트는 실패하는 테스트를 먼저 쓰기를 고집했고 위험 장면에서는 "기존 의존성 우선"을 "설치 전 확인"과 같은 것으로 취급했습니다. 불일치가 쓸모 있는 부분입니다. 어느 규칙 문장을 날카롭게 다듬어야 하는지 알려주고 탐침은 1분이면 도니 고친 뒤 바로 확인할 수 있습니다. 탐침이 아닌 것: 강제 A/B 답은 지시 아래에서의 의도를 재는 것이지 긴 에이전트 루프 안의 행동이 아니고 이건 모델 하나에서 한 번 돌린 기록입니다. 영수증은 원문 답변을 전부 담고 있어 누구든 다시 읽을 수 있습니다.
 
+같은 프로필을 이 머신의 다른 에이전트로도 탐침했습니다(`--quick`: 축당 장면 하나, 8건씩):
+
+| 러너 | 규칙 유지 | 규칙이 선택을 움직임 | 규칙 없이도 일치 |
+|---|---|---|---|
+| `codex exec` (OpenAI Codex CLI) | 8/8 | 2 | 6 |
+| `opencode run` (OpenCode) | 8/8 | 3 | 5 |
+| `gjc -p` (gajae-code) | 8/8 | 2 | 6 |
+
+Gemini CLI는 이 머신에 인증이 없어 돌리지 못했습니다. 러너는 아래 표에 있으니 직접 돌릴 수 있습니다.
+
 러너는 프롬프트를 마지막 인자로 받아 답을 출력하는 아무 명령이면 됩니다. 기본은 Claude Code이고 아래는 각 도구가 문서로 밝힌 헤드리스 모드입니다:
 
 | 도구 | `xout probe --runner "…"` |
 |---|---|
 | Claude Code | `claude -p --output-format text` (기본) |
-| OpenAI Codex CLI | `codex exec` |
+| OpenAI Codex CLI | `codex exec` (outside a git repo add `--skip-git-repo-check`) |
 | OpenCode | `opencode run` |
 | Gemini CLI | `gemini -p` |
 | GitHub Copilot CLI | `copilot -p` |
 | pi | `pi -p` |
 | oh-my-pi | `omp -p` |
+| gajae-code | `gjc -p` |
 | Kiro | `kiro-cli chat --no-interactive` |
 
 ## 이미 갖고 있는 프롬프트

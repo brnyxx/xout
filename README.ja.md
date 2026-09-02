@@ -75,6 +75,7 @@ xout のルールはただの markdown なので、ツールごとに違うの�
 | [GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-custom-instructions) | `~/.copilot/copilot-instructions.md` | 所有するブロック | `copilot` |
 | [pi](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/README.md) | `~/.pi/agent/AGENTS.md` | 所有するブロック | `pi` |
 | [oh-my-pi](https://github.com/can1357/oh-my-pi/blob/main/docs/context-files.md) | `~/.omp/agent/AGENTS.md` | 所有するブロック | `omp` |
+| [gajae-code](https://github.com/Yeachan-Heo/gajae-code/blob/main/docs/customization.md) | `~/.gjc/agent/AGENTS.md` | 所有ブロック | `gjc` |
 | [Kiro](https://kiro.dev/docs/steering/) | `~/.kiro/steering/xout.md` | 所有する steering ファイル | `kiro` |
 | [AGENTS.md を読むすべてのもの](https://agents.md) | プロジェクト内の `./AGENTS.md` | 所有するブロック | `agents` |
 
@@ -90,11 +91,11 @@ xout のルールはただの markdown なので、ツールごとに違うの�
 <!-- xout:end -->
 ```
 
-gajae-code: そのドキュメントにはどのルールファイルを読むかが書かれていないため、xout はターゲットを登録していません。pi のフォークなので `pi` ターゲットが使えるかもしれませんが、ドキュメントでは確認できていません。
+gajae-code の公開ドキュメントには規則ファイルの記載がありません。上のパスはインストール済みパッケージのソース (`@gajae-code/coding-agent` 0.15.6, `system-prompt.d.ts`: "Native user-global files (`~/.gjc/agent/AGENTS.md`) come first") で確認したもので、ドキュメント検証ではなくソース検証です。
 
 ## 動作の仕組み
 
-<img src=".github/assets/how-it-works.ja.svg" alt="3 つのパネル: 「バグを直して」に対する 2 つの振る舞いのうち間違ったほうが X で消され、6,561 通りのエージェント候補が 15 回の X で 1 つに絞られ、8 本のルールが 1 行の import を通じて CLAUDE.md に着地する" width="920">
+<img src=".github/assets/how-it-works.ja.gif" alt="3 つのパネル: 「バグを直して」に対する 2 つの振る舞いのうち間違ったほうが X で消され、6,561 通りのエージェント候補が 15 回の X で 1 つに絞られ、8 本のルールが 1 行の import を通じて CLAUDE.md に着地する" width="920">
 
 <sub>左から右へ: 1 つの X が 1 つの振る舞いを消し、15 回の X で 1 体のエージェントが残り、そのエージェントが 8 本のルールとして書き留められます。</sub>
 
@@ -167,17 +168,28 @@ receipt: ~/.claude/xout/probes/probe-20260901T231554.json
 
 読み方はこうです。9 件は規則なしでも既に一致していたので、そこではモデルの既定がこのプロファイルと同じです。4 件は規則が選択を動かしました。2 件は不一致です。バグ修正ではエージェントは失敗するテストを先に書くことにこだわり、危険な場面では「既存の依存関係を優先」を「インストール前に確認」と同じものとして扱いました。不一致こそ役に立つ部分です。どのルール文を研ぐべきかを名指しし、探針は 1 分で走るので直した後すぐ確かめられます。探針でないもの: 強制 A/B の答えは指示のもとでの意図を測るのであって、長いエージェントループの中の振る舞いではなく、これは 1 モデルで 1 回走らせた記録です。レシートは生の回答をすべて保持しているので誰でも読み直せます。
 
+同じプロファイルを、このマシンにある他のエージェントでも探針しました (`--quick`: 軸ごとに 1 場面、各 8 件):
+
+| ランナー | ルール維持 | ルールが選択を動かした | ルールなしでも一致 |
+|---|---|---|---|
+| `codex exec` (OpenAI Codex CLI) | 8/8 | 2 | 6 |
+| `opencode run` (OpenCode) | 8/8 | 3 | 5 |
+| `gjc -p` (gajae-code) | 8/8 | 2 | 6 |
+
+Gemini CLI はこのマシンに認証がないため走らせていません。ランナーは下の表にあるので自分で試せます。
+
 ランナーは、プロンプトを最後の引数として受け取り、答えを表示するコマンドなら何でも構いません。既定は Claude Code です。以下の他のツールは、それぞれのドキュメントに記載されたヘッドレスモードです:
 
 | ツール | `xout probe --runner "…"` |
 |---|---|
 | Claude Code | `claude -p --output-format text` (既定) |
-| OpenAI Codex CLI | `codex exec` |
+| OpenAI Codex CLI | `codex exec` (outside a git repo add `--skip-git-repo-check`) |
 | OpenCode | `opencode run` |
 | Gemini CLI | `gemini -p` |
 | GitHub Copilot CLI | `copilot -p` |
 | pi | `pi -p` |
 | oh-my-pi | `omp -p` |
+| gajae-code | `gjc -p` |
 | Kiro | `kiro-cli chat --no-interactive` |
 
 ## 既存のプロンプト

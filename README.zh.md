@@ -75,6 +75,7 @@ xout 的规则就是普通的 markdown，所以各个工具之间唯一的差别
 | [GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-custom-instructions) | `~/.copilot/copilot-instructions.md` | 自有区块 | `copilot` |
 | [pi](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/README.md) | `~/.pi/agent/AGENTS.md` | 自有区块 | `pi` |
 | [oh-my-pi](https://github.com/can1357/oh-my-pi/blob/main/docs/context-files.md) | `~/.omp/agent/AGENTS.md` | 自有区块 | `omp` |
+| [gajae-code](https://github.com/Yeachan-Heo/gajae-code/blob/main/docs/customization.md) | `~/.gjc/agent/AGENTS.md` | 自有区块 | `gjc` |
 | [Kiro](https://kiro.dev/docs/steering/) | `~/.kiro/steering/xout.md` | 自有 steering 文件 | `kiro` |
 | [任何会读取 AGENTS.md 的工具](https://agents.md) | 项目内的 `./AGENTS.md` | 自有区块 | `agents` |
 
@@ -90,11 +91,11 @@ xout 的规则就是普通的 markdown，所以各个工具之间唯一的差别
 <!-- xout:end -->
 ```
 
-gajae-code：它的文档没有说明它读取哪个规则文件，所以 xout 没有为它登记目标。它是 pi 的一个分支，`pi` 目标也许适用，但其文档并未确认这一点。
+gajae-code 的公开文档没有写明规则文件。上面的路径来自已安装包的源码（`@gajae-code/coding-agent` 0.15.6，`system-prompt.d.ts`: "Native user-global files (`~/.gjc/agent/AGENTS.md`) come first"），属于源码验证而非文档验证。
 
 ## 工作原理
 
-<img src=".github/assets/how-it-works.zh.svg" alt="三个面板：“修这个 bug”的两种行为，错的那个被划掉；一个漏斗从 6,561 个可能的智能体经过 15 个 X 收敛到一个；八条规则通过一行 import 落入 CLAUDE.md" width="920">
+<img src=".github/assets/how-it-works.zh.gif" alt="三个面板：“修这个 bug”的两种行为，错的那个被划掉；一个漏斗从 6,561 个可能的智能体经过 15 个 X 收敛到一个；八条规则通过一行 import 落入 CLAUDE.md" width="920">
 
 <sub>从左到右：一个 X 去掉一种行为，15 个 X 只留下一个智能体，而这个智能体被写成 8 条规则。</sub>
 
@@ -167,17 +168,28 @@ receipt: ~/.claude/xout/probes/probe-20260901T231554.json
 
 该这样读它。9 个选择在没有规则时就已经一致，说明模型的默认值在这些地方与这份档案相同。4 个被规则改变了。2 个不符：修 bug 时智能体坚持先写失败的测试，在高风险场景里把"优先用现有依赖"当成已经满足了"安装前先问"。不符的部分才有用：它点名了该打磨的那条规则，而一次探针只要一分钟，改完就能验证。探针不是什么：强制 A/B 的回答衡量的是指示之下的意图，不是长智能体循环里的实际行为，而且这只是一个模型上的一次运行。回执保留了全部原始回答，任何人都能重读。
 
+同一份档案也用这台机器上的其他智能体探测过（`--quick`：每个轴一个场景，各 8 例）：
+
+| 运行器 | 规则保持 | 规则改变了选择 | 无规则也一致 |
+|---|---|---|---|
+| `codex exec` (OpenAI Codex CLI) | 8/8 | 2 | 6 |
+| `opencode run` (OpenCode) | 8/8 | 3 | 5 |
+| `gjc -p` (gajae-code) | 8/8 | 2 | 6 |
+
+Gemini CLI 没有在这里跑，因为这台机器没有配置 Gemini 认证；运行器列在下表，你可以自己跑。
+
 运行器可以是任何一条把提示词作为最后一个参数、并打印出回答的命令。默认是 Claude Code；下面其余几个是各工具文档中记载的无头模式：
 
 | 工具 | `xout probe --runner "…"` |
 |---|---|
 | Claude Code | `claude -p --output-format text`（默认） |
-| OpenAI Codex CLI | `codex exec` |
+| OpenAI Codex CLI | `codex exec` (outside a git repo add `--skip-git-repo-check`) |
 | OpenCode | `opencode run` |
 | Gemini CLI | `gemini -p` |
 | GitHub Copilot CLI | `copilot -p` |
 | pi | `pi -p` |
 | oh-my-pi | `omp -p` |
+| gajae-code | `gjc -p` |
 | Kiro | `kiro-cli chat --no-interactive` |
 
 ## 你已有的提示词

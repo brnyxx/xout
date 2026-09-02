@@ -90,7 +90,7 @@ def test_block_survives_user_edits_around_it(tmp_path: Path) -> None:
 def test_registry_entries_are_verified_user_level_files(tmp_path: Path) -> None:
     from xout.targets import MODE_BLOCK, MODE_IMPORT, REGISTRY, SCOPE_PROJECT, SCOPE_USER
 
-    assert set(REGISTRY) == {"claude", "codex", "opencode", "gemini", "copilot", "pi", "omp", "kiro", "agents"}
+    assert set(REGISTRY) == {"claude", "codex", "opencode", "gemini", "copilot", "pi", "omp", "gjc", "kiro", "agents"}
     for target in REGISTRY.values():
         assert target.verified and target.doc_url.startswith("https://")
         assert target.mode in (MODE_IMPORT, MODE_BLOCK)

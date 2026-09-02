@@ -48,3 +48,20 @@ CI covers Python 3.10-3.14 on macOS, Linux, and Windows.
 A good xout issue includes: your OS, Python version, the command you ran, and
 the raw output. If a session behaves oddly, `xout doctor` and
 `xout sessions <session-id>` output make diagnosis fast - both are read-only.
+
+## The how-it-works video
+
+`.github/assets/how-it-works*.gif` (and the MP4s used for launch posts) are
+rendered with [Remotion](https://www.remotion.dev/) from `video/`. The
+animation is one halving cut per axis - eight cuts, eight rules - so the
+timeline in `video/src/HowItWorks.tsx` is the source of truth, not the GIF.
+
+```bash
+cd video && npm install
+node render.mjs ko en ja zh      # writes video/out/how-it-works.<lang>.{mp4,gif}
+cp out/how-it-works.*.gif ../.github/assets/   # en is how-it-works.gif
+npx remotion studio src/index.ts # live preview while editing
+```
+
+GIFs are 960x540 at 15 fps (`--every-nth-frame=2 --scale=0.5`); keep each
+under 6 MB - the site contract test enforces it.

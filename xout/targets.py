@@ -295,6 +295,15 @@ REGISTRY: dict[str, Target] = {
         doc_url="https://github.com/can1357/oh-my-pi/blob/main/docs/context-files.md",
         note="oh-my-pi also reads ~/.claude/CLAUDE.md, so the claude target already reaches it",
     ),
+    "gjc": Target(
+        target_id="gjc",
+        name="gajae-code",
+        scope=SCOPE_USER,
+        relative_path=".gjc/agent/AGENTS.md",
+        mode=MODE_BLOCK,
+        doc_url="https://github.com/Yeachan-Heo/gajae-code/blob/main/docs/customization.md",
+        note="path confirmed from the installed package source (@gajae-code/coding-agent 0.15.6, system-prompt.d.ts), not from its public docs",
+    ),
     "kiro": Target(
         target_id="kiro",
         name="Kiro",

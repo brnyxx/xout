@@ -274,6 +274,7 @@ def subprocess_runner(command: Sequence[str], timeout: float = DEFAULT_TIMEOUT) 
     def run(prompt: str) -> str:
         completed = subprocess.run(
             [*command, prompt],
+            stdin=subprocess.DEVNULL,  # codex exec 같은 러너가 stdin을 기다리지 않게
             capture_output=True,
             text=True,
             timeout=timeout,
