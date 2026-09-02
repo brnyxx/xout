@@ -135,7 +135,7 @@ def test_readmes_are_bilingual_brand_first_and_lifecycle_complete() -> None:
         for reference in references:
             if reference.startswith(("http://", "https://", "#", "../../")):
                 continue
-            path = reference.split("#", 1)[0]
+            path = reference.split("#", 1)[0].split("?", 1)[0]  # 쿼리는 이미지 프록시 캐시 우회용
             assert (source.parent / path).exists(), f"broken README link: {reference}"
 
 
