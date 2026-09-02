@@ -58,6 +58,13 @@ slow cadence: minor versions ship every 6-12 months, patches only for defects.
   emphasized tie-breaker ("when unsure, treat it as hard to reverse"). Each
   rule carries the alternatives the user actually X'd out. Rule sentences
   themselves are unchanged; `manifest.json` gains `irreversible_value`.
+- The `test_after` rule says in so many words that bug fixes are fixed first and
+  get their regression test in the same change - the probe showed the agent
+  defaulting to test-first on bugfixes. `xout probe` now pairs every rule with
+  its true opposite (`OPPOSITE` in `xout/probe.py`) instead of the first
+  eliminated value, after a weak pair (prefer_existing vs ask_first) produced a
+  meaningless miss.
+- Demo GIFs re-recorded with the new rule text and the other-tools hint.
 - Japanese and Chinese conditional rules end with `。` instead of an ASCII
   period, and `xout why` grade labels are localized for both.
 

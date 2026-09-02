@@ -204,8 +204,41 @@ def _order(scene_id: str, axis: str, survivor: str, alternative: str) -> tuple[s
     return (survivor, alternative) if digest[0] % 2 == 0 else (alternative, survivor)
 
 
+#: 축별로 생존값과 가장 강하게 대비되는 값. 서로 양립 가능한 값(예: prefer_existing과
+#: ask_first)을 A/B로 붙이면 탐침이 아무것도 재지 못한다 - 실측에서 확인된 약점.
+OPPOSITE: dict[tuple[str, str], str] = {
+    ("autonomy", "ask_first"): "act_then_report",
+    ("autonomy", "propose_then_act"): "act_then_report",
+    ("autonomy", "act_then_report"): "ask_first",
+    ("commit_style", "no_auto_commit"): "conventional",
+    ("commit_style", "conventional"): "no_auto_commit",
+    ("commit_style", "narrative"): "no_auto_commit",
+    ("test_discipline", "test_after"): "test_first",
+    ("test_discipline", "test_first"): "test_after",
+    ("test_discipline", "on_request"): "test_first",
+    ("comment_doc", "minimal"): "thorough",
+    ("comment_doc", "docstring_only"): "thorough",
+    ("comment_doc", "thorough"): "minimal",
+    ("error_behavior", "stop_and_report"): "self_heal",
+    ("error_behavior", "retry_then_report"): "self_heal",
+    ("error_behavior", "self_heal"): "stop_and_report",
+    ("scope_adherence", "strict"): "proactive",
+    ("scope_adherence", "adjacent_fix_ok"): "strict",
+    ("scope_adherence", "proactive"): "strict",
+    ("verification", "always_run"): "trust_static",
+    ("verification", "on_risky"): "trust_static",
+    ("verification", "trust_static"): "always_run",
+    ("dependency_policy", "prefer_existing"): "free",
+    ("dependency_policy", "ask_first"): "free",
+    ("dependency_policy", "free"): "ask_first",
+}
+
+
 def _alternative(axis: str, survivor: str, spec: RuleSpec, context: str) -> str:
-    """가장 날카로운 대안: 사용자가 지운 값 > 다른 맥락의 생존값 > 카탈로그 순서."""
+    """가장 날카로운 대안: 정반대 값 > 사용자가 지운 값 > 다른 맥락의 생존값 > 카탈로그 순서."""
+    opposite = OPPOSITE.get((axis, survivor))
+    if opposite and opposite != survivor:
+        return opposite
     for value in spec.eliminated:
         if value != survivor:
             return value

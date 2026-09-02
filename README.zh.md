@@ -157,16 +157,16 @@ Probing 15 cases x 2 (bare / with XOUT.md) - runner: claude -p --output-format t
   [Scope adherence] scn-bugfix: strict -> adjacent_fix_ok  (rule: adjacent_fix_ok)  moved
   [Test discipline] scn-bugfix: test_first -> test_first  (rule: test_after)  missed
   [Comments and docs] scn-bugfix: minimal -> minimal  (rule: minimal)  held
+  [Scope adherence] scn-feature: strict -> adjacent_fix_ok  (rule: adjacent_fix_ok)  moved
   [Test discipline] scn-feature: test_first -> test_after  (rule: test_after)  moved
-  [Behavior on errors] scn-risky: retry_then_report -> stop_and_report  (rule: stop_and_report)  moved
-  [Dependency policy] scn-risky: prefer_existing -> prefer_existing  (rule: ask_first)  missed
+  [Dependency policy] scn-risky: ask_first -> ask_first  (rule: ask_first)  held
   ... 9 more, all held
 
-rule held 13/15 · rule moved the choice 4 · matched without rules 9 · unparsed 0
-receipt: ~/.claude/xout/probes/probe-20260901T231554.json
+rule held 14/15 · rule moved the choice 3 · matched without rules 11 · unparsed 0
+receipt: ~/.claude/xout/probes/probe-20260902T003141.json
 ```
 
-该这样读它。9 个选择在没有规则时就已经一致，说明模型的默认值在这些地方与这份档案相同。4 个被规则改变了。2 个不符：修 bug 时智能体坚持先写失败的测试，在高风险场景里把"优先用现有依赖"当成已经满足了"安装前先问"。不符的部分才有用：它点名了该打磨的那条规则，而一次探针只要一分钟，改完就能验证。探针不是什么：强制 A/B 的回答衡量的是指示之下的意图，不是长智能体循环里的实际行为，而且这只是一个模型上的一次运行。回执保留了全部原始回答，任何人都能重读。
+该这样读它。11 个选择在没有规则时就已经一致，说明模型的默认值在这些地方与这份档案相同。3 个被规则改变了。1 个不符：修 bug 时，即使规则已经明说"先修好，回归测试随后补"，智能体仍然先写失败的测试。这是很强的习惯，而探针就是用来告诉你它比你的那句话更强。上一次运行还有一个依赖方面的不符，原因是那道 A/B 题本身很弱（优先用现有依赖与安装前先问并不冲突），所以探针现在总是把规则和它真正的对立面配对。不符的部分才有用：它点名了该打磨的那条规则，而一次探针只要一分钟，改完就能验证。探针不是什么：强制 A/B 的回答衡量的是指示之下的意图，不是长智能体循环里的实际行为，而且这只是一个模型上的一次运行。回执保留了全部原始回答，任何人都能重读。
 
 同一份档案也用这台机器上的其他智能体探测过（`--quick`：每个轴一个场景，各 8 例）：
 

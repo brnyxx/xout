@@ -157,16 +157,16 @@ Probing 15 cases x 2 (bare / with XOUT.md) - runner: claude -p --output-format t
   [Scope adherence] scn-bugfix: strict -> adjacent_fix_ok  (rule: adjacent_fix_ok)  moved
   [Test discipline] scn-bugfix: test_first -> test_first  (rule: test_after)  missed
   [Comments and docs] scn-bugfix: minimal -> minimal  (rule: minimal)  held
+  [Scope adherence] scn-feature: strict -> adjacent_fix_ok  (rule: adjacent_fix_ok)  moved
   [Test discipline] scn-feature: test_first -> test_after  (rule: test_after)  moved
-  [Behavior on errors] scn-risky: retry_then_report -> stop_and_report  (rule: stop_and_report)  moved
-  [Dependency policy] scn-risky: prefer_existing -> prefer_existing  (rule: ask_first)  missed
+  [Dependency policy] scn-risky: ask_first -> ask_first  (rule: ask_first)  held
   ... 9 more, all held
 
-rule held 13/15 · rule moved the choice 4 · matched without rules 9 · unparsed 0
-receipt: ~/.claude/xout/probes/probe-20260901T231554.json
+rule held 14/15 · rule moved the choice 3 · matched without rules 11 · unparsed 0
+receipt: ~/.claude/xout/probes/probe-20260902T003141.json
 ```
 
-読み方はこうです。9 件は規則なしでも既に一致していたので、そこではモデルの既定がこのプロファイルと同じです。4 件は規則が選択を動かしました。2 件は不一致です。バグ修正ではエージェントは失敗するテストを先に書くことにこだわり、危険な場面では「既存の依存関係を優先」を「インストール前に確認」と同じものとして扱いました。不一致こそ役に立つ部分です。どのルール文を研ぐべきかを名指しし、探針は 1 分で走るので直した後すぐ確かめられます。探針でないもの: 強制 A/B の答えは指示のもとでの意図を測るのであって、長いエージェントループの中の振る舞いではなく、これは 1 モデルで 1 回走らせた記録です。レシートは生の回答をすべて保持しているので誰でも読み直せます。
+読み方はこうです。11 件は規則なしでも既に一致していたので、そこではモデルの既定がこのプロファイルと同じです。3 件は規則が選択を動かしました。1 件は不一致です。バグ修正では、規則が「先に直して回帰テストは後で足す」とはっきり言っていても、エージェントは失敗するテストを先に書きます。それだけ強い習慣であり、それがあなたの文より強いと教えてくれるのが探針です。前回の実行には依存関係の不一致がもう 1 件ありましたが、A/B の組が弱かったせいでした (既存の依存関係を優先することと、インストール前に確認することは両立します)。そのため探針は今、ルールを必ず正反対の値と組ませます。不一致こそ役に立つ部分です。どのルール文を研ぐべきかを名指しし、探針は 1 分で走るので直した後すぐ確かめられます。探針でないもの: 強制 A/B の答えは指示のもとでの意図を測るのであって、長いエージェントループの中の振る舞いではなく、これは 1 モデルで 1 回走らせた記録です。レシートは生の回答をすべて保持しているので誰でも読み直せます。
 
 同じプロファイルを、このマシンにある他のエージェントでも探針しました (`--quick`: 軸ごとに 1 場面、各 8 件):
 

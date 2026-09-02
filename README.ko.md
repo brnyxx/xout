@@ -156,16 +156,16 @@ Probing 15 cases x 2 (bare / with XOUT.md) - runner: claude -p --output-format t
   [Scope adherence] scn-bugfix: strict -> adjacent_fix_ok  (rule: adjacent_fix_ok)  moved
   [Test discipline] scn-bugfix: test_first -> test_first  (rule: test_after)  missed
   [Comments and docs] scn-bugfix: minimal -> minimal  (rule: minimal)  held
+  [Scope adherence] scn-feature: strict -> adjacent_fix_ok  (rule: adjacent_fix_ok)  moved
   [Test discipline] scn-feature: test_first -> test_after  (rule: test_after)  moved
-  [Behavior on errors] scn-risky: retry_then_report -> stop_and_report  (rule: stop_and_report)  moved
-  [Dependency policy] scn-risky: prefer_existing -> prefer_existing  (rule: ask_first)  missed
+  [Dependency policy] scn-risky: ask_first -> ask_first  (rule: ask_first)  held
   ... 9 more, all held
 
-rule held 13/15 · rule moved the choice 4 · matched without rules 9 · unparsed 0
-receipt: ~/.claude/xout/probes/probe-20260901T231554.json
+rule held 14/15 · rule moved the choice 3 · matched without rules 11 · unparsed 0
+receipt: ~/.claude/xout/probes/probe-20260902T003141.json
 ```
 
-읽는 법은 이렇습니다. 9개는 규칙 없이도 이미 일치했으니 그 부분은 모델의 기본값이 이 프로필과 같은 겁니다. 4개는 규칙이 선택을 움직였습니다. 2개는 불일치입니다. 버그픽스에서 에이전트는 실패하는 테스트를 먼저 쓰기를 고집했고 위험 장면에서는 "기존 의존성 우선"을 "설치 전 확인"과 같은 것으로 취급했습니다. 불일치가 쓸모 있는 부분입니다. 어느 규칙 문장을 날카롭게 다듬어야 하는지 알려주고 탐침은 1분이면 도니 고친 뒤 바로 확인할 수 있습니다. 탐침이 아닌 것: 강제 A/B 답은 지시 아래에서의 의도를 재는 것이지 긴 에이전트 루프 안의 행동이 아니고 이건 모델 하나에서 한 번 돌린 기록입니다. 영수증은 원문 답변을 전부 담고 있어 누구든 다시 읽을 수 있습니다.
+읽는 법은 이렇습니다. 11개는 규칙 없이도 이미 일치했으니 그 부분은 모델의 기본값이 이 프로필과 같은 겁니다. 3개는 규칙이 선택을 움직였습니다. 1개는 불일치입니다. 버그픽스에서 에이전트는 규칙이 "먼저 고치고 회귀 테스트를 나중에 붙여라"라고 명시해도 여전히 실패하는 테스트를 먼저 씁니다. 그만큼 강한 습관이고 그게 당신의 문장보다 세다는 걸 알려주는 게 탐침입니다. 이전 실행에는 의존성 불일치가 하나 더 있었는데 A/B 쌍이 약했던 탓이었습니다(기존 의존성 우선은 설치 전 확인과 양립합니다). 그래서 탐침은 이제 규칙을 항상 정반대 값과 짝짓습니다. 불일치가 쓸모 있는 부분입니다. 어느 규칙 문장을 다듬어야 하는지 알려주고 탐침은 1분이면 도니 고친 뒤 바로 확인할 수 있습니다. 탐침이 아닌 것: 강제 A/B 답은 지시 아래에서의 의도를 재는 것이지 긴 에이전트 루프 안의 행동이 아니고 이건 모델 하나에서 한 번 돌린 기록입니다. 영수증은 원문 답변을 전부 담고 있어 누구든 다시 읽을 수 있습니다.
 
 같은 프로필을 이 머신의 다른 에이전트로도 탐침했습니다(`--quick`: 축당 장면 하나, 8건씩):
 

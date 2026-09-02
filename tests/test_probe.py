@@ -142,3 +142,18 @@ def test_probe_missing_runner_exits_two(capsys, landed: Path) -> None:
 def test_probe_without_rules_exits_one(capsys, tmp_path: Path) -> None:
     assert main(["probe", "--base-dir", str(tmp_path / "empty"), "--lang", "en"]) == 1
     assert "run xout first" in capsys.readouterr().out
+
+
+def test_alternative_is_the_strongest_contrast_for_every_catalog_cell() -> None:
+    from xout.counter import DEFAULT_CATALOG
+    from xout.probe import OPPOSITE, _alternative
+
+    for axis, values in DEFAULT_CATALOG.items():
+        for value in values:
+            assert (axis, value) in OPPOSITE, (axis, value)
+            assert OPPOSITE[(axis, value)] in values and OPPOSITE[(axis, value)] != value
+            spec = RuleSpec(value=value, irreversible_value=None, eliminated=())
+            assert _alternative(axis, value, spec, "routine") == OPPOSITE[(axis, value)]
+    # 양립 가능한 쌍은 대안으로 쓰지 않는다
+    assert OPPOSITE[("dependency_policy", "ask_first")] == "free"
+    assert OPPOSITE[("dependency_policy", "prefer_existing")] == "free"

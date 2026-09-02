@@ -31,6 +31,7 @@ CHROME = {
         "complete": "세션 완료 - 컴파일된 규칙:",
         "apply": "지금 CLAUDE.md에 적용할까요? [y/N] ",
         "applied": "적용 완료 - @import 한 줄이 추가됐다. 취소는 xout undo",
+        "targets": "다른 도구에도: xout enable --grant --target codex|opencode|gemini|copilot|pi|omp|gjc|kiro|agents",
     },
     "en": {
         "cmd": "$ uvx xout --lang en",
@@ -40,6 +41,7 @@ CHROME = {
         "complete": "Session complete - compiled rules:",
         "apply": "Apply to CLAUDE.md now? [y/N] ",
         "applied": "Applied - one @import line added. Undo with xout undo",
+        "targets": "Other tools: xout enable --grant --target codex|opencode|gemini|copilot|pi|omp|gjc|kiro|agents",
     },
     "ja": {
         "cmd": "$ uvx xout --lang ja",
@@ -49,6 +51,7 @@ CHROME = {
         "complete": "セッション完了 - コンパイルされたルール:",
         "apply": "今すぐ CLAUDE.md に適用しますか？ [y/N] ",
         "applied": "適用完了 - @import を1行追加。取り消しは xout undo",
+        "targets": "他のツールにも: xout enable --grant --target codex|opencode|gemini|copilot|pi|omp|gjc|kiro|agents",
     },
     "zh": {
         "cmd": "$ uvx xout --lang zh",
@@ -58,6 +61,7 @@ CHROME = {
         "complete": "会话完成 - 编译出的规则:",
         "apply": "现在应用到 CLAUDE.md 吗？ [y/N] ",
         "applied": "已应用 - 添加了一行 @import。撤销: xout undo",
+        "targets": "也接入其他工具: xout enable --grant --target codex|opencode|gemini|copilot|pi|omp|gjc|kiro|agents",
     },
 }
 
@@ -196,6 +200,7 @@ def _completion_frames(snap, applied: bool, chrome: dict) -> list[Frame]:
     done.rows = list(ask.rows)
     done.line()
     done.line(chrome["applied"], INK)
+    done.line(chrome["targets"], MUTED)
     frames.append(done)
     return frames
 

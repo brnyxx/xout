@@ -156,16 +156,16 @@ Probing 15 cases x 2 (bare / with XOUT.md) - runner: claude -p --output-format t
   [Scope adherence] scn-bugfix: strict -> adjacent_fix_ok  (rule: adjacent_fix_ok)  moved
   [Test discipline] scn-bugfix: test_first -> test_first  (rule: test_after)  missed
   [Comments and docs] scn-bugfix: minimal -> minimal  (rule: minimal)  held
+  [Scope adherence] scn-feature: strict -> adjacent_fix_ok  (rule: adjacent_fix_ok)  moved
   [Test discipline] scn-feature: test_first -> test_after  (rule: test_after)  moved
-  [Behavior on errors] scn-risky: retry_then_report -> stop_and_report  (rule: stop_and_report)  moved
-  [Dependency policy] scn-risky: prefer_existing -> prefer_existing  (rule: ask_first)  missed
+  [Dependency policy] scn-risky: ask_first -> ask_first  (rule: ask_first)  held
   ... 9 more, all held
 
-rule held 13/15 · rule moved the choice 4 · matched without rules 9 · unparsed 0
-receipt: ~/.claude/xout/probes/probe-20260901T231554.json
+rule held 14/15 · rule moved the choice 3 · matched without rules 11 · unparsed 0
+receipt: ~/.claude/xout/probes/probe-20260902T003141.json
 ```
 
-Read it the way it is meant. Nine choices already matched without rules, so the model's defaults agree with this profile there. Four were moved by the rules. Two missed: the agent kept writing the failing test first on a bugfix, and treated "favor existing dependencies" as already satisfying "ask before installing" in the risky scene. Misses are the useful part - they name the rule sentence to sharpen, and a probe takes a minute, so you can check the fix. What a probe is not: a forced A/B answer measures stated intent under the instructions, not behavior deep inside an agent loop, and this is one run on one model. The receipt keeps every raw answer so anyone can re-read it.
+Read it the way it is meant. Eleven choices already matched without rules, so the model's defaults agree with this profile there. Three were moved by the rules. One missed: on a bugfix the agent still writes the failing test first, even though the rule now says in so many words to fix first and add the regression test after - that is a strong habit, and the probe is how you find out it is stronger than your sentence. An earlier run had a second miss on dependencies; it turned out the A/B pair was weak (favoring existing dependencies is compatible with asking before installing), so the probe now always pairs a rule with its true opposite. Misses are the useful part - they name the rule sentence to sharpen, and a probe takes a minute, so you can check the fix. What a probe is not: a forced A/B answer measures stated intent under the instructions, not behavior deep inside an agent loop, and this is one run on one model. The receipt keeps every raw answer so anyone can re-read it.
 
 The same profile, probed through other agents on this machine (`--quick`: one scene per axis, 8 cases each):
 
