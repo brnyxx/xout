@@ -2,7 +2,7 @@
 
 <h1>xout</h1>
 
-<img src=".github/assets/logo.svg" alt="xout 标志：一个被深红线条切成八份的圆，只有一块涂成黑色" width="96">
+<img src=".github/assets/logo.svg?v=2" alt="xout 标志：一个被深红线条切成八份的圆，只有一块涂成黑色" width="96">
 
 **把你再也不想看到的 AI 行为，一笔划掉。**
 
@@ -18,7 +18,7 @@
 
 **每个 AI 编码工具都读一份规则文件，可几乎没人把它写得好。** xout 替你写。它不问问题，只把 AI 可能的两种做法摆在你面前，让你划掉再也不想看到的那个。十五个 X，两分钟左右。留下来的选择会变成 8 条大白话规则，接进你真正在用的工具：Claude Code、Codex、OpenCode、Gemini CLI、Copilot CLI、pi、oh-my-pi、Kiro，或者任何会读 `AGENTS.md` 的工具。
 
-<img src=".github/assets/how-it-works.zh.gif" alt="三个面板：“修这个 bug”的两种做法，不要的那个被划掉；一个漏斗，6,561 个可能的智能体经过 15 个 X 只剩一个；八条规则靠一行 import 进了 CLAUDE.md" width="920">
+<img src=".github/assets/how-it-works.zh.gif?v=2" alt="三个面板：“修这个 bug”的两种做法，不要的那个被划掉；一个漏斗，6,561 个可能的智能体经过 15 个 X 只剩一个；八条规则靠一行 import 进了 CLAUDE.md" width="920">
 
 <sub>从左到右：一个 X 去掉一种行为，15 个 X 只剩一个智能体，这个智能体再写成 8 条规则。</sub>
 

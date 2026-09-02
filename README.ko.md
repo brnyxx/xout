@@ -2,7 +2,7 @@
 
 <h1>xout</h1>
 
-<img src=".github/assets/logo.svg" alt="xout 로고: 크림슨 선으로 8등분한 원에서 한 조각만 검게 칠해진 모양" width="96">
+<img src=".github/assets/logo.svg?v=2" alt="xout 로고: 크림슨 선으로 8등분한 원에서 한 조각만 검게 칠해진 모양" width="96">
 
 **다시 보고 싶지 않은 AI 행동에 X를 치세요.**
 
@@ -18,7 +18,7 @@
 
 **AI 코딩 도구는 전부 규칙 파일을 따릅니다. 그런데 그 파일을 제대로 쓰는 사람은 거의 없습니다.** xout이 대신 써 줍니다. 질문지를 내미는 대신 AI가 할 법한 행동 두 개를 나란히 보여 주고 다시는 보고 싶지 않은 쪽에 X를 치게 합니다. X 15번, 약 2분. 남은 쪽이 규칙 8줄이 되어 당신이 실제로 쓰는 도구에 꽂힙니다. Claude Code, Codex, OpenCode, Gemini CLI, Copilot CLI, pi, oh-my-pi, Kiro, 그리고 `AGENTS.md`를 읽는 모든 도구.
 
-<img src=".github/assets/how-it-works.ko.gif" alt="세 칸 그림: 버그 고쳐줘를 받은 두 행동 중 아닌 쪽에 X, X 15번에 6,561가지 에이전트가 하나로 좁혀지는 깔때기, 그리고 import 한 줄로 CLAUDE.md에 들어가는 규칙 8줄" width="920">
+<img src=".github/assets/how-it-works.ko.gif?v=2" alt="세 칸 그림: 버그 고쳐줘를 받은 두 행동 중 아닌 쪽에 X, X 15번에 6,561가지 에이전트가 하나로 좁혀지는 깔때기, 그리고 import 한 줄로 CLAUDE.md에 들어가는 규칙 8줄" width="920">
 
 <sub>X 하나가 남은 것을 반으로 갈라 싫은 반을 버립니다. 여덟 번 자르면 규칙 여덟 줄이 되어 당신의 도구에 꽂힙니다. Remotion으로 렌더했고 소스는 `video/`에 있습니다.</sub>
 
