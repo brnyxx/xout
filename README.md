@@ -182,22 +182,26 @@ One answer per question is a thin measurement, so `--repeat` asks each question 
 
 | Runner | Rule held (majority) | Held on every trial | Trials held | Rule moved the choice | Matched without rules |
 |---|---|---|---|---|---|
+| `claude -p` (Claude Code) | 14/15 | 14/15 | 42/45 | 5 | 9 |
 | `codex exec` | 15/15 | 14/15 | 44/45 | 4 | 11 |
 | `opencode run` | 15/15 | 14/15 | 44/45 | 5 | 10 |
 | `gjc -p` | 15/15 | 15/15 | 45/45 | 5 | 10 |
 
-The two imperfect cases are both on the bugfix scene: Codex once retried past the "retry once, then report" rule, and OpenCode once wrote the failing test first. Everything else held all three times.
+The imperfect cases are all on the bugfix scene: Claude wrote the failing test first on all three trials (the same habit as in the single run above, now confirmed three times), Codex once retried past the "retry once, then report" rule, and OpenCode once wrote the failing test first. Everything else held every time.
+
+Rules rarely sit alone in front of an agent, so `--context-file` puts a real project document in front of them in both passes. With this repository's own `CLAUDE.md` (about sixty lines of unrelated maintenance rules) buried on top, Claude held 14/15 again over two trials each (28/30 by trial), with the same single miss. The other language packs behave the same way: the Korean, Japanese and Chinese profiles, one scene per axis and two trials each, all came back 7/8 (14/16 by trial) with that one test-first miss and nothing else.
 
 Putting the rules in the prompt only shows the rules can work. Whether a tool actually reads the file xout wrote into is a separate question, so `xout probe --via-target codex` keeps the rules out of the prompt entirely: for the bare pass it takes the xout block out of `~/.codex/AGENTS.md`, for the ruled pass it puts the block back, and it restores the file afterwards (savepoint first). Same profile, one scene per axis:
 
 | Tool, through its own rules file | Rule held | Rule moved the choice | Matched without rules |
 |---|---|---|---|
 | Codex CLI, `~/.codex/AGENTS.md` | 8/8 | 3 | 5 |
+| Claude Code, one `@import` line in `~/.claude/CLAUDE.md` | 7/8 | 3 | 4 |
 | gajae-code, `~/.gjc/agent/AGENTS.md` | 7/8 | 3 | 4 |
 | OpenCode, `~/.config/opencode/AGENTS.md` | 6/8 | 2 | 5 |
 | Kiro CLI, `~/.kiro/steering/xout.md` | 6/8 | 2 | 4 |
 
-Every tool read its file: in each row at least two answers changed because the block was there. The misses are worth reading too. gajae-code and Kiro acted on a bugfix instead of proposing first; Kiro also kept self-healing on an error; OpenCode's two misses were one long prose answer with no letter in it and one test-first habit. Kiro's documentation describes global steering for the IDE and workspace steering for the CLI; the CLI read the global file here regardless, which is the kind of thing a probe is for.
+Every tool read its file: in each row at least two answers changed because the block was there. The misses are worth reading too. Claude's one miss is the test-first habit again; gajae-code and Kiro acted on a bugfix instead of proposing first; Kiro also kept self-healing on an error; OpenCode's two misses were one long prose answer with no letter in it and one test-first habit. Kiro's documentation describes global steering for the IDE and workspace steering for the CLI; the CLI read the global file here regardless, which is the kind of thing a probe is for.
 
 A runner is any command that takes the prompt as its last argument and prints the answer. Claude Code is the default; the rest are each tool's documented headless mode:
 
@@ -243,6 +247,8 @@ xout audit --dry-run                                   # what would be sent, and
 ```
 
 Headings, table rows, code blocks and one-word lines are dropped before anything is sent, and `--limit` (60 by default) caps the rest, so a first run stays cheap. Raise it once you know what the first pass says.
+
+Here is the first pass over the 187-line global `CLAUDE.md` of the person who wrote this, with `claude -p` as the runner. 36 lines were dropped as headings or code, the first 60 went out, and the agent wrote scenes for 57 of them (the other three it judged not to be instructions). Of those 57: 55 already default, 2 the line does work, 0 ignored, 0 unclear. In other words, almost everything in a rules file written by hand over months is something the agent does anyway, and the audit says which two sentences are earning their place. The contradictions were the useful part: four pairs, including "always respond in Korean" against "ASCII output only" (Hangul is not ASCII), and "always end with a three-line summary" against "explain only when it is not obvious". Nobody had noticed either. The receipt has every scene and every answer.
 
 ## What you get
 
