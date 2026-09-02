@@ -57,7 +57,7 @@ def project(tmp_path: Path) -> Path:
         "# Project\n"
         "Always ask before touching prod.\n"          # 정규식(ask before)도, 가짜 판정자도 잡는다
         "Commit messages follow conventional commits.\n"  # 정규식만 잡는다 -> 탈락
-        "Please check with me first, then go.\n"      # 판정자만 잡는다 (표현이 달라 정규식이 놓침) - 아래 fake 규칙엔 없음
+        "Keep the changelog tidy.\n"                  # 어느 계층도 잡지 않는 줄
         "Generated files: hands off git for those.\n"  # 판정자만 잡는다 (정규식 표현 밖) -> 추가
         "A bogus line.\n",                              # 카탈로그 밖 값 -> 버림
         encoding="utf-8",

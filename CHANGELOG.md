@@ -28,6 +28,16 @@ slow cadence: minor versions ship every 6-12 months, patches only for defects.
   xout wrote into.
 - `xout probe` strips terminal colour codes before reading the answer
   (kiro-cli prints them).
+- The pattern layer of `xout mine` is measured now: a labeled corpus of 276
+  rule-file lines in four languages (`tests/data/mine_corpus.json`, 218
+  positives covering every catalog cell in every language, 58 near-miss
+  negatives) with a test that fails when precision drops below 0.90 or recall
+  below 0.85 on any axis. Japanese and Chinese patterns, negation handling
+  ("never ask before acting" is act-then-report) and out-of-axis vetoes were
+  added to get there; current precision 1.00, lowest recall 0.96.
+- `xout reconcile` reports near-duplicates: lines that read almost like an
+  `XOUT.md` sentence (similarity >= 0.6, shown with the score) in text and
+  JSON output. They are reported only - `--apply` never removes them.
 
 ## [1.1.0] - 2026-09-02
 
