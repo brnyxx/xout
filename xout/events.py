@@ -47,6 +47,8 @@ class EventType(str, Enum):
     CATALOG_REVISION_CONSUMED = "catalog_revision_consumed"
     REFUTATION_CONDITION_MET = "refutation_condition_met"
     REFUTATION_ACKNOWLEDGED = "refutation_acknowledged"
+    OWN_LINE_ADDED = "own_line_added"
+    OWN_LINE_DROPPED = "own_line_dropped"
 
 
 POSITIVE_INTENT_LEXEMES: frozenset[str] = frozenset(

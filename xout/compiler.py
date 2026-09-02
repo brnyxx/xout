@@ -20,6 +20,7 @@ from xout.counter import DEFAULT_CATALOG, AxisCatalog, fold
 from xout.events import EventType, StrikeEvent
 from xout.fixtures import CONTEXT_IRREVERSIBLE, CONTEXT_ROUTINE, SCENE_CONTEXTS
 from xout.locking import base_lock
+from xout.own import OwnLine, fold_own_lines
 
 logger = logging.getLogger(__name__)
 
@@ -599,6 +600,8 @@ XOUT_DOC: dict[str, dict[str, str]] = {
         "irreversible": "## 되돌리기 어려운 작업",
         "intro": "삭제, push, 배포, 마이그레이션, 그리고 명령 하나로 되돌릴 수 없는 모든 작업. **중요: 되돌리기 어려운 작업인지 애매하면 어려운 쪽으로 본다.** 이런 작업에서는 아래 줄이 위 섹션의 같은 항목을 대신한다.",
         "rejected": "사용자가 지운 것",
+        "own": "## 내가 직접 적은 것",
+        "own_intro": "아래는 사용자가 자기 말로 적어 둔 문장이다. 위의 두 갈래에서 고른 것이 아니라 적힌 그대로이며, 같은 무게로 따른다.",
     },
     "en": {
         "preamble": "These are the standing preferences of the person you work for. Each one was picked by them between two concrete alternatives. If a project's own CLAUDE.md or AGENTS.md directly contradicts one, the project wins; otherwise follow these.",
@@ -606,6 +609,8 @@ XOUT_DOC: dict[str, dict[str, str]] = {
         "irreversible": "## Hard-to-reverse work",
         "intro": "Deletes, pushes, deploys, migrations, and anything else one command can't undo. **IMPORTANT: if you're not sure whether work is hard to reverse, treat it as hard to reverse.** For this work, the lines below replace the matching lines above.",
         "rejected": "crossed out",
+        "own": "## In my own words",
+        "own_intro": "The lines below are the user's own sentences, written by hand rather than picked from the pairs above. Follow them exactly as written.",
     },
     "ja": {
         "preamble": "一緒に働く相手の、普段から変わらない好み。具体的な選択肢を二つ並べて、本人が自分で選んだものである。プロジェクト自身の CLAUDE.md や AGENTS.md と正面から食い違う場合はそちらが優先。それ以外はこの規則に従う。",
@@ -613,6 +618,8 @@ XOUT_DOC: dict[str, dict[str, str]] = {
         "irreversible": "## 取り消しにくい作業",
         "intro": "削除、push、デプロイ、マイグレーションのほか、コマンド一つでは元に戻せない作業すべて。**重要: 取り消しにくい作業かどうか迷ったら、取り消しにくい側に倒す。** こうした作業では、下の行が上のセクションの同じ項目に置き換わる。",
         "rejected": "ユーザーが X で消したもの",
+        "own": "## 自分で書いたこと",
+        "own_intro": "ここから下は、ユーザーが自分の言葉で書いた文である。上のペアから選んだものではなく、書かれたとおりに、同じ重みで従う。",
     },
     "zh": {
         "preamble": "这是和你一起工作的人的固定偏好，每一条都是本人在两个具体做法里亲自选出来的。跟项目自己的 CLAUDE.md 或 AGENTS.md 正面冲突时以项目为准，其他情况都按这里的规则来。",
@@ -620,15 +627,22 @@ XOUT_DOC: dict[str, dict[str, str]] = {
         "irreversible": "## 难以撤销的工作",
         "intro": "删除、push、部署、迁移，以及所有一条命令撤不回来的工作。**重要：拿不准算不算难以撤销时，一律按难以撤销处理。** 做这类工作时，下面的条目替换上一节里对应的条目。",
         "rejected": "用户划掉的",
+        "own": "## 我自己写的",
+        "own_intro": "下面这些是用户自己写下的句子，不是从上面的选项里挑出来的，照写的内容执行，分量和上面一样。",
     },
 }
 
 
-def render_xout_md(rules: Sequence[CompiledRule], lang: str = DEFAULT_RULE_LANG) -> str:
+def render_xout_md(
+    rules: Sequence[CompiledRule],
+    lang: str = DEFAULT_RULE_LANG,
+    own_lines: Sequence[OwnLine] = (),
+) -> str:
     """에이전트가 읽는 문서 - 우선순위 프리앰블, 일상/되돌리기-어려운 두 섹션, 인식론 주석 0줄.
 
     조건은 한 번만 정의하고 규칙마다 반복하지 않는다. 각 규칙에는 사용자가
-    실제로 지운 대안을 짧게 붙여 규칙이 무엇을 배제하는지 알린다.
+    실제로 지운 대안을 짧게 붙여 규칙이 무엇을 배제하는지 알린다. 사용자가 직접
+    적은 줄이 있으면 마지막 섹션으로 원문 그대로 붙는다 - 없으면 섹션 자체가 없다.
     """
     doc = XOUT_DOC.get(lang) or XOUT_DOC[DEFAULT_RULE_LANG]
     rule_text, clauses, _ = _lang_tables(lang)
@@ -649,6 +663,10 @@ def render_xout_md(rules: Sequence[CompiledRule], lang: str = DEFAULT_RULE_LANG)
             clause = clauses[(rule.axis, rule.irreversible_value)]
             clause = clause[:1].upper() + clause[1:]
             lines.append(f"- {axis_label(rule.axis, lang)}: {clause}{full_stop}")
+    if own_lines:
+        lines.extend(["", doc["own"], "", doc["own_intro"], ""])
+        for own in own_lines:
+            lines.append(f"- {own.text}")
     return "\n".join(lines) + "\n"
 
 
@@ -703,6 +721,7 @@ def build_manifest(
     prereg_ref: str = DEFAULT_PREREG_REF,
     remaining_combinations: int | None = None,
     eliminated_pairs: int | None = None,
+    own_lines: Sequence[OwnLine] = (),
 ) -> dict[str, Any]:
     """사이드카 manifest - 인식론 메타데이터, 파일 단위 content hash, last_review, scope."""
     stamp = _now(now)
@@ -728,6 +747,7 @@ def build_manifest(
         "remaining_combinations": remaining_combinations,
         "eliminated_pairs": eliminated_pairs,
         "rules": [rule.to_dict() for rule in rules],
+        "own_lines": [own.to_dict() for own in own_lines],
         "outputs": outputs,
         "conflicts": [dict(conflict) for conflict in conflicts],
         "recheck_queue": _recheck_queue(rules, conflicts),
@@ -822,8 +842,9 @@ def _write_outputs_unlocked(
     stream = tuple(events)
     rules = compile_rules(stream, catalog, lang)
     state = fold(stream, catalog)
+    own_lines = fold_own_lines(stream)
 
-    popper_md = render_xout_md(rules, lang)
+    popper_md = render_xout_md(rules, lang, own_lines)
     settings = render_settings(rules)
     manifest = build_manifest(
         rules,
@@ -834,6 +855,7 @@ def _write_outputs_unlocked(
         prereg_ref=prereg_ref,
         remaining_combinations=state.remaining_combinations,
         eliminated_pairs=state.eliminated_pairs,
+        own_lines=own_lines,
     )
     if mismatches:
         manifest["hash_mismatch_records"] = [dict(record) for record in mismatches]

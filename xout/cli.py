@@ -7,6 +7,7 @@
   open         일반(product) 세션 - 터미널에서 15긋기 완주 시 착지
   validate     검증(validation) 세션 - 판별 13 + 미러 프로브 2, 착지 없음
   recheck      4막 경량 재심 - manifest 재심 큐 선두를 5-7긋기로 재시험
+  own          카탈로그 밖에서 사용자가 직접 적은 줄 - add / list / drop
   status       manifest/재심 배너/자기반증 판정 fold 요약
   land         저장된 이벤트 스트림에서 산출물 재착지 (수기 편집 감지 시 차단)
   enable       CLAUDE.md @import 한 줄 추가 - --grant 허가 레코드 필수
@@ -68,6 +69,13 @@ from xout.judge import (
     write_receipt as write_judge_receipt,
 )
 from xout.mine import Conflict, Observation, find_conflicts, mine, summarize, user_rule_files
+from xout.own import (
+    MAX_LENGTH as OWN_MAX_LENGTH,
+    OwnLineError,
+    added_event,
+    dropped_event,
+    fold_own_lines,
+)
 from xout.reconcile import apply_removals, plan as reconcile_plan, render_patch, write_patch
 from xout.targets import MODE_IMPORT, REGISTRY, block_state, ensure_block, remove_block, targets_by_id
 from xout.savepoint import SavepointError, create as create_savepoint, list_savepoints, restore as restore_savepoint
@@ -1412,6 +1420,160 @@ def cmd_mine(args: argparse.Namespace) -> int:
     return 0
 
 
+_OWN_MSG = {
+    "ko": {
+        "added": "적어 뒀다 [{id}]: {text}",
+        "dropped": "뺐다 [{id}]: {text}",
+        "landed": "XOUT.md를 다시 적었다: {path}",
+        "pending": "아직 완주한 세션이 없다 - 이 줄은 첫 세션이 끝날 때 XOUT.md에 함께 실린다",
+        "blocked": "XOUT.md가 손으로 바뀌어 있어 다시 적지 못했다 - 줄은 남아 있다 (xout land --acknowledge-mismatch)",
+        "header": "직접 적은 줄 {count}개",
+        "empty": "직접 적은 줄이 없다 - xout own add \"문장\" 으로 하나 적어라",
+        "empty_text": "빈 문장은 적을 수 없다",
+        "multiline": "한 줄만 적을 수 있다 - 줄바꿈은 넣지 마라",
+        "too_long": "너무 길다 ({detail}자) - {max}자까지만 적을 수 있다",
+        "duplicate": "이미 같은 문장이 있다: {detail}",
+        "unknown_id": "그런 줄이 없다: {detail} (xout own list 로 확인해라)",
+    },
+    "en": {
+        "added": "noted [{id}]: {text}",
+        "dropped": "dropped [{id}]: {text}",
+        "landed": "rewrote XOUT.md: {path}",
+        "pending": "no finished session yet - this line lands with the first one you complete",
+        "blocked": "XOUT.md was edited by hand, so it was not rewritten - the line is kept (xout land --acknowledge-mismatch)",
+        "header": "your own lines: {count}",
+        "empty": "no lines of your own yet - add one with xout own add \"sentence\"",
+        "empty_text": "an empty sentence cannot be added",
+        "multiline": "one line only - no line breaks",
+        "too_long": "too long ({detail} characters) - the limit is {max}",
+        "duplicate": "you already wrote that one: {detail}",
+        "unknown_id": "no such line: {detail} (check xout own list)",
+    },
+    "ja": {
+        "added": "書き留めた [{id}]: {text}",
+        "dropped": "外した [{id}]: {text}",
+        "landed": "XOUT.md を書き直した: {path}",
+        "pending": "まだ完走したセッションがない - この行は最初の完走時に XOUT.md へ載る",
+        "blocked": "XOUT.md が手で書き換えられているため書き直せなかった - 行は残っている (xout land --acknowledge-mismatch)",
+        "header": "自分で書いた行: {count}件",
+        "empty": "自分で書いた行がない - xout own add \"文\" で一つ書く",
+        "empty_text": "空の文は書けない",
+        "multiline": "一行だけ書ける - 改行は入れない",
+        "too_long": "長すぎる ({detail}文字) - {max}文字まで",
+        "duplicate": "同じ文がすでにある: {detail}",
+        "unknown_id": "その行はない: {detail} (xout own list で確認する)",
+    },
+    "zh": {
+        "added": "记下了 [{id}]: {text}",
+        "dropped": "去掉了 [{id}]: {text}",
+        "landed": "重新写了 XOUT.md: {path}",
+        "pending": "还没有完成过会话 - 这条会在第一次完成时一起写进 XOUT.md",
+        "blocked": "XOUT.md 被手工改过，没有重写 - 这条已经留下 (xout land --acknowledge-mismatch)",
+        "header": "自己写的条目: {count} 条",
+        "empty": "还没有自己写的条目 - 用 xout own add \"句子\" 写一条",
+        "empty_text": "不能写空句子",
+        "multiline": "只能写一行 - 不要换行",
+        "too_long": "太长了 ({detail} 个字) - 上限是 {max}",
+        "duplicate": "已经有一样的句子了: {detail}",
+        "unknown_id": "没有这条: {detail} (用 xout own list 查看)",
+    },
+}
+
+
+def _own_error(exc: OwnLineError, lang: str) -> int:
+    msg = _OWN_MSG.get(lang, _OWN_MSG["ko"])
+    key = "empty_text" if exc.code == "empty" else exc.code
+    print(msg[key].format(detail=exc.detail, max=OWN_MAX_LENGTH))
+    return 1
+
+
+def _reland_own(base: Path, lang: str) -> str:
+    """줄이 바뀐 뒤 XOUT.md를 다시 적는다 - 착지본이 없으면 아무것도 쓰지 않는다."""
+    if not (base / MANIFEST_JSON).is_file():
+        return "pending"
+    store = EventStore(base)
+    with store.lock:
+        events = store.load_completed()
+        if not events:
+            return "pending"
+        manifest = _load_manifest(base) or {}
+        try:
+            write_outputs(
+                events,
+                base_dir=base,
+                session_id=manifest.get("session_id"),
+                conflicts=_conflicts_for(base)(compile_rules(events, lang=lang)),
+                lang=lang,
+            )
+        except HashMismatch:
+            return "blocked"
+    return "landed"
+
+
+def _report_own_landing(base: Path, lang: str) -> int:
+    msg = _OWN_MSG.get(lang, _OWN_MSG["ko"])
+    outcome = _reland_own(base, lang)
+    if outcome == "landed":
+        print(msg["landed"].format(path=base / XOUT_MD))
+        return 0
+    print(msg[outcome])
+    return 1 if outcome == "blocked" else 0
+
+
+def cmd_own_add(args: argparse.Namespace) -> int:
+    """사용자가 자기 말로 적은 줄 하나를 원장에 덧붙인다."""
+    base = Path(args.base_dir)
+    lang = _args_lang(args)
+    store = EventStore(base)
+    with store.lock:
+        try:
+            event = added_event(args.text, fold_own_lines(store.load_all()))
+        except OwnLineError as exc:
+            return _own_error(exc, lang)
+        store.append(event)
+    msg = _OWN_MSG.get(lang, _OWN_MSG["ko"])
+    print(msg["added"].format(id=event.payload["id"], text=event.payload["text"]))
+    return _report_own_landing(base, lang)
+
+
+def cmd_own_list(args: argparse.Namespace) -> int:
+    base = Path(args.base_dir)
+    lines = fold_own_lines(EventStore(base).load_all())
+    if args.json_output:
+        print(
+            json.dumps(
+                {"artifact": "popper_own_lines", "own_lines": [line.to_dict() for line in lines]},
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return 0
+    msg = _OWN_MSG.get(_args_lang(args), _OWN_MSG["ko"])
+    if not lines:
+        print(msg["empty"])
+        return 0
+    print(msg["header"].format(count=len(lines)))
+    for line in lines:
+        print(f"- [{line.line_id}] {line.text}")
+    return 0
+
+
+def cmd_own_drop(args: argparse.Namespace) -> int:
+    """줄 하나를 tombstone으로 회수한다 - 원본 이벤트는 그대로 남는다."""
+    base = Path(args.base_dir)
+    lang = _args_lang(args)
+    store = EventStore(base)
+    with store.lock:
+        try:
+            event, dropped = dropped_event(args.line_id, fold_own_lines(store.load_all()))
+        except OwnLineError as exc:
+            return _own_error(exc, lang)
+        store.append(event)
+    msg = _OWN_MSG.get(lang, _OWN_MSG["ko"])
+    print(msg["dropped"].format(id=dropped.line_id, text=dropped.text))
+    return _report_own_landing(base, lang)
+
+
 def cmd_why(args: argparse.Namespace) -> int:
     """규칙 -> 그 규칙을 만든 X의 증거 사슬을 소급한다."""
     base = Path(args.base_dir)
@@ -1634,6 +1796,7 @@ _STATUS_MSG = {
         "remaining": "남은 조합: {count}", "queue": "재심 대기: {count}건", "banner": "배너: {text}",
         "activation": "활성화: {status}", "next": "다음 행동: {action}",
         "sessions": "저장된 세션: {sessions}개, 이벤트 {events}건", "resumable": "재개 가능: {count}건 (xout resume)",
+        "own": "직접 적은 줄: {count}개",
         "judgment": "자기 점검: 유효 검증 세션 {valid}, 판별 인스턴스 {discriminative}, 정복원 {correct}, 오복원 {wrong}",
         "refuted": "핵심 점검 확정 - 긋기만으로는 부족하다는 조건이 성립했다 (직접 편집 전환)",
         "condition_met": "점검 조건 성립 - 확정은 xout acknowledge --actor <이름>",
@@ -1644,6 +1807,7 @@ _STATUS_MSG = {
         "remaining": "remaining combinations: {count}", "queue": "recheck queue: {count}", "banner": "banner: {text}",
         "activation": "activation: {status}", "next": "next: {action}",
         "sessions": "stored sessions: {sessions}, events: {events}", "resumable": "resumable: {count} (xout resume)",
+        "own": "your own lines: {count}",
         "judgment": "self-check: valid validation sessions {valid}, discriminative instances {discriminative}, correct restorations {correct}, wrong restorations {wrong}",
         "refuted": "core check confirmed - strikes alone were found insufficient (pivot to direct editing)",
         "condition_met": "check condition met - confirm with xout acknowledge --actor <name>",
@@ -1654,6 +1818,7 @@ _STATUS_MSG = {
         "remaining": "残りの組み合わせ: {count}", "queue": "再審待ち: {count}件", "banner": "バナー: {text}",
         "activation": "有効化: {status}", "next": "次の操作: {action}",
         "sessions": "保存済みセッション: {sessions}、イベント {events}件", "resumable": "再開可能: {count}件 (xout resume)",
+        "own": "自分で書いた行: {count}件",
         "judgment": "自己点検: 有効な検証セッション {valid}、判別インスタンス {discriminative}、正しい復元 {correct}、誤った復元 {wrong}",
         "refuted": "コア点検が確定 - X だけでは足りないという条件が成立した (直接編集へ移行)",
         "condition_met": "点検条件が成立 - 確定は xout acknowledge --actor <名前>",
@@ -1664,6 +1829,7 @@ _STATUS_MSG = {
         "remaining": "剩余组合: {count}", "queue": "待复审: {count} 条", "banner": "横幅: {text}",
         "activation": "启用状态: {status}", "next": "下一步: {action}",
         "sessions": "已保存会话: {sessions} 个，事件 {events} 条", "resumable": "可恢复: {count} 个 (xout resume)",
+        "own": "自己写的条目: {count} 条",
         "judgment": "自检: 有效验证会话 {valid}，判别实例 {discriminative}，正确还原 {correct}，错误还原 {wrong}",
         "refuted": "核心检查成立 - 仅靠打 X 不够的条件已满足 (转为直接编辑)",
         "condition_met": "检查条件成立 - 用 xout acknowledge --actor <名字> 确认",
@@ -1694,6 +1860,7 @@ def cmd_status(args: argparse.Namespace) -> int:
     events = store.load_all()
     summaries = summarize_sessions(events)
     state = fold_judgment(events)
+    own_lines = fold_own_lines(events)
     if args.json_output:
         print(
             json.dumps(
@@ -1705,6 +1872,7 @@ def cmd_status(args: argparse.Namespace) -> int:
                     "banner": banner,
                     "activation": activation,
                     "sessions": [summary.to_dict() for summary in summaries],
+                    "own_lines": [line.to_dict() for line in own_lines],
                     "judgment": {
                         "valid_sessions": state.valid_sessions,
                         "discriminative_instances": state.discriminative_instances,
@@ -1740,6 +1908,8 @@ def cmd_status(args: argparse.Namespace) -> int:
     in_progress = [summary for summary in summaries if summary.resumable]
     if in_progress:
         print(msg["resumable"].format(count=len(in_progress)))
+    if own_lines:
+        print(msg["own"].format(count=len(own_lines)))
     print(
         msg["judgment"].format(
             valid=state.valid_sessions,
@@ -2186,6 +2356,24 @@ def build_parser() -> argparse.ArgumentParser:
     p_probe.add_argument("--json", dest="json_output", action="store_true", help="JSON으로 출력")
     _add_common(p_probe)
     p_probe.set_defaults(func=cmd_probe)
+
+    p_own = sub.add_parser(
+        "own",
+        help="카탈로그 밖, 내가 직접 적은 줄: add \"문장\" / list / drop <id>",
+    )
+    own_sub = p_own.add_subparsers(dest="own_command", required=True, metavar="action")
+    p_own_add = own_sub.add_parser("add", help="한 문장을 적어 XOUT.md 마지막 섹션에 싣는다")
+    _add_common(p_own_add)
+    p_own_add.add_argument("text", help=f"한 줄, {OWN_MAX_LENGTH}자 이내")
+    p_own_add.set_defaults(func=cmd_own_add)
+    p_own_list = own_sub.add_parser("list", help="지금 실려 있는 줄과 그 id")
+    _add_common(p_own_list)
+    p_own_list.add_argument("--json", dest="json_output", action="store_true", help="JSON으로 출력")
+    p_own_list.set_defaults(func=cmd_own_list)
+    p_own_drop = own_sub.add_parser("drop", help="줄 하나를 뺀다 (원장에는 tombstone이 쌓인다)")
+    _add_common(p_own_drop)
+    p_own_drop.add_argument("line_id", help="xout own list 가 보여주는 id")
+    p_own_drop.set_defaults(func=cmd_own_drop)
 
     p_why = sub.add_parser(
         "why", help="규칙이 어떤 X에서 나왔는지 증거를 소급해 보여준다"
