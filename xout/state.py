@@ -112,10 +112,10 @@ COLD_OPEN_AXIS = "autonomy"
 #: 화면에 노출되는 축 이름 - 기본 언어는 한국어다.
 AXIS_LABELS: dict[str, str] = {
     "autonomy": "자율성",
-    "commit_style": "커밋 스타일",
+    "commit_style": "커밋 정책",
     "test_discipline": "테스트 규율",
     "comment_doc": "주석과 문서화",
-    "error_behavior": "에러가 났을 때의 행동",
+    "error_behavior": "에러 시 행동",
     "scope_adherence": "범위 준수",
     "verification": "완료 전 검증",
     "dependency_policy": "의존성 정책",
@@ -126,7 +126,7 @@ AXIS_LABELS_EN: dict[str, str] = {
     "commit_style": "Commit style",
     "test_discipline": "Test discipline",
     "comment_doc": "Comments and docs",
-    "error_behavior": "Behavior on errors",
+    "error_behavior": "Error behavior",
     "scope_adherence": "Scope adherence",
     "verification": "Verification before done",
     "dependency_policy": "Dependency policy",
@@ -149,7 +149,7 @@ AXIS_LABELS_ZH: dict[str, str] = {
     "test_discipline": "测试纪律",
     "comment_doc": "注释与文档",
     "error_behavior": "出错时的行为",
-    "scope_adherence": "范围遵守",
+    "scope_adherence": "改动范围",
     "verification": "完成前验证",
     "dependency_policy": "依赖策略",
 }

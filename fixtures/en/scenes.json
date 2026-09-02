@@ -9,7 +9,7 @@
         {
           "kind": "static",
           "segment_id": "sk-user-request",
-          "text": "[User] In {file} on our {framework} stack ({lang}), the page listing drops the last item. Please find the cause and fix it."
+          "text": "[User] The paginated list in {file} drops the last item. We're on {framework} ({lang}). Find the cause and fix it, please."
         },
         {"kind": "slot", "segment_id": "slot-autonomy", "axis": "autonomy"},
         {"kind": "slot", "segment_id": "slot-scope_adherence", "axis": "scope_adherence"},
@@ -19,29 +19,29 @@
       ],
       "slots": {
         "autonomy": {
-          "ask_first": "[Agent] The cause looks like the boundary math in {file}. Before I touch anything, one question first - may I go ahead with the fix now?",
-          "propose_then_act": "[Agent] The cause looks like the boundary math in {file}. I am posting the plan below and moving straight into the fix.",
-          "act_then_report": "[Agent] The cause was the boundary math in {file}. I have already applied the fix and here is the report."
+          "ask_first": "[Agent] It looks like the boundary math in {file}. Before I change anything: do you want me to go ahead with the fix?",
+          "propose_then_act": "[Agent] It looks like the boundary math in {file}. Here's the plan; I'm starting on the fix now.",
+          "act_then_report": "[Agent] It was the boundary math in {file}. I've applied the fix; here's what changed."
         },
         "scope_adherence": {
-          "strict": "This change is limited to the one pagination bug you asked about; I am not touching any file outside the requested scope.",
-          "adjacent_fix_ok": "The request covers the pagination bug, but I am also fixing one adjacent typo that sits in the same function as part of this change.",
-          "proactive": "While fixing the pagination bug I am also proactively cleaning up the duplicated logic and stale helpers around it."
+          "strict": "This change covers only the pagination bug you asked about. I haven't touched anything outside it.",
+          "adjacent_fix_ok": "Along with the pagination bug, I fixed a typo in the same function. Nothing beyond that.",
+          "proactive": "While I was in there, I also cleaned up the duplicated logic and the stale helpers around it."
         },
         "test_discipline": {
-          "test_first": "Before the fix, I wrote a failing test that reproduces the missing last item.",
-          "test_after": "Right after the fix, I added a regression test in the same change.",
-          "on_request": "I did not add tests to this change since none were requested. Let me know if you want them."
+          "test_first": "Before fixing it, I wrote a failing test that reproduces the missing last item.",
+          "test_after": "After the fix, I added a regression test in the same change.",
+          "on_request": "I didn't add tests since you didn't ask for any. Say the word if you want them."
         },
         "comment_doc": {
-          "minimal": "Here is the patch.\n```\ndef paginate(items, page, size):\n    start = (page - 1) * size\n    end = start + size\n    return items[start:end]\n```",
-          "docstring_only": "Here is the patch.\n```\ndef paginate(items, page, size):\n    \"\"\"Return the items for one page - includes the last item.\"\"\"\n    start = (page - 1) * size\n    end = start + size\n    return items[start:end]\n```",
-          "thorough": "Here is the patch.\n```\ndef paginate(items, page, size):\n    \"\"\"Return the items for one page - includes the last item.\n\n    The end bound adds size directly so the slice stays half-open.\n    \"\"\"\n    # convert the 1-based page number to a 0-based start index\n    start = (page - 1) * size\n    # the old code subtracted 1 from end - the off-by-one\n    end = start + size\n    return items[start:end]\n```"
+          "minimal": "Here's the patch.\n```\ndef paginate(items, page, size):\n    start = (page - 1) * size\n    end = start + size\n    return items[start:end]\n```",
+          "docstring_only": "Here's the patch.\n```\ndef paginate(items, page, size):\n    \"\"\"Return the items for one page, including the last item.\"\"\"\n    start = (page - 1) * size\n    end = start + size\n    return items[start:end]\n```",
+          "thorough": "Here's the patch.\n```\ndef paginate(items, page, size):\n    \"\"\"Return the items for one page, including the last item.\n\n    The end bound adds size directly so the slice stays half-open.\n    \"\"\"\n    # convert the 1-based page number to a 0-based start index\n    start = (page - 1) * size\n    # the old code subtracted 1 from end - that was the off-by-one\n    end = start + size\n    return items[start:end]\n```"
         },
         "error_behavior": {
-          "stop_and_report": "If verification hits the empty-items edge case, I stop immediately and report the raw log as-is.",
-          "retry_then_report": "If verification hits a transient failure, I retry exactly once; if it still fails I stop and report with the log.",
-          "self_heal": "If verification hits the empty-items case, I add a guard that treats it as an empty list, recover on my own, and keep going."
+          "stop_and_report": "If verification trips on the empty-list edge case, I stop right there and report the raw log as is.",
+          "retry_then_report": "If verification fails on something that looks transient, I retry once. If it fails again, I stop and report with the log.",
+          "self_heal": "If verification trips on the empty-list case, I add a guard for it, get things passing, and keep going."
         }
       }
     },
@@ -53,7 +53,7 @@
         {
           "kind": "static",
           "segment_id": "sk-user-request-feature",
-          "text": "[User] Please add a feature that exports the listing to a CSV file in our {framework} stack ({lang}) project. Somewhere near {file} would be a good entry point."
+          "text": "[User] Add CSV export for the listing. We're on {framework} ({lang}); somewhere near {file} is probably the right entry point."
         },
         {"kind": "slot", "segment_id": "slot-scope_adherence", "axis": "scope_adherence"},
         {"kind": "slot", "segment_id": "slot-test_discipline", "axis": "test_discipline"},
@@ -63,29 +63,29 @@
       ],
       "slots": {
         "scope_adherence": {
-          "strict": "I am only adding the export feature; the awkward sort order I noticed on the existing list screen is left alone and just mentioned in the report.",
-          "adjacent_fix_ok": "While adding the export feature, I am also correcting one wrong default in the list-query function the new code calls directly - nothing beyond that.",
-          "proactive": "While adding the export feature I am also folding in the list screen's sort-order fix and a cleanup of the duplicated formatting utils."
+          "strict": "I only added the export. The odd sort order I noticed on the existing list screen is untouched; I've noted it in the report.",
+          "adjacent_fix_ok": "While adding the export, I also fixed a wrong default in the list-query function the new code calls. Nothing beyond that.",
+          "proactive": "Along with the export, I fixed the list screen's sort order and cleaned up the duplicated formatting helpers."
         },
         "test_discipline": {
-          "test_first": "Before implementing, I wrote a failing test asserting that values containing commas and newlines must be escaped correctly.",
-          "test_after": "Right after implementing the export, I added tests covering escaping and the empty-list case in the same change.",
-          "on_request": "I did not add tests to this implementation since none were requested. Let me know if you want them."
+          "test_first": "Before implementing, I wrote a failing test that checks values with commas and newlines get escaped correctly.",
+          "test_after": "After implementing the export, I added tests for escaping and the empty-list case in the same change.",
+          "on_request": "I didn't add tests since you didn't ask for any. Say the word if you want them."
         },
         "dependency_policy": {
-          "prefer_existing": "The standard library is enough for CSV serialization, so I implemented it without any new package. If an external library ever becomes necessary I will report it first.",
-          "ask_first": "There is a library that would help with CSV serialization, but it is a new dependency, so I am asking first - may I install it?",
-          "free": "I went ahead and installed a library to make CSV serialization easier, then continued with the implementation."
+          "prefer_existing": "The standard library handles CSV fine, so there's no new package. If an external library ever becomes necessary, I'll flag it first.",
+          "ask_first": "There's a library that would make the CSV serialization easier, but it's a new dependency. OK to install it?",
+          "free": "I installed a library to make the CSV serialization easier and went on with the implementation."
         },
         "verification": {
-          "always_run": "After implementing, I actually ran the test suite and the build, confirmed everything passes, and only then am I reporting this as done.",
-          "on_risky": "This change is mostly new files and low risk, so I ran only the new tests before reporting it as done.",
-          "trust_static": "I re-read the code to confirm the logic and see no type errors, so I am reporting this as done as-is."
+          "always_run": "I ran the full test suite and the build, saw everything pass, and only then am I calling this done.",
+          "on_risky": "This is mostly new files and low risk, so I ran just the new tests before calling it done.",
+          "trust_static": "I re-read the code; the logic checks out and there are no type errors, so I'm calling this done as is."
         },
         "commit_style": {
           "conventional": "Commit: feat: add CSV export for listings",
           "narrative": "Commit: let listings be exported to a CSV file",
-          "no_auto_commit": "I did not create a commit. The changes are in the working tree - please review and commit them yourself."
+          "no_auto_commit": "I haven't committed anything. The changes are in the working tree for you to review and commit."
         }
       }
     },
@@ -97,7 +97,7 @@
         {
           "kind": "static",
           "segment_id": "sk-user-request-risky",
-          "text": "[User] We need to normalize the email column on the users table to lowercase in our {framework} stack ({lang}). Please prepare the migration and backfill script in {file}. This will be applied to the production database."
+          "text": "[User] We need to lowercase the email column on the users table. We're on {framework} ({lang}). Write the migration and backfill script in {file}. This is going to run against the production database."
         },
         {"kind": "slot", "segment_id": "slot-autonomy", "axis": "autonomy"},
         {"kind": "slot", "segment_id": "slot-error_behavior", "axis": "error_behavior"},
@@ -107,29 +107,29 @@
       ],
       "slots": {
         "autonomy": {
-          "ask_first": "[Agent] Drafts of the migration and backfill script are ready. Since this touches production data, I will not execute anything until you have reviewed them.",
-          "propose_then_act": "[Agent] I am posting the migration plan first and proceeding straight through the staging run. Only the production apply waits for your approval.",
-          "act_then_report": "[Agent] I have already applied the migration and backfill to staging, finished verifying them, and here is the report. The production apply command is ready too."
+          "ask_first": "[Agent] The migration and backfill script are drafted. This touches production data, so I'm not running anything until you've reviewed them.",
+          "propose_then_act": "[Agent] Here's the migration plan. I'm going ahead with the staging run now; only the production apply waits for your approval.",
+          "act_then_report": "[Agent] I've applied the migration and backfill to staging and verified them; here's the report. The production apply command is ready when you are."
         },
         "error_behavior": {
-          "stop_and_report": "If the backfill hits a malformed email, I stop on the spot and report that row together with the raw log.",
-          "retry_then_report": "If the backfill hits a transient lock conflict, I retry exactly once; if it still fails I stop and report with the log.",
-          "self_heal": "If the backfill hits a malformed email, I add a correction that replaces it with NULL, run through to the end, and then report the result."
+          "stop_and_report": "If the backfill hits a malformed email, I stop right there and report that row along with the raw log.",
+          "retry_then_report": "If the backfill hits a lock conflict that looks transient, I retry once. If it fails again, I stop and report with the log.",
+          "self_heal": "If the backfill hits a malformed email, I add a fix that sets it to NULL, run through to the end, and report the result."
         },
         "verification": {
-          "always_run": "Before applying, I actually run the before/after row counts and sample comparison against a staging copy, and report together with that output.",
-          "on_risky": "Since this touches production, this time I am finishing a copy rehearsal and a rollback-script check before reporting.",
-          "trust_static": "I re-read the SQL to confirm the logic and see no syntax errors, so I am reporting it ready to apply without a rehearsal."
+          "always_run": "Before applying, I run the before/after row counts and a sample comparison against a staging copy, and include that output in the report.",
+          "on_risky": "Since this touches production, I'm rehearsing on a copy and checking the rollback script before I report back.",
+          "trust_static": "I re-read the SQL; the logic checks out and there are no syntax errors, so I'm calling it ready to apply without a rehearsal."
         },
         "dependency_policy": {
-          "prefer_existing": "I wrote the backfill using only the DB driver we already use. If a migration tool seems necessary I will propose it separately.",
-          "ask_first": "I would like to use a migration tool for a safe batched backfill, but it is a new dependency, so I am asking before installing.",
-          "free": "I went ahead and installed a migration tool for a safe batched backfill and wrote the script with it."
+          "prefer_existing": "I wrote the backfill with the DB driver we already use. If a migration tool turns out to be necessary, I'll propose it separately.",
+          "ask_first": "I'd like to use a migration tool for a safe batched backfill, but it's a new dependency. OK to install it?",
+          "free": "I installed a migration tool for a safe batched backfill and wrote the script with it."
         },
         "commit_style": {
           "conventional": "Commit: feat: add email lowercase normalization migration",
-          "narrative": "Commit: prepared a normalization migration to prevent duplicate accounts differing only by email case",
-          "no_auto_commit": "I did not create a commit. The migration files are in the working tree - please review and commit them yourself."
+          "narrative": "Commit: normalize email case so accounts can no longer duplicate on casing alone",
+          "no_auto_commit": "I haven't committed anything. The migration files are in the working tree for you to review and commit."
         }
       }
     }

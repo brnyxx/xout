@@ -16,21 +16,21 @@
 
 </div>
 
-**Every AI coding tool follows a rules file. Almost nobody writes a good one.** xout writes it for you. It does not ask questions - it shows you two things your AI could do and lets you cross out the one you never want to see again. Fifteen X's, about two minutes. The surviving choices become 8 plain rules, plugged into the tool you actually use: Claude Code, Codex, OpenCode, Gemini CLI, Copilot CLI, pi, oh-my-pi, Kiro, or anything that reads `AGENTS.md`.
+**Every AI coding tool follows a rules file. Almost nobody writes a good one.** xout writes it for you. It doesn't ask you questions. It shows you two things your agent could do, and you cross out the one you never want to see again. Fifteen X's, about two minutes. What's left becomes 8 plain rules, plugged into the tool you actually use: Claude Code, Codex, OpenCode, Gemini CLI, Copilot CLI, pi, oh-my-pi, Kiro, or anything that reads `AGENTS.md`.
 
 ```bash
 uvx xout --lang en
 ```
 
-That's it. The whole session runs right in your terminal. X things out for about 2 minutes, press `y` at the end, and your agent has 8 rules.
+That's it. The whole session runs in your terminal. X things out for about 2 minutes, press `y` at the end, and your agent has 8 rules.
 
-<img src=".github/assets/demo.en.gif" alt="A real xout terminal session progressing through fifteen cross-outs, compiling eight conditional rules, and applying them with one keystroke" width="860">
+<img src=".github/assets/demo.en.gif" alt="A real xout terminal session: fifteen cross-outs, eight compiled rules, applied with one keystroke" width="860">
 
-<sub>Nothing above is staged - the recorder photographs a live session, so every pair and rule on screen is the engine's real output.</sub>
+<sub>Nothing above is staged. The recorder captures a live session, so every pair and rule on screen is real engine output.</sub>
 
-**No cloud. No telemetry. No LLM calls during a session. Everything it writes outside its own folder is behind a savepoint and one command to undo.**
+**No cloud. No telemetry. No LLM calls during a session. Anything it writes outside its own folder gets a savepoint first and comes back out with one command.**
 
-**v1.0.1 · Python 3.10–3.14 · MIT · zero third-party runtime packages**
+**v1.0.1 · Python 3.10–3.14 · MIT · no third-party packages at runtime**
 
 <details>
 <summary><strong>Other install paths</strong> (pip, venv)</summary>
@@ -48,7 +48,7 @@ python3 -m venv .venv
 .venv/bin/xout
 ```
 
-Upgrading from Popper 1.x? Just run `xout` once: your data in `~/.claude/popper/` moves to `~/.claude/xout/`, and the owned import line is updated only when xout can prove it wrote it.
+Upgrading from Popper 1.x? Run `xout` once. Your data moves from `~/.claude/popper/` to `~/.claude/xout/`, and the import line is updated only if xout can prove it wrote it.
 
 </details>
 
@@ -56,15 +56,15 @@ Upgrading from Popper 1.x? Just run `xout` once: your data in `~/.claude/popper/
 
 | | What happens | You type |
 |---|---|---|
-| **1. It reads what you already have** | Your existing rule files - `CLAUDE.md`, `AGENTS.md`, `.cursorrules`, your global `~/.claude/CLAUDE.md` - are read once, and the lines that talk about the behavior on screen are shown next to each pair. Nothing is copied, nothing is changed. | nothing (`xout mine` shows the list) |
+| **1. It reads what you already have** | xout reads your existing rule files once - `CLAUDE.md`, `AGENTS.md`, `.cursorrules`, your global `~/.claude/CLAUDE.md`. When a pair comes up, any line of yours that already covers that behavior is shown next to it. Nothing is copied, nothing is changed. | nothing (`xout mine` shows the list) |
 | **2. You X out, 15 times** | Two concrete behaviors for the same task. Cross out the one you never want again. Three real scenes: a bugfix, a new feature, a risky migration. | `xout` |
-| **3. Rules land** | 8 rules with evidence, written under `~/.claude/xout/`. No other file is touched yet. | nothing |
+| **3. Rules land** | 8 rules, each with its evidence, written under `~/.claude/xout/`. Nothing else is touched yet. | nothing |
 | **4. You plug them in** | Claude Code gets one owned `@import` line; every other tool gets one owned block at the end of its own rules file. Both come with a receipt. | `y` at the end, or `xout enable --grant --target codex` |
-| **5. You check, tidy, and can always go back** | Ask the agent itself whether the rules hold. Remove lines your old files now repeat. Every edit outside xout's folder gets a savepoint first; `xout undo` removes exactly what xout wrote. | `xout probe` · `xout reconcile` · `xout undo` |
+| **5. You check, tidy up, and can always back out** | Ask the agent itself whether the rules hold. Remove lines your old files now repeat. Every edit outside xout's folder gets a savepoint first; `xout undo` removes exactly what xout wrote. | `xout probe` · `xout reconcile` · `xout undo` |
 
 ## Works with
 
-xout's rules are plain markdown, so the only thing that differs per tool is *where that tool reads its rules from*. Every path below comes from the tool's own documentation; xout registers nothing it could not verify.
+The rules are plain markdown, so the only thing that changes from tool to tool is *where that tool reads its rules from*. Every path below comes from the tool's own docs. If xout couldn't verify a path, it isn't registered.
 
 | Tool | Where the rules go | How | `xout enable --grant --target …` |
 |---|---|---|---|
@@ -79,9 +79,9 @@ xout's rules are plain markdown, so the only thing that differs per tool is *whe
 | [Kiro](https://kiro.dev/docs/steering/) | `~/.kiro/steering/xout.md` | owned steering file | `kiro` |
 | [Anything that reads AGENTS.md](https://agents.md) | `./AGENTS.md` in the project | owned block | `agents` |
 
-`xout targets` prints this table with the live state of each one. `xout enable --grant --target all` plugs into every tool at once; `xout undo` takes them all out again.
+`xout targets` prints this table with the current state of each one. `xout enable --grant --target all` plugs into every tool at once; `xout undo` takes them all back out.
 
-An owned block looks like this and is the only thing xout will ever edit inside that file:
+An owned block looks like this, and it is the only thing xout will ever edit inside that file:
 
 ```markdown
 <!-- xout:begin sha256=… -->
@@ -91,7 +91,7 @@ An owned block looks like this and is the only thing xout will ever edit inside 
 <!-- xout:end -->
 ```
 
-gajae-code's public docs do not name its rules file; the path above comes from the installed package source (`@gajae-code/coding-agent` 0.15.6, `system-prompt.d.ts`: "Native user-global files (`~/.gjc/agent/AGENTS.md`) come first"). Treat it as source-verified, not doc-verified.
+gajae-code's public docs don't name its rules file. The path above comes from the installed package source (`@gajae-code/coding-agent` 0.15.6, `system-prompt.d.ts`: "Native user-global files (`~/.gjc/agent/AGENTS.md`) come first"), so treat it as verified against source, not against docs.
 
 ## How it works
 
@@ -99,15 +99,15 @@ gajae-code's public docs do not name its rules file; the path above comes from t
 
 <sub>Every X cuts what's left in half and drops the half you never want. Eight cuts, eight rules, plugged into your tool. Rendered from the real timeline with Remotion; source in `video/`.</sub>
 
-1. **You X out** the behavior you hate, across three real scenes: a routine bugfix, a new feature, and a risky production migration. Each pair shows two concrete agent behaviors - ask first vs act first, standard library vs install-a-package, rehearse the migration vs trust a re-read.
-2. **xout compiles** the survivors into 8 executable rules, written atomically under `~/.claude/xout/` with evidence and provenance. And when your X's diverge between routine and irreversible work, the rule compiles **with that condition attached**:
+1. **You X out** the behavior you hate, across three real scenes: a routine bugfix, a new feature, and a risky production migration. Each pair shows two concrete agent behaviors - ask first vs act first, standard library vs install a package, rehearse the migration vs trust a re-read.
+2. **xout compiles** what's left into 8 rules, written atomically under `~/.claude/xout/` along with the evidence behind each one. When your X's differ between routine and hard-to-reverse work, the rule is compiled **with that condition attached**:
 
    > Write a short plan first, then proceed immediately. **However, for hard-to-reverse work like deletes, pushes, deploys, and migrations, always get approval before executing.**
 
-   That condition is not a template. It exists because you X'd differently in the migration scene. No interview-based tool can produce it.
-3. **You plug it in with one keystroke.** The completion screen asks "apply now?" - saying yes adds exactly one owned `@import` line to `~/.claude/CLAUDE.md`. For any other tool, `xout enable --grant --target codex` (or `opencode`, `gemini`, `copilot`, `pi`, `omp`, `kiro`, `agents`, `all`) adds one owned block to that tool's own rules file. `xout undo` removes only what xout wrote.
+   That condition isn't boilerplate. It's there because you X'd differently in the migration scene. A questionnaire can't produce it.
+3. **You plug them in with one keystroke.** The last screen asks whether to apply now. Say yes and xout adds exactly one owned `@import` line to `~/.claude/CLAUDE.md`. For any other tool, `xout enable --grant --target codex` (or `opencode`, `gemini`, `copilot`, `pi`, `omp`, `kiro`, `agents`, `all`) adds one owned block to that tool's own rules file. `xout undo` removes only what xout wrote.
 
-Repeat the request that used to annoy you in a fresh session of your agent and watch the rule hold. When it ever feels stale, `xout` again.
+Open a fresh session of your agent, repeat the request that used to annoy you, and watch the rule hold. When it goes stale, run `xout` again.
 
 <details>
 <summary><strong>Under the hood</strong> (one diagram)</summary>
@@ -124,7 +124,7 @@ flowchart LR
     CL -. "xout undo" .-> M
 ```
 
-Every X is one event. Everything else - the counter, the rules, the manifest - is a pure fold of that stream, so any rule can be replayed and traced back to its X's.
+Every X is one event. Everything else - the counter, the rules, the manifest - is a pure fold over that stream, so any rule can be replayed and traced back to the X's that made it.
 
 </details>
 
@@ -135,20 +135,21 @@ Every X is one event. Everything else - the counter, the rules, the manifest - i
 ```text
 $ xout why autonomy --lang en
 [Autonomy]
-rule: Write a short plan first, then proceed immediately. However, ... get approval before executing.
-state: discriminated / source: your X
+rule: Act first, then report a summary of what changed. However, for hard-to-reverse work like deletes, pushes, deploys, and migrations, post the plan and proceed, but wait for approval before the final apply.
+state: confirmed by your X's / source: your X
 evidence:
-  - X'd ask_first in the routine-work scene (scn-bugfix) (session a3f2c9d1)
-  - X'd act_then_report in the hard-to-reverse-work scene (scn-risky) (session a3f2c9d1)
+  - X'd ask_first in the routine-work scene (scn-bugfix) (session cac50d1e)
+  - X'd ask_first in the hard-to-reverse-work scene (scn-risky) (session cac50d1e)
+  - X'd propose_then_act in the routine-work scene (scn-bugfix) (session cac50d1e)
 ```
 
 A rule you can't trace is a rule you can't trust. Every xout rule carries its receipts.
 
-> `--lang en`, `--lang ja`, and `--lang zh` run the whole session in that language (pairs, rules, and screen text); the default without the flag is Korean. Japanese and Chinese are on `main` today and ship with the next release. The event ledger is language-neutral either way.
+> `--lang en`, `--lang ja`, and `--lang zh` run the whole session - pairs, rules, and screen text - in that language. Without the flag it runs in Korean. Japanese and Chinese are on `main` now and ship in the next release. The event ledger doesn't care which language you used.
 
 ## Does it actually work?
 
-`xout probe` puts the question to the agent itself. For every measured scene it asks an external runner (default `claude -p`) the same A/B twice - once bare, once with your landed `XOUT.md` in front - and receipts whether each rule held and whether it moved the choice. One real run against a landed profile (Claude Code 2.1.257, default model, no edits):
+`xout probe` asks the agent itself. For every measured scene it puts the same A/B to an external runner (`claude -p` by default) twice - once with nothing, once with your landed `XOUT.md` in front - and records whether each rule held and whether it changed the answer. Here is one real run against a landed profile (Claude Code 2.1.257, default model, no edits):
 
 ```text
 $ xout probe --lang en
@@ -165,9 +166,9 @@ rule held 14/15 · rule moved the choice 3 · matched without rules 11 · unpars
 receipt: ~/.claude/xout/probes/probe-20260902T003141.json
 ```
 
-Read it the way it is meant. Eleven choices already matched without rules, so the model's defaults agree with this profile there. Three were moved by the rules. One missed: on a bugfix the agent still writes the failing test first, even though the rule now says in so many words to fix first and add the regression test after - that is a strong habit, and the probe is how you find out it is stronger than your sentence. An earlier run had a second miss on dependencies; it turned out the A/B pair was weak (favoring existing dependencies is compatible with asking before installing), so the probe now always pairs a rule with its true opposite. Misses are the useful part - they name the rule sentence to sharpen, and a probe takes a minute, so you can check the fix. What a probe is not: a forced A/B answer measures stated intent under the instructions, not behavior deep inside an agent loop, and this is one run on one model. The receipt keeps every raw answer so anyone can re-read it.
+How to read that: eleven answers matched without any rules, so on those axes the model's defaults already agree with this profile. Three answers changed because of the rules. One missed: on a bugfix the agent still writes the failing test first, even though the rule now says, in so many words, fix first and add the regression test after. That's a strong habit, and the probe is how you find out it's stronger than your sentence. An earlier run also missed on dependencies. That turned out to be a weak A/B pair (favoring existing dependencies doesn't contradict asking before installing), so the probe now always pairs a rule with its real opposite. Misses are the useful part: they tell you which sentence to sharpen, and a probe takes about a minute, so you can check the fix right away. Two caveats. A forced A/B answer measures stated intent under the instructions, not what the agent does deep inside a long loop, and this is one run on one model. The receipt keeps every raw answer, so anyone can go back and read them.
 
-The same profile, probed through other agents on this machine (`--quick`: one scene per axis, 8 cases each):
+The same profile, probed through the other agents on this machine (`--quick`: one scene per axis, 8 cases each):
 
 | Runner | Rule held | Rule moved the choice | Matched without rules |
 |---|---|---|---|
@@ -175,9 +176,9 @@ The same profile, probed through other agents on this machine (`--quick`: one sc
 | `opencode run` (OpenCode) | 8/8 | 3 | 5 |
 | `gjc -p` (gajae-code) | 8/8 | 2 | 6 |
 
-Gemini CLI was not probed here because this machine has no Gemini auth configured; its runner is listed below so you can run it yourself.
+Gemini CLI isn't in the table because this machine has no Gemini auth set up. Its runner is listed below so you can try it yourself.
 
-The runner is any command that takes the prompt as its last argument and prints the answer. The default is Claude Code; the others below are the documented headless modes of each tool:
+A runner is any command that takes the prompt as its last argument and prints the answer. Claude Code is the default; the rest are each tool's documented headless mode:
 
 | Tool | `xout probe --runner "…"` |
 |---|---|
@@ -195,10 +196,10 @@ The runner is any command that takes the prompt as its last argument and prints 
 
 You probably already have rule files. xout treats them as evidence, not as competition.
 
-- **During the session** every pair shows the lines your files already say about that behavior - `~/.claude/CLAUDE.md:12 "Always ask before editing" → ask_first` - so you can confirm or overrule what you once wrote.
-- **After landing**, `xout conflicts` lists the lines that say the opposite of your new rules, with file:line. Conflicts are never edited: the rules file already says that a project's own instructions win.
-- **`xout reconcile`** lists the lines your old files now repeat from `XOUT.md` and writes a proposed patch under `~/.claude/xout/reconcile/`. Only `xout reconcile --apply --grant` removes those duplicate lines - and only after taking a savepoint.
-- **`xout savepoint`** snapshots your rule files byte for byte whenever you want; `xout savepoint restore <id>` puts them back. Every `enable`, `undo`, and `reconcile --apply` takes one automatically.
+- **During the session**, each pair shows what your files already say about that behavior - `~/.claude/CLAUDE.md:12 "Always ask before editing" → ask_first` - so you can confirm or overrule what you wrote back then.
+- **After landing**, `xout conflicts` lists the lines that contradict your new rules, with file:line. xout never edits those; the rules file already says a project's own instructions win.
+- **`xout reconcile`** lists the lines in your old files that `XOUT.md` now covers and writes a proposed patch under `~/.claude/xout/reconcile/`. Only `xout reconcile --apply --grant` actually removes those lines, and only after taking a savepoint.
+- **`xout savepoint`** snapshots your rule files byte for byte whenever you like; `xout savepoint restore <id>` puts them back. Every `enable`, `undo`, and `reconcile --apply` takes one automatically.
 
 ## What you get
 
@@ -206,17 +207,17 @@ After the fifteenth X, three files land under `~/.claude/xout/`:
 
 | File | What it is |
 |---|---|
-| `XOUT.md` | 8 executable rules, written for the agent that reads them: a one-paragraph preamble (whose preferences these are, project rules win on a direct conflict), a routine section, and a hard-to-reverse section that defines the condition once with an emphasized tie-breaker. Each rule names the alternatives you X'd out |
-| `manifest.json` | Rule value, confidence label, source, and content hashes |
-| `settings.xout.json` | A reviewable settings proposal |
+| `XOUT.md` | 8 rules, written for the agent that reads them: a one-paragraph preamble (whose preferences these are; project rules win on a direct conflict), a section for routine work, and a section for hard-to-reverse work that states the condition once, with the tie-breaker in bold. Each rule also names the alternatives you X'd out |
+| `manifest.json` | Each rule's value, its label, where it came from, and content hashes |
+| `settings.xout.json` | A settings proposal for you to review |
 
-Rules you confirmed by X'ing are labeled **confirmed**; defaults xout guessed without asking you are honestly labeled **guessed** and queued for a quick re-pick. Nothing is ever activated without your explicit yes.
+Rules you confirmed with an X are labeled **confirmed**. Defaults xout filled in without asking you are labeled **guessed** and queued for a quick re-pick. Nothing is activated until you say yes.
 
-*(Popper 1.x landed the same files as `POPPER.md` and `settings.popper.json` under `~/.claude/popper/`; xout migrates them automatically on first run.)*
+*(Popper 1.x landed the same files as `POPPER.md` and `settings.popper.json` under `~/.claude/popper/`; xout migrates them on first run.)*
 
 ## The map
 
-Eight axes, measured across three scenes. Five axes are measured in **both** contexts, so they can fork on the routine/irreversible boundary - with evidence.
+Eight axes, measured across three scenes. Five of them are measured in **both** kinds of work, so a rule can split at the routine/hard-to-reverse line - and show the X's that split it.
 
 | Axis | Routine scenes | Irreversible scene | Fork? |
 |---|---|---|---|
@@ -229,15 +230,15 @@ Eight axes, measured across three scenes. Five axes are measured in **both** con
 | Test discipline | bugfix + feature | - | measured twice |
 | Comments and docs | bugfix | - | no |
 
-These eight axes weren't invented in a vacuum, and neither were the defaults. We surveyed 100+ high-star (10k-240k+) prompt and agent projects - shipped system prompts of codex/gemini-cli/Devin, the AGENTS.md files of rust/node/pytorch/transformers, community rules collections - and kept receipts: verbatim quotes, verified star counts, per-axis tallies, all in [`docs/mined-prior.md`](docs/mined-prior.md). Six of eight defaults matched the field's mode; two didn't and were corrected. And your own environment is a source too: `xout mine` reads the rule files you already have, with file:line receipts.
+Neither the axes nor the defaults were made up. We went through 100+ high-star (10k-240k+) prompt and agent projects - the shipped system prompts of codex, gemini-cli, and Devin, the AGENTS.md files of rust, node, pytorch, and transformers, the community rules collections - and kept the receipts: verbatim quotes, verified star counts, and per-axis tallies, all in [`docs/mined-prior.md`](docs/mined-prior.md). Six of the eight defaults matched what most of the field does; two didn't and were corrected. Your own machine is a source too: `xout mine` reads the rule files you already have, with file:line receipts.
 
 ## One more pair
 
 You already know how this works. Two behaviors, one X:
 
-> (1) ~~You write CLAUDE.md from memory. The rules have no provenance, apply one-size-fits-all to a bugfix and a production migration alike, and drift silently until the agent annoys you again.~~
+> (1) ~~You write CLAUDE.md from memory. Nobody can say where a rule came from, the same rule applies to a bugfix and a production migration alike, and it quietly drifts until the agent annoys you again.~~
 >
-> (2) You cross out behaviors you have actually seen and hated. Every rule traces to your X's, forks on the routine/irreversible boundary only where your X's diverged, rolls back by one receipt-proofed line, and gets re-struck in two minutes when it goes stale.
+> (2) You cross out behaviors you've actually seen and hated. Every rule traces back to your X's, splits between routine and hard-to-reverse work only where your X's did, rolls back by removing one receipted line, and takes two minutes to redo when it goes stale.
 
 That X is the whole product.
 
@@ -245,17 +246,17 @@ That X is the whole product.
 
 | Command | What it does | Writes to | Consent |
 |---|---|---|---|
-| `xout` | Start (or automatically resume) a session | own dir only | - |
+| `xout` | Start a session, or pick up the one in progress | own dir only | - |
 | `xout why [axis]` | Trace a rule back to the X's that created it | nothing | - |
 | `xout status` | Show your 8 rules and whether they are active | nothing | - |
 | `xout targets` | Which tools xout can plug into, where, and which are active | nothing | - |
 | `xout enable --grant [--target …]` | Plug in: one owned `@import` line (Claude Code) or one owned block (other tools) | one owned line / block, savepoint first | explicit |
 | `xout undo [--target …]` | Remove exactly what xout wrote - full rollback | one owned line / block | - |
-| `xout mine [paths]` | Read your existing rule files (project + `~/.claude`) into axis observations, with file:line receipts | nothing | - |
-| `xout conflicts [paths]` | Lines in your rule files that say the opposite of your rules | nothing | - |
-| `xout reconcile [paths]` | Lines your rule files now repeat from `XOUT.md`; proposes a patch; `--apply --grant` removes them behind a savepoint | own dir; rule files only with `--apply --grant` | explicit |
+| `xout mine [paths]` | Read your existing rule files (project + `~/.claude`) and report what they say about each axis, with file:line receipts | nothing | - |
+| `xout conflicts [paths]` | Lines in your rule files that contradict your rules | nothing | - |
+| `xout reconcile [paths]` | Lines in your rule files that `XOUT.md` now covers; proposes a patch; `--apply --grant` removes them after a savepoint | own dir; rule files only with `--apply --grant` | explicit |
 | `xout savepoint [list\|restore <id>]` | Snapshot your rule files byte for byte, and put them back | own dir; restore rewrites saved files | - |
-| `xout probe` | Ask an external runner the same A/B twice, bare and with your rules, and receipt whether each rule held | own dir (`probes/`) | opt-in |
+| `xout probe` | Ask an external runner the same A/B twice, bare and with your rules, and record whether each rule held | own dir (`probes/`) | opt-in |
 | `xout pair` / `xout strike` | Headless JSON session for agents and scripts | own dir only | - |
 
 ## Why you can trust it
@@ -265,7 +266,7 @@ That X is the whole product.
 - **Reversible.** Activation is one owned import line or one owned block per tool; every edit outside xout's folder takes a savepoint first; `xout undo` removes only what xout can prove it wrote.
 - **Honest.** A kept behavior is "not crossed out yet," never "proven right." Guessed defaults are labeled as guesses.
 
-xout demands evidence from every rule, so its own claims file receipts in the same shape:
+xout asks every rule for its evidence, so its own claims come with receipts in the same shape:
 
 ```text
 claim: interrupt anywhere, resume anywhere, land exactly once
@@ -300,13 +301,13 @@ evidence:
 <details>
 <summary><strong>The engineering behind those claims</strong></summary>
 
-Every strike is an append-only JSONL event with fsync; landing is atomic with content hashes; sessions replay deterministically; duplicate sessions are rejected; manual edits are detected before landing. Pair scheduling judges discriminative power per context, so routine strikes never starve the risky scene; a session is voided unless at least five axes carry real strike evidence. The 15 strikes narrow a 6,561-agent hypothesis space (3 values across 8 axes) down to one - and the survivor is only "not falsified yet," never "proven right." The sealed preregistration lives in [`docs/prereg/prereg_sealed.json`](docs/prereg/prereg_sealed.json); the frozen axis catalog lives in [`docs/axis_locality_table.md`](docs/axis_locality_table.md). The eight-axis catalog is deliberately frozen: xout is a local behavior compiler, not a prompt manager, cloud profile, or agent orchestrator.
+Every strike is an append-only JSONL event, fsynced. Landing is atomic and checked by content hash. Sessions replay deterministically, duplicate sessions are rejected, and manual edits are detected before landing. Pair scheduling weighs how much each pair can tell apart in each context, so routine strikes never starve the risky scene, and a session is voided unless at least five axes carry real strike evidence. Fifteen strikes narrow a space of 6,561 possible agents (3 values on each of 8 axes) down to one - and the survivor is only "not falsified yet," never "proven right." The sealed preregistration is in [`docs/prereg/prereg_sealed.json`](docs/prereg/prereg_sealed.json); the frozen axis catalog is in [`docs/axis_locality_table.md`](docs/axis_locality_table.md). The catalog is frozen on purpose: xout is a local behavior compiler, not a prompt manager, a cloud profile, or an agent orchestrator.
 
 </details>
 
 ## Inside your agent's chat (Claude Code plugin & Agent Skills)
 
-xout also runs inside Claude Code as a conversation (other tools use the terminal session above): `/xout:xout` shows each behavior pair in chat, you pick the one to X, and the agent records only your explicit choice. `/xout:xout status`, `/xout:xout undo` work the same way.
+xout also runs inside Claude Code as a conversation (other tools use the terminal session above). `/xout:xout` shows each pair in chat, you pick the one to X, and the agent records only that choice. `/xout:xout status` and `/xout:xout undo` work the same way.
 
 Or install the same skill through the open [Agent Skills](https://github.com/vercel-labs/skills) ecosystem - one command, any supported agent:
 
@@ -339,7 +340,7 @@ Then in a fresh Claude Code session: `/xout:xout doctor`, `/xout:xout`.
 xout undo        # deactivate: removes the one owned import line
 ```
 
-Your rules and event history stay in `~/.claude/xout/` (yours to keep or delete). Uninstalling the package never touches them.
+Your rules and event history stay in `~/.claude/xout/`, yours to keep or delete. Uninstalling the package never touches them.
 
 ## Development
 
@@ -348,7 +349,7 @@ python3 -m pip install -e '.[test,release]'
 python3 -m pytest tests/ -q
 ```
 
-CI covers Python 3.10-3.14 on macOS, Linux, and Windows. Releases ship wheel, sdist, plugin ZIP, `SHA256SUMS`, and artifact provenance.
+CI covers Python 3.10-3.14 on macOS, Linux, and Windows. Releases ship a wheel, an sdist, the plugin ZIP, `SHA256SUMS`, and build provenance.
 
 ## Credits
 

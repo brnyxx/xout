@@ -4,12 +4,12 @@
     {
       "scene_id": "scn-bugfix",
       "context": "routine",
-      "title": "日常工作 - 修复分页的差一错误",
+      "title": "日常工作 - 修分页的差一错误",
       "segments": [
         {
           "kind": "static",
           "segment_id": "sk-user-request",
-          "text": "[用户] 在我们 {framework} 技术栈（{lang}）的 {file} 里，分页列表会漏掉最后一项。请找出原因并修好。"
+          "text": "[用户] 我们的 {framework} 项目（{lang}）里，{file} 的分页列表总是少最后一条。帮我查一下原因，顺手修掉。"
         },
         {"kind": "slot", "segment_id": "slot-autonomy", "axis": "autonomy"},
         {"kind": "slot", "segment_id": "slot-scope_adherence", "axis": "scope_adherence"},
@@ -19,41 +19,41 @@
       ],
       "slots": {
         "autonomy": {
-          "ask_first": "[智能体] 原因看起来是 {file} 里的边界计算。动手之前先确认一下 - 现在可以直接修吗？",
-          "propose_then_act": "[智能体] 原因看起来是 {file} 里的边界计算。我先把方案贴在下面，然后直接开始修。",
-          "act_then_report": "[智能体] 原因是 {file} 里的边界计算，我已经修完了，这里是结果汇报。"
+          "ask_first": "[智能体] 问题应该出在 {file} 的边界计算上。改之前先跟你确认一下：现在直接修可以吗？",
+          "propose_then_act": "[智能体] 问题应该出在 {file} 的边界计算上。我把方案写在下面，然后直接开始改。",
+          "act_then_report": "[智能体] 问题出在 {file} 的边界计算上，已经修好了，下面是改动汇报。"
         },
         "scope_adherence": {
-          "strict": "这次改动只限于你提到的这一个分页 bug，请求范围之外的文件我一律不碰。",
-          "adjacent_fix_ok": "请求的是分页 bug，不过同一个函数里挨着的一处拼写错误，我也在这次改动里顺手修掉。",
-          "proactive": "修分页 bug 的同时，我把周围重复的逻辑和过时的辅助函数也一并主动清理了。"
+          "strict": "这次只改你说的这个分页 bug，其他文件一概不动。",
+          "adjacent_fix_ok": "你要修的是分页 bug，不过同一个函数里旁边有个拼写错误，我顺手一起改了。",
+          "proactive": "修分页 bug 的时候，我把周围重复的逻辑和已经没人用的辅助函数也一起清理了。"
         },
         "test_discipline": {
-          "test_first": "修复之前，我先写了一个能复现「漏掉最后一项」的失败测试。",
-          "test_after": "修复之后，我在同一次改动里补了一个防止回归的验证测试。",
-          "on_request": "没有人要求写测试，所以这次改动没有加。需要的话告诉我。"
+          "test_first": "动手修之前，我先写了一个能复现「少最后一条」的失败测试。",
+          "test_after": "修好之后，我在同一次改动里补了一个回归测试，防止以后再出这个问题。",
+          "on_request": "你没要求写测试，所以这次没加。需要的话跟我说一声。"
         },
         "comment_doc": {
-          "minimal": "这是补丁。\n```\ndef paginate(items, page, size):\n    start = (page - 1) * size\n    end = start + size\n    return items[start:end]\n```",
-          "docstring_only": "这是补丁。\n```\ndef paginate(items, page, size):\n    \"\"\"返回某一页的条目 - 包含最后一项。\"\"\"\n    start = (page - 1) * size\n    end = start + size\n    return items[start:end]\n```",
-          "thorough": "这是补丁。\n```\ndef paginate(items, page, size):\n    \"\"\"返回某一页的条目 - 包含最后一项。\n\n    结束边界直接加上 size，保持切片为左闭右开。\n    \"\"\"\n    # 把从 1 开始的页码换算成从 0 开始的起始下标\n    start = (page - 1) * size\n    # 旧代码在 end 上减了 1，这就是差一错误\n    end = start + size\n    return items[start:end]\n```"
+          "minimal": "补丁如下。\n```\ndef paginate(items, page, size):\n    start = (page - 1) * size\n    end = start + size\n    return items[start:end]\n```",
+          "docstring_only": "补丁如下。\n```\ndef paginate(items, page, size):\n    \"\"\"返回指定页的条目，含最后一项。\"\"\"\n    start = (page - 1) * size\n    end = start + size\n    return items[start:end]\n```",
+          "thorough": "补丁如下。\n```\ndef paginate(items, page, size):\n    \"\"\"返回指定页的条目，含最后一项。\n\n    end 直接加 size，切片保持左闭右开。\n    \"\"\"\n    # 页码从 1 开始，换算成从 0 开始的起始下标\n    start = (page - 1) * size\n    # 旧代码这里给 end 减了 1，差一错误就出在这\n    end = start + size\n    return items[start:end]\n```"
         },
         "error_behavior": {
-          "stop_and_report": "验证时如果碰到 items 为空这种异常情况，我立刻停下，把原始日志原样报给你。",
-          "retry_then_report": "验证时如果碰到临时性失败，我只重试一次；还失败就停下来，连同日志一起汇报。",
-          "self_heal": "验证时如果碰到 items 为空，我会加一个把它当作空列表处理的防护，自行恢复后继续往下做。"
+          "stop_and_report": "验证的时候要是碰到 items 为空这类异常，我马上停下来，把原始日志原封不动发给你。",
+          "retry_then_report": "验证的时候要是碰到偶发失败，我只重试一次；再失败就停下来，连日志一起报给你。",
+          "self_heal": "验证的时候要是碰到 items 为空，我会加一层保护，把它按空列表处理，自己恢复之后接着往下做。"
         }
       }
     },
     {
       "scene_id": "scn-feature",
       "context": "routine",
-      "title": "日常工作 - 新增 CSV 导出功能",
+      "title": "日常工作 - 给列表加 CSV 导出",
       "segments": [
         {
           "kind": "static",
           "segment_id": "sk-user-request-feature",
-          "text": "[用户] 请在我们 {framework} 技术栈（{lang}）的项目里加一个把列表导出为 CSV 文件的功能。入口放在 {file} 附近比较合适。"
+          "text": "[用户] 我们的 {framework} 项目（{lang}）里，帮我加一个把列表导出成 CSV 文件的功能。入口放在 {file} 附近就行。"
         },
         {"kind": "slot", "segment_id": "slot-scope_adherence", "axis": "scope_adherence"},
         {"kind": "slot", "segment_id": "slot-test_discipline", "axis": "test_discipline"},
@@ -63,41 +63,41 @@
       ],
       "slots": {
         "scope_adherence": {
-          "strict": "我只加导出功能；过程中注意到的现有列表页排序不太对劲，我不去动，只在汇报里提一句。",
-          "adjacent_fix_ok": "加导出功能的同时，新代码直接调用的那个列表查询函数有一个错误默认值，我只把这一处一起改正，其他不碰。",
-          "proactive": "加导出功能的同时，我把列表页的排序问题和重复的格式化工具函数也一并收进这次改动里。"
+          "strict": "我只加导出功能。过程中发现列表页现在的排序有点不对，但我没动，只在汇报里提了一句。",
+          "adjacent_fix_ok": "加导出功能的时候，发现新代码直接调用的那个列表查询函数有个默认值写错了，我只把这一处一起改了，别的没碰。",
+          "proactive": "加导出功能的时候，我把列表页的排序问题和几个重复的格式化工具函数也一起收进了这次改动。"
         },
         "test_discipline": {
-          "test_first": "实现之前，我先写了一个失败测试，断言含逗号和换行的值必须被正确转义。",
-          "test_after": "导出功能实现之后，我在同一次改动里补了覆盖转义和空列表情况的测试。",
-          "on_request": "没有人要求写测试，所以这次实现没有加。需要的话告诉我。"
+          "test_first": "写实现之前，我先写了一个失败测试，要求带逗号和换行的值必须正确转义。",
+          "test_after": "导出功能写完之后，我在同一次改动里补了测试，覆盖转义和空列表两种情况。",
+          "on_request": "你没要求写测试，所以这次没加。需要的话跟我说一声。"
         },
         "dependency_policy": {
-          "prefer_existing": "CSV 序列化用标准库就够了，所以没有引入任何新包。如果以后真的需要外部库，我会先汇报。",
-          "ask_first": "有一个库能让 CSV 序列化更省事，但它是新依赖，所以先问一下 - 可以安装吗？",
-          "free": "我直接装了一个库来简化 CSV 序列化，然后继续实现。"
+          "prefer_existing": "CSV 序列化用标准库就够了，所以没引入新包。以后要是真的需要外部库，我会先跟你说。",
+          "ask_first": "有个库能让 CSV 序列化省事不少，不过它是个新依赖，先问一下：可以装吗？",
+          "free": "我直接装了一个库来做 CSV 序列化，然后接着写实现。"
         },
         "verification": {
-          "always_run": "实现之后，我实际跑了测试套件和构建，确认全部通过，然后才报告完成。",
-          "on_risky": "这次改动以新文件为主、风险低，所以我只跑了新加的测试就报告完成。",
-          "trust_static": "我重读了代码确认逻辑，也没看到类型错误，就这样报告完成。"
+          "always_run": "写完之后，我实际跑了一遍测试套件和构建，确认全部通过，才报告完成。",
+          "on_risky": "这次改动基本都是新文件，风险不高，所以我只跑了新加的测试就报告完成了。",
+          "trust_static": "我把代码重读了一遍，逻辑没问题，也没看到类型错误，就直接报告完成了。"
         },
         "commit_style": {
           "conventional": "提交: feat: 为列表新增 CSV 导出",
           "narrative": "提交: 让列表可以导出为 CSV 文件",
-          "no_auto_commit": "我没有创建提交。改动留在工作区里，请你自己检查后提交。"
+          "no_auto_commit": "我没有提交。改动都在工作区里，你看过之后自己提交吧。"
         }
       }
     },
     {
       "scene_id": "scn-risky",
       "context": "irreversible",
-      "title": "高风险工作 - 迁移用户表的结构",
+      "title": "高风险工作 - 用户表结构迁移",
       "segments": [
         {
           "kind": "static",
           "segment_id": "sk-user-request-risky",
-          "text": "[用户] 我们 {framework} 技术栈（{lang}）里，用户表的邮箱列需要统一转成小写。请在 {file} 里准备迁移和回填脚本。这会应用到生产数据库。"
+          "text": "[用户] 我们的 {framework} 项目（{lang}）里，用户表的邮箱字段要统一转成小写。请在 {file} 里把迁移脚本和回填脚本准备好。这个会直接上生产库。"
         },
         {"kind": "slot", "segment_id": "slot-autonomy", "axis": "autonomy"},
         {"kind": "slot", "segment_id": "slot-error_behavior", "axis": "error_behavior"},
@@ -107,29 +107,29 @@
       ],
       "slots": {
         "autonomy": {
-          "ask_first": "[智能体] 迁移和回填脚本的草稿已经准备好。因为会碰到生产数据，在你审阅之前我不会执行任何东西。",
-          "propose_then_act": "[智能体] 我先把迁移计划贴出来，然后直接推进到 staging 环境应用。只有生产环境的应用等你批准。",
-          "act_then_report": "[智能体] 迁移和回填我已经在 staging 应用并验证完毕，这里是结果汇报。生产环境的应用命令也准备好了。"
+          "ask_first": "[智能体] 迁移和回填脚本的草稿已经写好了。因为会动到生产数据，你审完之前我什么都不会执行。",
+          "propose_then_act": "[智能体] 我先把迁移计划贴出来，然后直接在 staging 环境跑起来。只有生产环境那一步等你批准。",
+          "act_then_report": "[智能体] 迁移和回填我已经在 staging 跑完并验证过了，下面是结果汇报。生产环境的执行命令也准备好了。"
         },
         "error_behavior": {
-          "stop_and_report": "回填时如果碰到格式损坏的邮箱，我当场停下，把那一行连同原始日志原样报给你。",
-          "retry_then_report": "回填时如果碰到临时性的锁冲突，我只重试一次；还失败就停止推进，连同日志一起汇报。",
-          "self_heal": "回填时如果碰到格式损坏的邮箱，我加一段把它置为 NULL 的修正逻辑，跑到最后再汇报结果。"
+          "stop_and_report": "回填的时候要是碰到格式有问题的邮箱，我当场停下来，把那一行和原始日志原封不动发给你。",
+          "retry_then_report": "回填的时候要是碰到偶发的锁冲突，我只重试一次；再失败就停下来，连日志一起报给你。",
+          "self_heal": "回填的时候要是碰到格式有问题的邮箱，我会加一段修正逻辑把它置为 NULL，跑完再把结果报给你。"
         },
         "verification": {
-          "always_run": "应用之前，我在 staging 副本上实际跑迁移前后的行数和抽样比对，连同输出一起汇报。",
-          "on_risky": "因为会碰到生产环境，这次我会做完副本演练和回滚脚本检查之后再汇报。",
-          "trust_static": "我重读了 SQL 确认逻辑，也没有语法错误，所以不做演练，直接报告可以应用。"
+          "always_run": "执行之前，我会在 staging 副本上实际跑一遍，比对迁移前后的行数和抽样数据，把输出一起报给你。",
+          "on_risky": "因为要动生产环境，这次我会先在副本上演练一遍、检查完回滚脚本，再向你汇报。",
+          "trust_static": "我把 SQL 重读了一遍，逻辑没问题，也没有语法错误，所以不做演练了，直接报告可以执行。"
         },
         "dependency_policy": {
-          "prefer_existing": "回填只用了我们已经在用的数据库驱动。如果看起来需要迁移工具，我会另行提议。",
-          "ask_first": "为了安全地分批回填，我想用一个迁移工具，但它是新依赖，所以安装前先问一下。",
-          "free": "为了安全地分批回填，我直接装了一个迁移工具，并用它写好了脚本。"
+          "prefer_existing": "回填只用了我们现有的数据库驱动。要是看起来需要迁移工具，我会另外提出来。",
+          "ask_first": "为了分批安全回填，我想用一个迁移工具，不过它是个新依赖，装之前先问一下。",
+          "free": "为了分批安全回填，我直接装了一个迁移工具，脚本也用它写好了。"
         },
         "commit_style": {
           "conventional": "提交: feat: 新增邮箱小写规范化迁移",
-          "narrative": "提交: 准备了一次规范化迁移，避免仅因邮箱大小写不同而产生重复账号",
-          "no_auto_commit": "我没有创建提交。迁移文件在工作区里，请你审阅后自己提交。"
+          "narrative": "提交: 准备邮箱规范化迁移，避免只因大小写不同就出现重复账号",
+          "no_auto_commit": "我没有提交。迁移文件在工作区里，你审完之后自己提交吧。"
         }
       }
     }

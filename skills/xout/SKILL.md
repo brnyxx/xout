@@ -1,6 +1,6 @@
 ---
 name: xout
-description: X out the AI behavior you never want - compare two concrete agent behaviors, cross out the wrong one, and compile the survivors into rules that plug into Claude Code, Codex, OpenCode, Gemini CLI, Copilot, pi, Kiro or any AGENTS.md reader, with explicit activation, savepoints and rollback. 두 에이전트 행동 중 아닌 쪽에 X를 쳐서 규칙으로 컴파일하고 쓰는 도구의 규칙 파일에 명시적으로 꽂고 되돌린다. 사용자가 "xout", "행동 규칙 컴파일", "긋기 세션", "재심(recheck)", "xout 활성화/롤백"을 요청할 때 사용.
+description: X out the AI behavior you never want - compare two concrete agent behaviors, cross out the wrong one, and compile the survivors into rules that plug into Claude Code, Codex, OpenCode, Gemini CLI, Copilot, pi, Kiro or any AGENTS.md reader, with explicit activation, savepoints and rollback. 에이전트 행동 둘 중 아닌 쪽에 X를 쳐서 규칙으로 만들고 쓰는 도구의 규칙 파일에 명시적으로 꽂거나 되돌린다. 사용자가 "xout", "행동 규칙 컴파일", "긋기 세션", "재심(recheck)", "xout 활성화/롤백"을 요청할 때 사용.
 argument-hint: "[chat|status|sessions|doctor|enable|rollback|undo]"
 disable-model-invocation: true
 allowed-tools: 'Bash(python3 *)'
@@ -8,22 +8,22 @@ allowed-tools: 'Bash(python3 *)'
 
 # xout - X 세션
 
-xout은 질문 대신 반증 가능한 대비 페어를 제시하고, 사용자의 유일한 동사인
-"X 치기"만으로 Claude Code 설정(8축 가설 공간 6,561조합)을 수렴시킨다.
-세션 런타임에 LLM 호출 0회, 외부 네트워크 호출 0회다 - 모든 진행은 로컬
+xout은 질문 대신 에이전트 행동 두 개를 나란히 보여 주고 사용자가 아닌 쪽에
+X를 치게 한다. 그것만으로 Claude Code 설정(8축, 6,561조합)이 하나로 좁혀진다.
+세션 중 LLM 호출 0회, 외부 네트워크 호출 0회다. 모든 진행은 로컬
 append-only 이벤트 원장 위에서 일어난다.
 
 ## 실행 규칙
 
 어떤 세션이든 시작 전에 반드시
 `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/xout_plugin.py" status`를 먼저 실행해
-재심 대기 배너를 확인하고, 배너가 있으면 사용자에게 한 줄로 전달한다.
+재심 대기 배너를 확인하고 배너가 있으면 사용자에게 한 줄로 전달한다.
 
 세션은 **대화형(chat) 모드**로 진행한다:
 
 1. `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/xout_plugin.py" pair`를 실행해
    JSON을 받는다. `pair.left_text` / `pair.right_text` / `pair.pair_id`가 핵심이다.
-2. 두 행동 본문을 **그대로** 사용자에게 보여주고, 어느 쪽에 X를 칠지 묻는다.
+2. 두 행동 본문을 **그대로** 사용자에게 보여 주고 어느 쪽에 X를 칠지 묻는다.
 3. 사용자가 명시적으로 고른 것만
    `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/xout_plugin.py" strike <left|right|both|pair> --pair-id <pair_id>`로 기록한다.
 4. 응답 JSON의 `session_complete`가 true가 될 때까지 1-3을 반복한다.
@@ -35,7 +35,7 @@ append-only 이벤트 원장 위에서 일어난다.
 
 | 인자 | 실행 | 명령 | 설명 |
 |---|---|---|---|
-| (없음) 또는 `chat` | 포그라운드 반복 | 위 대화형 루프 (`pair` -> 사용자 선택 -> `strike`) | 미완료 세션 1건이면 이어서, 없으면 새 15긋기 세션 |
+| (없음) 또는 `chat` | 포그라운드 반복 | 위 대화형 루프 (`pair` -> 사용자 선택 -> `strike`) | 미완료 세션 1건이면 이어서 진행하고 없으면 새 세션(X 15번) |
 | `status` | 포그라운드 출력 | `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/xout_plugin.py" status` | 착지/활성화/재개/판정 요약 |
 | `sessions` | 포그라운드 출력 | `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/xout_plugin.py" sessions` | 최근 세션 목록 |
 | `doctor` | 포그라운드 출력 | `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/xout_plugin.py" doctor` | 설치·데이터·replay 로컬 진단 |
@@ -44,26 +44,26 @@ append-only 이벤트 원장 위에서 일어난다.
 
 ## 위 상태 출력에 "재심 대기 N건" 배너가 있으면
 
-세션을 열기 전에 사용자에게 배너 내용을 한 줄로 전달하고, 터미널에서
-`xout recheck`로 재심에 들어갈 수 있다고 안내한다. 수락 여부는 사용자가
-정한다 - 대신 결정하지 않는다.
+세션을 열기 전에 사용자에게 배너 내용을 한 줄로 전달하고 터미널에서
+`xout recheck`로 재심에 들어갈 수 있다고 안내한다. 할지 말지는 사용자가
+정한다. 대신 결정하지 않는다.
 
 ## 세션이 끝나면
 
 - 산출물은 `~/.claude/xout/` 단독 소유 디렉토리에만 착지한다
   (XOUT.md + manifest.json + settings.xout.json).
-- 사용자 CLAUDE.md 활성화는 위 launcher의 `enable --grant`로만 하며
-  @import 한 줄만 추가된다. 사용자가 명시적으로 동의할 때만 실행한다.
+- 사용자 CLAUDE.md 활성화는 위 launcher의 `enable --grant`로만 하고
+  @import 한 줄만 추가한다. 사용자가 명시적으로 동의할 때만 실행한다.
 - 롤백도 위 launcher의 `undo`만 사용한다 (그 한 줄만 제거).
 - 적용 전에 `conflicts [경로]`로 프로젝트 규칙 파일(CLAUDE.md/AGENTS.md/
-  .cursorrules)과 갈리는 줄을 file:line으로 보여줄 수 있다. 정면 충돌은
-  프로젝트가 이긴다고 XOUT.md 프리앰블이 이미 말한다.
-- 규칙이 실제로 선택을 움직이는지는 `probe`가 잰다 - 외부 러너(기본
-  `claude -p`)를 세션 밖에서 호출하는 옵트인 명령이라 사용자가 요청할
-  때만 실행하고, 영수증은 `~/.claude/xout/probes/`에만 남는다.
+  .cursorrules)과 갈리는 줄을 file:line으로 보여줄 수 있다. 정면 충돌이면
+  프로젝트가 이긴다고 XOUT.md 첫 문단에 이미 적혀 있다.
+- 규칙이 실제로 답을 바꾸는지는 `probe`가 잰다. 외부 러너(기본
+  `claude -p`)를 세션 밖에서 부르는 옵트인 명령이라 사용자가 요청할
+  때만 실행하고 영수증은 `~/.claude/xout/probes/`에만 남는다.
 
 ## 하지 말 것
 
-- 사용자 대신 X를 치지 않는다 - X는 사용자의 반증 행위다.
+- 사용자 대신 X를 치지 않는다 - X는 사용자만 칠 수 있다.
 - CLAUDE.md나 settings.json을 직접 편집하지 않는다 - xout의 소유권 계약 위반이다.
-- 페어 본문을 요약하거나 편집해 보여주지 않는다 - 원문 그대로가 측정 도구다.
+- 페어 본문을 요약하거나 편집해 보여 주지 않는다 - 원문 그대로 보여 줘야 제대로 잰다.
