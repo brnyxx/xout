@@ -59,6 +59,8 @@ def test_every_language_owns_its_surfaces() -> None:
         motion = diagram.read_bytes()
         assert motion[:6] in {b"GIF87a", b"GIF89a"}, diagram.name
         assert struct.unpack("<HH", motion[6:10]) == (960, 540), diagram.name
+        clip = assets / ("how-it-works.mp4" if lang == "en" else f"how-it-works.{lang}.mp4")
+        assert clip.read_bytes()[4:8] == b"ftyp", clip.name
         hero = assets / ("hero.svg" if lang == "en" else f"hero.{lang}.svg")
         assert 'viewBox="0 0 1200 420"' in hero.read_text(encoding="utf-8"), hero.name
         card = assets / ("social-card.png" if lang == "en" else f"social-card.{lang}.png")

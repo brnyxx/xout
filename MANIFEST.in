@@ -14,6 +14,6 @@ recursive-include skills *.md
 recursive-include tests *.py
 recursive-include tests/data *.json
 recursive-include fixtures *.json
-recursive-exclude .github/assets *.gif *.png
+recursive-exclude .github/assets *.gif *.png *.mp4
 prune video
 prune recordings

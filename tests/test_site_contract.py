@@ -27,6 +27,10 @@ EXPECTED_ARTIFACTS = {
     "assets/site.css",
     "assets/logo.svg",
     "assets/hero.svg",
+    "assets/how-it-works.mp4",
+    "assets/how-it-works.ko.mp4",
+    "assets/how-it-works.ja.mp4",
+    "assets/how-it-works.zh.mp4",
     "assets/how-it-works.gif",
     "assets/how-it-works.ko.gif",
     "assets/how-it-works.ja.gif",
@@ -216,6 +220,7 @@ def test_rendered_routes_have_matching_structure_links_and_seo(tmp_path: Path) -
         assert '<link rel="stylesheet" href="../assets/site.css">' in page
         assert 'aria-current="page"' in page
         assert "{{" not in page
+        assert f'<video src="../assets/how-it-works.{locale}.mp4"' in page
         assert f"--lang {locale}" in page
         assert "4,374" in page
     for page in (english, korean):

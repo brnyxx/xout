@@ -45,6 +45,7 @@ BUILD_KEYS = frozenset(
         "repository_readme_url",
         "repository_releases_url",
         "npm_url",
+        "how_it_works_video",
         "pypi_url",
         "og_locale",
         "og_locale_alt",
@@ -56,6 +57,10 @@ ASSETS = (
     (Path("assets/site.css"), Path("assets/site.css")),
     (Path("../.github/assets/logo.svg"), Path("assets/logo.svg")),
     (Path("../.github/assets/hero.svg"), Path("assets/hero.svg")),
+    (Path("../.github/assets/how-it-works.mp4"), Path("assets/how-it-works.mp4")),
+    (Path("../.github/assets/how-it-works.ko.mp4"), Path("assets/how-it-works.ko.mp4")),
+    (Path("../.github/assets/how-it-works.ja.mp4"), Path("assets/how-it-works.ja.mp4")),
+    (Path("../.github/assets/how-it-works.zh.mp4"), Path("assets/how-it-works.zh.mp4")),
     (Path("../.github/assets/how-it-works.gif"), Path("assets/how-it-works.gif")),
     (Path("../.github/assets/how-it-works.ko.gif"), Path("assets/how-it-works.ko.gif")),
     (Path("../.github/assets/how-it-works.ja.gif"), Path("assets/how-it-works.ja.gif")),
@@ -81,6 +86,10 @@ ARTIFACT_FILES = frozenset(
         "assets/site.css",
         "assets/logo.svg",
         "assets/hero.svg",
+        "assets/how-it-works.mp4",
+        "assets/how-it-works.ko.mp4",
+        "assets/how-it-works.ja.mp4",
+        "assets/how-it-works.zh.mp4",
         "assets/how-it-works.gif",
         "assets/how-it-works.ko.gif",
         "assets/how-it-works.ja.gif",
@@ -297,6 +306,9 @@ def render(
         version=version,
     )
 
+    motion = catalog.get("how_it_works_gif", "")
+    build_values["how_it_works_video"] = motion[: -len(".gif")] + ".mp4" if motion.endswith(".gif") else ""
+
     def replace(match: re.Match[str]) -> str:
         key = match.group(1)
         if key in build_values:
@@ -374,6 +386,12 @@ def _validate_route(
 
 
 def _validate_assets(root: Path) -> None:
+    for clip in ("how-it-works.mp4", "how-it-works.ko.mp4", "how-it-works.ja.mp4", "how-it-works.zh.mp4"):
+        head = (root / "assets" / clip).read_bytes()
+        if len(head) < 12 or head[4:8] != b"ftyp":
+            raise SiteBuildError(f"INVALID_ARTIFACT_TREE:{clip}")
+        if len(head) > 6_000_000:
+            raise SiteBuildError(f"INVALID_ARTIFACT_TREE:{clip}-size")
     for card in ("social-card.png", "social-card.ko.png", "social-card.ja.png", "social-card.zh.png"):
         png = (root / "assets" / card).read_bytes()
         if len(png) < 24 or png[:8] != b"\x89PNG\r\n\x1a\n":
