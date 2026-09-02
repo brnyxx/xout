@@ -333,7 +333,7 @@ def load_ground_truth(path: Path | str, *, expected_file_hash: str) -> GroundTru
             f"초안 봉인 해시 재계산 불일치: sealed={sealed_digest} recomputed={recomputed}"
         )
 
-    logger.info("정답지 봉인 검증 완료: %s (%d개 라벨)", source, len(labels))
+    logger.debug("ground truth seal verified: %s (%d labels)", source, len(labels))
     return GroundTruth(
         path=source,
         file_hash=actual_hash,

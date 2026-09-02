@@ -12,9 +12,9 @@ slow cadence: minor versions ship every 6-12 months, patches only for defects.
   run the whole session (pairs, rules, screen text) in that language. The
   ledger stays language-neutral; `xout why --lang ja|zh` renders the same
   receipts.
-- A how-it-works diagram per language (`.github/assets/how-it-works*.svg`)
-  in the READMEs and on the site, plus an under-the-hood ledger diagram in
-  the READMEs.
+- A how-it-works film per language (`.github/assets/how-it-works*.gif`,
+  rendered with Remotion from `video/`) in the READMEs and on the site (en/ko),
+  plus an under-the-hood ledger diagram in the READMEs.
 - `README.ja.md` and `README.zh.md`.
 - `xout probe` - opt-in, outside any session: sends each measured scene as
   an A/B question to an external runner (default `claude -p`) twice, bare
@@ -65,6 +65,17 @@ slow cadence: minor versions ship every 6-12 months, patches only for defects.
   eliminated value, after a weak pair (prefer_existing vs ask_first) produced a
   meaningless miss.
 - Demo GIFs re-recorded with the new rule text and the other-tools hint.
+- Every language's copy rewritten in its own voice (README, site, scene packs,
+  rule sentences, CLI messages, film). The site's transcript labels are
+  "Crossed out / Kept" (ko: "X 친 쪽 / 남긴 쪽") instead of epistemic terms.
+- Audit fixes: `enable` refuses to write any target until XOUT.md exists;
+  `pair` reports `session_complete` instead of silently opening a new session
+  (`--new` to start one); `export`, `pair` rule labels, `status`, `enable`,
+  `undo` and landing logs follow `--lang`; `status`/`enable`/`undo` print to
+  stdout; `mine` drops lines that match two values of one axis and reads
+  "tests first"; lock files live under `~/.claude/xout/.locks/` instead of
+  next to `CLAUDE.md`; sdist ships the test harness and every README and no
+  GIFs.
 - Japanese and Chinese conditional rules end with `。` instead of an ASCII
   period, and `xout why` grade labels are localized for both.
 

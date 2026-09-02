@@ -1132,7 +1132,7 @@ class ColdOpenSession:
             strike_count=len(self._log.strikes()),
             slots_used=self._slots_used(),
             slots_total=self._slots_total,
-            rules=tuple(_rule_view(rule) for rule in rules),
+            rules=tuple(_rule_view(rule, self._lang) for rule in rules),
             last_strike=self._last,
             undoable=self._last_undoable_strike() is not None and not self._complete(),
             session_complete=self._complete(),

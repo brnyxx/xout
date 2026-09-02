@@ -134,6 +134,7 @@ def test_enable_and_undo_block_targets_through_the_cli(capsys, tmp_path: Path, m
     assert "<!-- xout:begin" in (project / "AGENTS.md").read_text(encoding="utf-8")
     assert main(["enable", "--base-dir", str(base), "--grant", "--target", "codex"]) == 0  # 멱등
 
+    capsys.readouterr()
     assert main(["targets", "--base-dir", str(base), "--json"]) == 0
     rows = {r["target_id"]: r for r in json.loads(capsys.readouterr().out)}
     assert rows["codex"]["active"] and rows["kiro"]["active"] and rows["agents"]["active"]

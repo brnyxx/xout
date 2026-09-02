@@ -1,11 +1,18 @@
 include LICENSE
 include README.md
 include README.ko.md
+include README.ja.md
+include README.zh.md
 include pyproject.toml
 recursive-include .claude-plugin *.json
-recursive-include .github/assets *.gif *.png *.svg
+recursive-include .github/assets *.svg
 recursive-include .github/workflows *.yml
 recursive-include docs *.json *.md
 recursive-include scripts *.py
 recursive-include site *.css *.html *.json
 recursive-include skills *.md
+recursive-include tests *.py
+recursive-include fixtures *.json
+recursive-exclude .github/assets *.gif *.png
+prune video
+prune recordings

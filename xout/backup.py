@@ -94,7 +94,7 @@ def create_backup(base_dir: Path | str, destination: Path | str) -> BackupResult
                 if not path.is_file() or path.is_symlink():
                     continue
                 relative = path.relative_to(base).as_posix()
-                if path.name.endswith(".tmp"):
+                if path.name.endswith(".tmp") or relative.startswith(".locks/"):
                     continue
                 if len(files) + 2 > MAX_BACKUP_FILES:
                     raise ValueError(

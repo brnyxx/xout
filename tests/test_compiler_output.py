@@ -317,7 +317,7 @@ def _landed(tmp_path, mixed_events):
 
 def test_write_outputs_lands_exactly_three_files(tmp_path, mixed_events) -> None:
     result, _ = _landed(tmp_path, mixed_events)
-    assert sorted(p.name for p in tmp_path.iterdir()) == sorted(OUTPUT_FILES)
+    assert sorted(p.name for p in tmp_path.iterdir() if p.name != ".locks") == sorted(OUTPUT_FILES)
     assert result.base_dir == tmp_path
     assert tuple(p.name for p in result.written) == OUTPUT_FILES
     for path in result.written:

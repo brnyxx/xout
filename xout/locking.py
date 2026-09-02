@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+
 import os
 import time
 from pathlib import Path
@@ -132,24 +134,28 @@ def lock_for_path(path: Path | str) -> ProcessFileLock:
         return lock
 
 
+LOCK_DIR = ".locks"
+
+
+def lock_dir(base_dir: Path | str) -> Path:
+    """모든 잠금 파일은 소유 디렉토리 안에만 산다 - 밖에 아무것도 남기지 않는다."""
+    return Path(base_dir).expanduser().resolve() / LOCK_DIR
+
+
 def base_lock(base_dir: Path | str) -> ProcessFileLock:
     """이벤트와 파생 산출물 전체를 직렬화하는 소유 디렉토리 잠금."""
-    base = Path(base_dir).expanduser().resolve()
-    return lock_for_path(base.parent / f".{base.name}.xout.lock")
+    return lock_for_path(lock_dir(base_dir) / "base.lock")
 
 
-def target_lock(target: Path | str) -> ProcessFileLock:
-    """소유 디렉토리 밖 단일 사용자 파일을 보호하는 형제 잠금."""
+def target_lock(target: Path | str, base_dir: Path | str) -> ProcessFileLock:
+    """소유 디렉토리 밖 단일 사용자 파일을 보호하는 잠금 - 파일은 소유 디렉토리 안에 둔다."""
     path = Path(target).expanduser().resolve()
-    return lock_for_path(path.with_name(f".{path.name}.xout.lock"))
+    digest = hashlib.sha256(str(path).encode("utf-8")).hexdigest()[:12]
+    return lock_for_path(lock_dir(base_dir) / f"target-{digest}-{path.name}.lock")
 
 
 def base_runtime_lock(
     base_dir: Path | str, *, timeout: float = 0.1
 ) -> ProcessFileLock:
     """한 소유 디렉토리의 admission 판정과 서버 수명주기를 직렬화한다."""
-    base = Path(base_dir).expanduser().resolve()
-    return ProcessFileLock(
-        base.parent / f".{base.name}.runtime.lock",
-        timeout=timeout,
-    )
+    return ProcessFileLock(lock_dir(base_dir) / "runtime.lock", timeout=timeout)

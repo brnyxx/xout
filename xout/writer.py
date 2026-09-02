@@ -263,7 +263,7 @@ class OwnedWriter:
         for name, body in documents.items():
             written.append(self.write_file(name, body))
         written.append(self.write_file(MANIFEST_JSON, _canonical(manifest)))
-        logger.info("xout 산출물 착지: %s", self.base_dir)
+        logger.info("landed: %s", self.base_dir)
         return WriteOutcome(base_dir=self.base_dir, written=tuple(written))
 
     def write_outputs(
@@ -389,13 +389,13 @@ class OwnedWriter:
         atomic_write_bytes(target, data + separator + encoded + newline)
         receipt["state"] = "added"
         self._write_activation_receipt_unlocked(receipt)
-        logger.info("CLAUDE.md 소유 @import 추가: %s", target)
+        logger.info("import line added: %s", target)
         return ImportOutcome(path=target, line=line, changed=True, reason=IMPORT_ADDED)
 
     def ensure_import(self, permission: ConsentRecord | None = None) -> ImportOutcome:
         """CLAUDE.md와 소유 receipt를 동일 잠금 순서 안에서 갱신한다."""
         with base_lock(self.base_dir):
-            with target_lock(self.claude_md_path):
+            with target_lock(self.claude_md_path, self.base_dir):
                 return self._ensure_import_unlocked(permission)
 
     def _remove_import_unlocked(self) -> ImportOutcome:
@@ -491,7 +491,7 @@ class OwnedWriter:
             )
         atomic_write_bytes(target, data[:prefix_length] + data[end:])
         self._clear_activation_receipt_unlocked()
-        logger.info("CLAUDE.md @import 제거(롤백): %s", target)
+        logger.info("import line removed: %s", target)
         return ImportOutcome(
             path=target, line=line, changed=True, reason=IMPORT_REMOVED
         )
@@ -499,5 +499,5 @@ class OwnedWriter:
     def remove_import(self) -> ImportOutcome:
         """소유 receipt가 증명한 한 occurrence만 제거한다."""
         with base_lock(self.base_dir):
-            with target_lock(self.claude_md_path):
+            with target_lock(self.claude_md_path, self.base_dir):
                 return self._remove_import_unlocked()

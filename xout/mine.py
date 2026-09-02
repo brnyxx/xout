@@ -49,6 +49,14 @@ _MAX_DEPTH = 4
 _MAX_FILES = 200
 _MAX_LINE_CHARS = 240
 
+#: 한 줄이 같은 축의 값 둘에 걸릴 때 이기는 쪽 - 더 구체적인 주장이 먼저다.
+#: ("tests only when asked"는 on_request, "retry once then stop and report"는 retry_then_report.)
+#: 표에 없는 축은 애매한 줄을 버린다.
+PRECEDENCE: dict[str, tuple[str, ...]] = {
+    "test_discipline": ("on_request", "test_first", "test_after"),
+    "error_behavior": ("retry_then_report", "self_heal", "stop_and_report"),
+}
+
 #: (축, 값) -> 매칭 패턴. 정밀도 우선 - 애매한 줄은 귀속하지 않는 편을 택한다.
 MINED_PATTERNS: dict[tuple[str, str], tuple[str, ...]] = {
     ("autonomy", "ask_first"): (
@@ -86,7 +94,7 @@ MINED_PATTERNS: dict[tuple[str, str], tuple[str, ...]] = {
         r"요청.{0,10}커밋",
     ),
     ("test_discipline", "test_first"): (
-        r"test[- ]first",
+        r"tests?[- ]first",
         r"\bTDD\b",
         r"(failing|reproducing) test first",
         r"테스트를? 먼저",
@@ -126,6 +134,7 @@ MINED_PATTERNS: dict[tuple[str, str], tuple[str, ...]] = {
     ),
     ("error_behavior", "retry_then_report"): (
         r"retry (once|one time)",
+        r"retry\b.{0,40}\bonce\b",
         r"한 ?번만? 재시도",
     ),
     ("error_behavior", "self_heal"): (
@@ -279,18 +288,28 @@ def _observe_file(path: Path, display: str) -> list[Observation]:
         line = raw.strip()
         if not line or len(line) > _MAX_LINE_CHARS:
             continue
+        hits: dict[str, list[str]] = {}
         for (axis, value), patterns in _COMPILED.items():
             if any(pattern.search(line) for pattern in patterns):
-                found.append(
-                    Observation(
-                        axis=axis,
-                        value=value,
-                        path=display,
-                        line_no=line_no,
-                        line=line,
-                        abs_path=str(path.resolve()),
-                    )
+                hits.setdefault(axis, []).append(value)
+        for axis, values in hits.items():
+            if len(values) != 1:
+                order = PRECEDENCE.get(axis)
+                if order is None:
+                    continue  # 우선순위가 없는 축은 애매한 줄을 버린다
+                values = [v for v in order if v in values][:1] or []
+                if not values:
+                    continue
+            found.append(
+                Observation(
+                    axis=axis,
+                    value=values[0],
+                    path=display,
+                    line_no=line_no,
+                    line=line,
+                    abs_path=str(path.resolve()),
                 )
+            )
     return found
 
 

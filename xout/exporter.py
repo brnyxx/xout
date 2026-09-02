@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from xout.atomic import atomic_write_text
-from xout.compiler import compile_rules, render_xout_md
+from xout.compiler import DEFAULT_RULE_LANG, compile_rules, default_base_dir, render_xout_md
 from xout.locking import target_lock
 
 FORMAT_MARKDOWN = "markdown"
@@ -17,10 +17,10 @@ FORMAT_JSON = "json"
 EXPORT_FORMATS = (FORMAT_MARKDOWN, FORMAT_AGENTS, FORMAT_CLAUDE, FORMAT_JSON)
 
 
-def render_export(events: Iterable[Any], format_name: str) -> str:
-    rules = compile_rules(tuple(events))
+def render_export(events: Iterable[Any], format_name: str, lang: str = DEFAULT_RULE_LANG) -> str:
+    rules = compile_rules(tuple(events), lang=lang)
     if format_name == FORMAT_MARKDOWN:
-        return render_xout_md(rules)
+        return render_xout_md(rules, lang)
     if format_name in (FORMAT_AGENTS, FORMAT_CLAUDE):
         title = "Agent Instructions" if format_name == FORMAT_AGENTS else "Claude Instructions"
         body = "\n".join(f"- {rule.text}" for rule in rules)
@@ -42,7 +42,7 @@ def render_export(events: Iterable[Any], format_name: str) -> str:
     raise ValueError(f"지원하지 않는 export 형식: {format_name!r}")
 
 
-def write_export(path: Path | str, body: str) -> Path:
+def write_export(path: Path | str, body: str, base_dir: Path | str | None = None) -> Path:
     target = Path(path).expanduser().resolve()
-    with target_lock(target):
+    with target_lock(target, default_base_dir() if base_dir is None else base_dir):
         return atomic_write_text(target, body)

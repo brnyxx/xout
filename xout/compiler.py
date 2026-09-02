@@ -1,7 +1,7 @@
 """AC4 - 세션 이벤트를 8축 실행 룰(XOUT.md)과 인식론 사이드카(manifest.json)로 컴파일한다.
 
 컴파일러는 순수 fold 파생만 사용한다. 카운터/등급/판정은 저장하지 않고 매 호출마다
-이벤트 스트림에서 다시 계산한다. 산출 경로는 ~/.claude/popper/ 단독이며 사용자 파일에는
+이벤트 스트림에서 다시 계산한다. 산출 경로는 ~/.claude/xout/ 단독이며 사용자 파일에는
 쓰지 않는다.
 """
 
@@ -346,6 +346,7 @@ class CompiledRule:
     pair_struck: bool = False
     demoted: bool = False
     irreversible_value: str | None = None
+    lang: str = "ko"
 
     @property
     def rule_id(self) -> str:
@@ -353,7 +354,8 @@ class CompiledRule:
 
     @property
     def grade_label(self) -> str:
-        return GRADE_LABELS[self.corroboration_grade]
+        table = GRADE_LABELS_BY_LANG.get(self.lang, GRADE_LABELS)
+        return table.get(self.corroboration_grade, self.corroboration_grade)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -582,6 +584,7 @@ def compile_rules(
                 pair_struck=pair_struck,
                 demoted=bool(axis_state.demoted),
                 irreversible_value=divergent,
+                lang=lang,
             )
         )
     return tuple(rules)
@@ -808,7 +811,7 @@ def _write_outputs_unlocked(
     acknowledge_mismatch: bool = False,
     lang: str = DEFAULT_RULE_LANG,
 ) -> WriteResult:
-    """~/.claude/popper/ 안에만 XOUT.md + manifest.json + settings.xout.json을 착지시킨다."""
+    """~/.claude/xout/ 안에만 XOUT.md + manifest.json + settings.xout.json을 착지시킨다."""
     target_dir = Path(base_dir) if base_dir is not None else default_base_dir()
 
     mismatches = verify_outputs(target_dir) if target_dir.exists() else ()
@@ -849,7 +852,7 @@ def _write_outputs_unlocked(
         path = target_dir / name
         atomic_write_text(path, documents[name])
         written_by_name[name] = path
-    logger.info("xout 산출물 착지: %s", target_dir)
+    logger.info("landed: %s", target_dir)
     return WriteResult(
         base_dir=target_dir,
         manifest=manifest,

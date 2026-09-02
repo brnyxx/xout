@@ -95,7 +95,6 @@ from xout.session import (
 from xout.sessions import latest_resumable, summarize_sessions
 from xout.store import EventStore, StoreViolation
 from xout.state import (
-    AXIS_LABELS,
     ColdOpenSession,
     axis_label,
     RecoveryUnavailable,
@@ -147,11 +146,7 @@ def _activation_state(base_dir: Path) -> dict[str, str | None]:
             "status": "inactive",
             "path": str(target),
             "expected_import": expected,
-            "remediation": (
-                "xout enable --grant를 실행해라"
-                if output_exists
-                else "xout open으로 세션을 먼저 완주해라"
-            ),
+            "remediation": "enable" if output_exists else "open",
         }
     try:
         lines = target.read_text(encoding="utf-8").splitlines()
@@ -160,7 +155,7 @@ def _activation_state(base_dir: Path) -> dict[str, str | None]:
             "status": "import-drift",
             "path": str(target),
             "expected_import": expected,
-            "remediation": f"CLAUDE.md를 읽지 못했다: {exc}",
+            "remediation": f"unreadable: {exc}",
         }
     if expected in lines and output_exists:
         return {
@@ -181,17 +176,9 @@ def _activation_state(base_dir: Path) -> dict[str, str | None]:
         "path": str(target),
         "expected_import": expected,
         "remediation": (
-            (
-                "xout rollback 후 xout enable --grant를 실행해라"
-                if output_exists
-                else "xout rollback 후 xout open을 실행해라"
-            )
+            ("undo_then_enable" if output_exists else "undo_then_open")
             if stale
-            else (
-                "xout enable --grant를 실행해라"
-                if output_exists
-                else "xout open으로 세션을 먼저 완주해라"
-            )
+            else ("enable" if output_exists else "open")
         ),
     }
 
@@ -504,7 +491,7 @@ def _launch(session: ColdOpenSession, args: argparse.Namespace) -> int:
     return _run_tui(session, Path(args.base_dir), lang=_args_lang(args))
 
 
-def _grant_and_enable(base: Path) -> int:
+def _grant_and_enable(base: Path, lang: str = DEFAULT_LANG) -> int:
     """import 허가 레코드를 남기고 소유 @import 한 줄을 추가한다."""
     writer = OwnedWriter(base_dir=base)
     record = ConsentRecord(
@@ -513,7 +500,8 @@ def _grant_and_enable(base: Path) -> int:
     )
     _persist_consent(base, record)
     outcome = writer.ensure_import(record)
-    logger.info("결과: %s (%s)", outcome.reason, outcome.path)
+    msg = _ENABLE_MSG.get(lang, _ENABLE_MSG["ko"])
+    print(msg["result"].format(id="claude", reason=outcome.reason, path=outcome.path))
     return 0 if outcome.reason in ("added", "already_present") else 1
 
 
@@ -580,10 +568,10 @@ _TUI_MSG: dict[str, dict[str, str]] = {
 }
 
 
-def _mined_by_axis(roots: Sequence[Path] | None = None) -> dict[str, list]:
+def _mined_by_axis(roots: Sequence[Path] | None = None, include_user: bool = True) -> dict[str, list]:
     """현재 디렉토리 + 사용자 레벨 규칙 파일의 관측을 축별로 묶는다 - 페어 옆에 보여 줄 맥락."""
     by_axis: dict[str, list] = {}
-    for obs in mine(list(roots or [Path.cwd()]), include_user=True):
+    for obs in mine(list(roots or [Path.cwd()]), include_user=include_user):
         by_axis.setdefault(obs.axis, []).append(obs)
     return by_axis
 
@@ -646,7 +634,7 @@ def _run_tui(session: ColdOpenSession, base: Path, lang: str = DEFAULT_LANG) -> 
     except (EOFError, KeyboardInterrupt):
         answer = ""
     if answer == "y":
-        code = _grant_and_enable(base)
+        code = _grant_and_enable(base, lang)
         print(msg["targets"])
         return code
     logger.info(msg["later"])
@@ -1288,8 +1276,22 @@ def cmd_why(args: argparse.Namespace) -> int:
     return 0
 
 
+def _last_session_complete(base: Path) -> bool:
+    """마지막 일반 세션이 완주됐고 재개할 것이 없으면 True - pair는 새 세션을 열지 않는다."""
+    store = EventStore(base)
+    summaries = summarize_sessions(store.load_all())
+    product = [s for s in summaries if s.profile == PROFILE_PRODUCT]
+    if not product or any(s.resumable for s in product):
+        return False
+    return True
+
+
 @_runtime_exclusive
 def cmd_pair(args: argparse.Namespace) -> int:
+    base = Path(args.base_dir)
+    if not getattr(args, "new_session", False) and _last_session_complete(base):
+        print(json.dumps({"pair": None, "session_complete": True, "hint": "xout pair --new"}, ensure_ascii=False, indent=2))
+        return 0
     try:
         session = _headless_session(args)
     except (ValueError, SchemaViolation) as exc:
@@ -1298,9 +1300,8 @@ def cmd_pair(args: argparse.Namespace) -> int:
     payload = session.snapshot().to_dict()
     pair = payload.get("pair")
     if pair:
-        pair["mined"] = [
-            obs.to_dict() for obs in _mined_by_axis().get(pair["axis"], [])[:4]
-        ]
+        mined = _mined_by_axis() if getattr(args, "include_user", True) else _mined_by_axis(include_user=False)
+        pair["mined"] = [obs.to_dict() for obs in mined.get(pair["axis"], [])[:4]]
     print(json.dumps(payload, ensure_ascii=False, indent=2))
     return 0
 
@@ -1427,6 +1428,64 @@ def cmd_recheck(args: argparse.Namespace) -> int:
     return _launch(session, args)
 
 
+_STATUS_MSG = {
+    "ko": {
+        "none": "착지된 규칙이 없다 - xout 으로 첫 세션을 완주해라",
+        "dir": "착지 디렉토리: {path}", "landed": "마지막 착지: {when}", "review": "마지막 재심: {when}",
+        "remaining": "남은 조합: {count}", "queue": "재심 대기: {count}건", "banner": "배너: {text}",
+        "activation": "활성화: {status}", "next": "다음 행동: {action}",
+        "sessions": "저장된 세션: {sessions}개, 이벤트 {events}건", "resumable": "재개 가능: {count}건 (xout resume)",
+        "judgment": "자기 점검: 유효 검증 세션 {valid}, 판별 인스턴스 {discriminative}, 정복원 {correct}, 오복원 {wrong}",
+        "refuted": "핵심 점검 확정 - 긋기만으로는 부족하다는 조건이 성립했다 (직접 편집 전환)",
+        "condition_met": "점검 조건 성립 - 확정은 xout acknowledge --actor <이름>",
+    },
+    "en": {
+        "none": "No landed rules yet - run xout to finish a first session",
+        "dir": "landing dir: {path}", "landed": "last landed: {when}", "review": "last recheck: {when}",
+        "remaining": "remaining combinations: {count}", "queue": "recheck queue: {count}", "banner": "banner: {text}",
+        "activation": "activation: {status}", "next": "next: {action}",
+        "sessions": "stored sessions: {sessions}, events: {events}", "resumable": "resumable: {count} (xout resume)",
+        "judgment": "self-check: valid validation sessions {valid}, discriminative instances {discriminative}, correct restorations {correct}, wrong restorations {wrong}",
+        "refuted": "core check confirmed - strikes alone were found insufficient (pivot to direct editing)",
+        "condition_met": "check condition met - confirm with xout acknowledge --actor <name>",
+    },
+    "ja": {
+        "none": "着地したルールがない - xout で最初のセッションを完走する",
+        "dir": "着地ディレクトリ: {path}", "landed": "最終着地: {when}", "review": "最終再審: {when}",
+        "remaining": "残りの組み合わせ: {count}", "queue": "再審待ち: {count}件", "banner": "バナー: {text}",
+        "activation": "有効化: {status}", "next": "次の操作: {action}",
+        "sessions": "保存済みセッション: {sessions}、イベント {events}件", "resumable": "再開可能: {count}件 (xout resume)",
+        "judgment": "自己点検: 有効な検証セッション {valid}、判別インスタンス {discriminative}、正しい復元 {correct}、誤った復元 {wrong}",
+        "refuted": "コア点検が確定 - X だけでは足りないという条件が成立した (直接編集へ移行)",
+        "condition_met": "点検条件が成立 - 確定は xout acknowledge --actor <名前>",
+    },
+    "zh": {
+        "none": "还没有落地的规则 - 运行 xout 完成第一次会话",
+        "dir": "落地目录: {path}", "landed": "上次落地: {when}", "review": "上次复审: {when}",
+        "remaining": "剩余组合: {count}", "queue": "待复审: {count} 条", "banner": "横幅: {text}",
+        "activation": "启用状态: {status}", "next": "下一步: {action}",
+        "sessions": "已保存会话: {sessions} 个，事件 {events} 条", "resumable": "可恢复: {count} 个 (xout resume)",
+        "judgment": "自检: 有效验证会话 {valid}，判别实例 {discriminative}，正确还原 {correct}，错误还原 {wrong}",
+        "refuted": "核心检查成立 - 仅靠打 X 不够的条件已满足 (转为直接编辑)",
+        "condition_met": "检查条件成立 - 用 xout acknowledge --actor <名字> 确认",
+    },
+}
+
+_REMEDIATION_TEXT = {
+    "ko": {"enable": "xout enable --grant", "open": "xout 으로 세션을 먼저 완주해라", "undo_then_enable": "xout undo 뒤 xout enable --grant", "undo_then_open": "xout undo 뒤 xout"},
+    "en": {"enable": "xout enable --grant", "open": "finish a session first: xout", "undo_then_enable": "xout undo, then xout enable --grant", "undo_then_open": "xout undo, then xout"},
+    "ja": {"enable": "xout enable --grant", "open": "先に xout でセッションを完走する", "undo_then_enable": "xout undo のあと xout enable --grant", "undo_then_open": "xout undo のあと xout"},
+    "zh": {"enable": "xout enable --grant", "open": "先用 xout 完成一次会话", "undo_then_enable": "先 xout undo，再 xout enable --grant", "undo_then_open": "先 xout undo，再 xout"},
+}
+
+
+def _remediation_text(code: str, lang: str) -> str:
+    table = _REMEDIATION_TEXT.get(lang, _REMEDIATION_TEXT["ko"])
+    if code.startswith("unreadable:"):
+        return code
+    return table.get(code, code)
+
+
 def cmd_status(args: argparse.Namespace) -> int:
     base = Path(args.base_dir)
     manifest = _load_manifest(base)
@@ -1462,37 +1521,38 @@ def cmd_status(args: argparse.Namespace) -> int:
             )
         )
         return 0
+    lang = _args_lang(args)
+    msg = _STATUS_MSG.get(lang, _STATUS_MSG["ko"])
     if manifest is None:
-        logger.info("착지된 산출물이 없다 - xout open으로 첫 세션을 완주해라")
+        print(msg["none"])
     else:
-        logger.info("착지 디렉토리: %s", base)
-        logger.info("마지막 착지: %s", manifest.get("generated_at"))
-        logger.info("마지막 재심: %s", manifest.get("last_review"))
-        logger.info("남은 가설 조합: %s", manifest.get("remaining_combinations"))
+        print(msg["dir"].format(path=base))
+        print(msg["landed"].format(when=manifest.get("generated_at")))
+        print(msg["review"].format(when=manifest.get("last_review")))
+        print(msg["remaining"].format(count=manifest.get("remaining_combinations")))
         queue = manifest.get("recheck_queue") or ()
-        logger.info("재심 대기: %d건", len(queue))
+        print(msg["queue"].format(count=len(queue)))
         if banner:
-            logger.info("배너: %s", banner)
-    logger.info("활성화: %s", activation["status"])
+            print(msg["banner"].format(text=banner))
+    print(msg["activation"].format(status=activation["status"]))
     if activation["remediation"]:
-        logger.info("활성화 다음 행동: %s", activation["remediation"])
-    logger.info("저장된 세션: %d개, 이벤트 %d건", len(store.session_ids()), len(events))
+        print(msg["next"].format(action=_remediation_text(activation["remediation"], lang)))
+    print(msg["sessions"].format(sessions=len(store.session_ids()), events=len(events)))
     in_progress = [summary for summary in summaries if summary.resumable]
     if in_progress:
-        logger.info("재개 가능: %d건 (xout resume)", len(in_progress))
-    logger.info(
-        "자기반증 판정: 유효 검증 세션 %d, 판별 인스턴스 %d, 정복원 %d, 오복원 %d",
-        state.valid_sessions,
-        state.discriminative_instances,
-        state.correct_restorations,
-        state.mis_restorations,
+        print(msg["resumable"].format(count=len(in_progress)))
+    print(
+        msg["judgment"].format(
+            valid=state.valid_sessions,
+            discriminative=state.discriminative_instances,
+            correct=state.correct_restorations,
+            wrong=state.mis_restorations,
+        )
     )
     if state.core_refutation_confirmed:
-        logger.info("핵심 반증 확정 - 긋기-only 접근이 반증됐다 (직접편집 전환 피벗)")
+        print(msg["refuted"])
     elif state.condition_met:
-        logger.info(
-            "refutation_condition_met 성립 - 확정은 xout acknowledge --actor <이름>"
-        )
+        print(msg["condition_met"])
     return 0
 
 
@@ -1534,11 +1594,12 @@ def _selected_targets(args: argparse.Namespace, default: list[str]) -> list:
         return []
 
 
-def _enable_block_target(base: Path, target) -> int:
+def _enable_block_target(base: Path, target, lang: str = DEFAULT_LANG) -> int:
     path = target.resolve(Path.home(), Path.cwd())
     xout_md = base / XOUT_MD
+    msg = _ENABLE_MSG.get(lang, _ENABLE_MSG["ko"])
     if not xout_md.is_file():
-        logger.error("착지된 XOUT.md가 없다 - 먼저 xout을 돌려라")
+        print(msg["no_rules"])
         return 1
     record = ConsentRecord(kind=ConsentKind.IMPORT_PERMISSION_GRANTED, subject=str(path))
     _persist_consent(base, record)
@@ -1546,30 +1607,43 @@ def _enable_block_target(base: Path, target) -> int:
         base, target.target_id, path, xout_md.read_text(encoding="utf-8"), record,
         preamble=target.preamble,
     )
-    logger.info("결과 [%s]: %s (%s)%s", target.target_id, outcome.reason, outcome.path,
-                f" - 되돌리기: xout savepoint restore {outcome.savepoint_id}" if outcome.savepoint_id else "")
+    print(
+        msg["result"].format(id=target.target_id, reason=outcome.reason, path=outcome.path)
+        + (msg["rollback"].format(id=outcome.savepoint_id) if outcome.savepoint_id else "")
+    )
     return 0 if outcome.reason in ("added", "updated", "already_present") else 1
+
+
+_ENABLE_MSG = {
+    "ko": {"no_rules": "착지된 XOUT.md가 없다 - 먼저 xout을 돌려라", "line": "추가될 한 줄 [{id}]: {what}", "block": "추가될 소유 블록 [{id}]: {what}", "grant": "사용자 파일은 허가 없이는 건드리지 않는다 - --grant 로 허가를 명시해라", "result": "결과 [{id}]: {reason} ({path})", "rollback": " - 되돌리기: xout savepoint restore {id}"},
+    "en": {"no_rules": "No landed XOUT.md yet - run xout first", "line": "line to add [{id}]: {what}", "block": "owned block to add [{id}]: {what}", "grant": "Your files are never touched without permission - pass --grant", "result": "result [{id}]: {reason} ({path})", "rollback": " - roll back with: xout savepoint restore {id}"},
+    "ja": {"no_rules": "着地した XOUT.md がない - 先に xout を実行する", "line": "追加される 1 行 [{id}]: {what}", "block": "追加される管理ブロック [{id}]: {what}", "grant": "許可なしにユーザーのファイルは触らない - --grant で明示する", "result": "結果 [{id}]: {reason} ({path})", "rollback": " - 戻すには: xout savepoint restore {id}"},
+    "zh": {"no_rules": "还没有落地的 XOUT.md - 先运行 xout", "line": "将添加的一行 [{id}]: {what}", "block": "将添加的自有区块 [{id}]: {what}", "grant": "未经许可不会碰你的文件 - 用 --grant 明确授权", "result": "结果 [{id}]: {reason} ({path})", "rollback": " - 回滚: xout savepoint restore {id}"},
+}
 
 
 def cmd_enable(args: argparse.Namespace) -> int:
     base = Path(args.base_dir)
+    lang = _args_lang(args)
+    msg = _ENABLE_MSG.get(lang, _ENABLE_MSG["ko"])
     targets = _selected_targets(args, ["claude"])
     if not targets:
+        return 1
+    if not (base / XOUT_MD).is_file():
+        print(msg["no_rules"])
         return 1
     writer = OwnedWriter(base_dir=base)
     if not args.grant:
         for target in targets:
             if target.mode == MODE_IMPORT:
-                logger.info("추가될 한 줄 [%s]: %s", target.target_id, writer.import_line())
+                print(msg["line"].format(id=target.target_id, what=writer.import_line()))
             else:
-                logger.info("추가될 소유 블록 [%s]: %s", target.target_id, target.resolve(Path.home(), Path.cwd()))
-        logger.info(
-            "사용자 파일은 허가 없이는 건드리지 않는다 - --grant로 허가를 명시해라"
-        )
+                print(msg["block"].format(id=target.target_id, what=target.resolve(Path.home(), Path.cwd())))
+        print(msg["grant"])
         return 1
     worst = 0
     for target in targets:
-        code = _grant_and_enable(base) if target.mode == MODE_IMPORT else _enable_block_target(base, target)
+        code = _grant_and_enable(base, lang) if target.mode == MODE_IMPORT else _enable_block_target(base, target, lang)
         worst = max(worst, code)
     return worst
 
@@ -1579,15 +1653,16 @@ def cmd_rollback(args: argparse.Namespace) -> int:
     targets = _selected_targets(args, ["all"])
     if not targets:
         return 1
+    msg = _ENABLE_MSG.get(_args_lang(args), _ENABLE_MSG["ko"])
     worst = 0
     for target in targets:
         if target.mode == MODE_IMPORT:
             outcome = OwnedWriter(base_dir=base).remove_import()
-            logger.info("결과 [%s]: %s (%s)", target.target_id, outcome.reason, outcome.path)
+            print(msg["result"].format(id=target.target_id, reason=outcome.reason, path=outcome.path))
             ok = outcome.reason in ("removed", "not_present", "not_owned")
         else:
             block = remove_block(base, target.target_id, target.resolve(Path.home(), Path.cwd()))
-            logger.info("결과 [%s]: %s (%s)", target.target_id, block.reason, block.path)
+            print(msg["result"].format(id=target.target_id, reason=block.reason, path=block.path))
             ok = block.reason in ("removed", "not_present")
         worst = max(worst, 0 if ok else 1)
     return worst
@@ -1739,11 +1814,11 @@ def cmd_export(args: argparse.Namespace) -> int:
     if not events:
         logger.error("내보낼 완료 세션이 없다")
         return 1
-    body = render_export(events, args.format)
+    body = render_export(events, args.format, _args_lang(args))
     if args.output is None:
         print(body, end="")
     else:
-        target = write_export(args.output, body)
+        target = write_export(args.output, body, Path(args.base_dir))
         logger.info("%s 형식 내보내기: %s", args.format, target)
     return 0
 
@@ -1854,7 +1929,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_common(p_mine)
     p_mine.add_argument("roots", nargs="*", help="스캔할 루트 (기본: 현재 디렉토리)")
-    p_mine.add_argument("--json", dest="json_output", action="store_true")
+    p_mine.add_argument("--json", dest="json_output", action="store_true", help="JSON으로 출력")
     p_mine.add_argument("--no-user", dest="include_user", action="store_false", help="~/.claude/CLAUDE.md, ~/.claude/rules 는 읽지 않는다")
     p_mine.set_defaults(func=cmd_mine)
 
@@ -1863,8 +1938,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="컴파일된 규칙과 프로젝트 규칙 파일이 갈리는 줄을 보고 (읽기전용)",
     )
     p_conflicts.add_argument("roots", nargs="*", help="스캔할 루트 (기본: 현재 디렉토리)")
-    p_conflicts.add_argument("--json", dest="json_output", action="store_true")
-    p_conflicts.add_argument("--no-user", dest="include_user", action="store_false")
+    p_conflicts.add_argument("--json", dest="json_output", action="store_true", help="JSON으로 출력")
+    p_conflicts.add_argument("--no-user", dest="include_user", action="store_false", help="~/.claude/CLAUDE.md, ~/.claude/rules 는 읽지 않는다")
     _add_common(p_conflicts)
     p_conflicts.set_defaults(func=cmd_conflicts)
 
@@ -1873,10 +1948,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="기존 규칙 파일과 XOUT.md의 중복·모순 보고, 패치 제안, --apply --grant 로 중복 줄 제거",
     )
     p_reconcile.add_argument("roots", nargs="*", help="스캔할 루트 (기본: 현재 디렉토리)")
-    p_reconcile.add_argument("--no-user", dest="include_user", action="store_false")
+    p_reconcile.add_argument("--no-user", dest="include_user", action="store_false", help="~/.claude/CLAUDE.md, ~/.claude/rules 는 읽지 않는다")
     p_reconcile.add_argument("--apply", action="store_true", help="중복 줄을 실제로 지운다 (세이브포인트 선행)")
     p_reconcile.add_argument("--grant", action="store_true", help="소유 디렉토리 밖 편집을 허가한다")
-    p_reconcile.add_argument("--json", dest="json_output", action="store_true")
+    p_reconcile.add_argument("--json", dest="json_output", action="store_true", help="JSON으로 출력")
     _add_common(p_reconcile)
     p_reconcile.set_defaults(func=cmd_reconcile)
 
@@ -1885,7 +1960,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_savepoint.add_argument("savepoint_id", nargs="?", help="restore 대상 id")
     p_savepoint.add_argument("--paths", nargs="*", help="스냅샷할 파일 (기본: 사용자 규칙 + 현재 디렉토리 규칙 파일)")
     p_savepoint.add_argument("--reason", default=None)
-    p_savepoint.add_argument("--json", dest="json_output", action="store_true")
+    p_savepoint.add_argument("--json", dest="json_output", action="store_true", help="JSON으로 출력")
     _add_common(p_savepoint)
     p_savepoint.set_defaults(func=cmd_savepoint)
 
@@ -1902,7 +1977,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_probe.add_argument("--quick", action="store_true", help="축당 한 장면만")
     p_probe.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT)
     p_probe.add_argument("--dry-run", dest="dry_run", action="store_true", help="러너 호출 없이 준비된 탐침만 보고")
-    p_probe.add_argument("--json", dest="json_output", action="store_true")
+    p_probe.add_argument("--json", dest="json_output", action="store_true", help="JSON으로 출력")
     _add_common(p_probe)
     p_probe.set_defaults(func=cmd_probe)
 
@@ -1918,6 +1993,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_common(p_pair)
     p_pair.add_argument("--repo", type=Path, default=None, help="슬롯 치환용 레포 경로")
+    p_pair.add_argument("--new", dest="new_session", action="store_true", help="직전 세션이 완주됐어도 새 세션을 연다")
+    p_pair.add_argument("--no-user", dest="include_user", action="store_false", help="~/.claude 규칙은 페어 옆에 보이지 않는다")
     p_pair.set_defaults(func=cmd_pair)
 
     p_strike = sub.add_parser(
@@ -1950,7 +2027,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_status = sub.add_parser("status", help="착지/재심/자기반증 판정 요약")
     _add_common(p_status)
-    p_status.add_argument("--json", dest="json_output", action="store_true")
+    p_status.add_argument("--json", dest="json_output", action="store_true", help="JSON으로 출력")
     p_status.set_defaults(func=cmd_status)
 
     p_sessions = sub.add_parser("sessions", help="최근 세션 목록 또는 상세 이벤트")
@@ -1960,12 +2037,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_sessions.add_argument(
         "--events", type=int, default=10, help="상세 최근 이벤트 건수"
     )
-    p_sessions.add_argument("--json", dest="json_output", action="store_true")
+    p_sessions.add_argument("--json", dest="json_output", action="store_true", help="JSON으로 출력")
     p_sessions.set_defaults(func=cmd_sessions)
 
     p_doctor = sub.add_parser("doctor", help="설치와 로컬 데이터 무결성 진단")
     _add_common(p_doctor)
-    p_doctor.add_argument("--json", dest="json_output", action="store_true")
+    p_doctor.add_argument("--json", dest="json_output", action="store_true", help="JSON으로 출력")
     p_doctor.set_defaults(func=cmd_doctor)
 
     p_export = sub.add_parser(
@@ -1984,10 +2061,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_backup.set_defaults(func=cmd_data_backup)
     p_inspect = data_sub.add_parser("inspect", help="백업 무결성을 추출 없이 검사")
     p_inspect.add_argument("path", type=Path)
-    p_inspect.add_argument("--json", dest="json_output", action="store_true")
+    p_inspect.add_argument("--json", dest="json_output", action="store_true", help="JSON으로 출력")
     p_inspect.set_defaults(func=cmd_data_inspect)
 
     p_version = sub.add_parser("version", help="앱/카탈로그/백업 schema 버전")
+    _add_common(p_version)
     p_version.set_defaults(func=cmd_version)
 
     p_update = sub.add_parser("update", help="설치 방식별 명시적 업그레이드 명령 안내")
@@ -2004,7 +2082,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_targets = sub.add_parser("targets", help="활성화 타깃 목록 (어느 도구의 어느 파일에 어떻게 붙는지)")
     _add_common(p_targets)
-    p_targets.add_argument("--json", dest="json_output", action="store_true")
+    p_targets.add_argument("--json", dest="json_output", action="store_true", help="JSON으로 출력")
     p_targets.set_defaults(func=cmd_targets)
 
     p_enable = sub.add_parser("enable", help="규칙 활성화: Claude Code는 @import 한 줄, 다른 도구는 소유 블록 (허가 필수)")
