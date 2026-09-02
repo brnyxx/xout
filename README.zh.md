@@ -6,13 +6,13 @@
 
 **把你再也不想看到的 AI 行为，一笔划掉。**
 
-<img src=".github/assets/hero.svg" alt="“修这个 bug”变成了一道行为二选一：“我可以开始吗”被划掉，“已修好，测试通过”留了下来，“先做、后汇报”成了规则" width="920">
+<img src=".github/assets/hero.zh.svg" alt="“修这个 bug”变成了一道行为二选一：“我可以开始吗”被划掉，“已修好，测试通过”留了下来，“先做、后汇报”成了规则" width="920">
 
 [![PyPI](https://img.shields.io/pypi/v/xout)](https://pypi.org/project/xout/) [![CI](https://github.com/brnyxx/xout/actions/workflows/ci.yml/badge.svg)](https://github.com/brnyxx/xout/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 [五步走完全程](#五步走完全程) · [支持的工具](#支持的工具) · [工作原理](#工作原理) · [真的管用吗？](#真的管用吗) · [命令](#命令) · [为什么值得信任](#为什么值得信任)
 
-<sub>Read in: [English](README.md) · [한국어](README.ko.md) · [日本語](README.ja.md) · 简体中文 · [在线讲解](https://brnyxx.github.io/xout/)</sub>
+<sub>Read in: [English](README.md) · [한국어](README.ko.md) · [日本語](README.ja.md) · 简体中文 · [在线讲解](https://brnyxx.github.io/xout/zh/)</sub>
 
 </div>
 

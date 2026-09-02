@@ -11,8 +11,6 @@
   "nav_share": "공유",
   "primary_navigation_label": "주요 탐색",
   "language_label": "언어",
-  "english": "EN",
-  "korean": "KO",
   "hero_title": "다시는 보고 싶지 않은 에이전트 행동에 빨간 X를 치세요.",
   "hero_body": "AI 코딩 도구는 전부 규칙 파일을 따르는데 그 파일을 제대로 쓰는 사람은 거의 없습니다. xout이 버그픽스, 신규 기능, 고위험 마이그레이션 세 장면에서 에이전트가 할 법한 구체적인 행동 둘을 나란히 보여 줍니다. 아닌 쪽에 X를 치면 xout이 규칙을 써서 당신이 쓰는 도구에 꽂습니다: Claude Code, Codex, OpenCode, Gemini CLI, Copilot, pi, Kiro, 그리고 AGENTS.md를 읽는 모든 도구.",
   "proof_line": "X 15번 · 장면 3개(일상 2 + 고위험 1) · 8축 전부 당신의 X가 근거 · 한 줄로 켜고 한 줄로 되돌리기",

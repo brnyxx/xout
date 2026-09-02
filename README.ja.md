@@ -6,13 +6,13 @@
 
 **二度と要らない AI の振る舞いを、X で消す。**
 
-<img src=".github/assets/hero.svg" alt="「バグを直して」が振る舞いの A/B テストになる: 「始めてもいいですか」は X で消され、「直してテストも通りました」が残り、「先に実行し、後で報告する」がルールになる" width="920">
+<img src=".github/assets/hero.ja.svg" alt="「バグを直して」が振る舞いの A/B テストになる: 「始めてもいいですか」は X で消され、「直してテストも通りました」が残り、「先に実行し、後で報告する」がルールになる" width="920">
 
 [![PyPI](https://img.shields.io/pypi/v/xout)](https://pypi.org/project/xout/) [![CI](https://github.com/brnyxx/xout/actions/workflows/ci.yml/badge.svg)](https://github.com/brnyxx/xout/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 [五つのステップ](#全体は五つのステップ) · [対応ツール](#対応ツール) · [動作の仕組み](#動作の仕組み) · [本当に効くのか](#本当に効くのか) · [コマンド](#コマンド) · [信頼できる理由](#信頼できる理由)
 
-<sub>Read in: [English](README.md) · [한국어](README.ko.md) · 日本語 · [简体中文](README.zh.md) · [ライブ解説](https://brnyxx.github.io/xout/)</sub>
+<sub>Read in: [English](README.md) · [한국어](README.ko.md) · 日本語 · [简体中文](README.zh.md) · [ライブ解説](https://brnyxx.github.io/xout/ja/)</sub>
 
 </div>
 
@@ -145,7 +145,7 @@ $ xout why autonomy --lang ja
 
 遡れないルールは信用できません。xout のルールにはすべて、自分のレシートが付いています。
 
-> `--lang en`、`--lang ja`、`--lang zh` を指定すると、ペアもルールも画面の文言も、セッション全体がその言語になります。フラグを省略したときの既定は韓国語です。日本語と中国語は現時点では `main` にあり、次のリリースに同梱されます。どの言語でもイベント台帳の中身は変わりません。
+> `--lang en`、`--lang ja`、`--lang zh` を指定すると、ペアもルールも画面の文言も、セッション全体がその言語になります。フラグを省略したときの既定は韓国語です。どの言語でもイベント台帳の中身は変わりません。
 
 ## 本当に効くのか
 

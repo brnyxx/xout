@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+  <title id="title">xout — 아닌 행동에 X, 남는 규칙</title>
+  <desc id="desc">xout은 요청 하나를 A/B 행동 테스트로 바꿉니다. 아닌 행동에는 진홍색 X가 그어지고 남은 쪽이 로컬 규칙이 됩니다.</desc>
+  <rect width="1200" height="420" fill="#F7F3EA"/>
+  <text x="54" y="58" fill="#171717" font-family="system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', sans-serif" font-size="34" font-weight="800" letter-spacing="5">XOUT</text>
+  <text x="54" y="88" fill="#6E6A63" font-family="system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', sans-serif" font-size="15" font-weight="700">다시 보고 싶지 않은 AI 행동에 X를 치세요</text>
+  <text x="54" y="132" fill="#6E6A63" font-family="ui-monospace, SFMono-Regular, Menlo, 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', monospace" font-size="18" font-weight="700">입력</text>
+  <rect x="54" y="148" width="250" height="62" rx="9" fill="#D9D4C9" stroke="#171717" stroke-width="4"/>
+  <text x="74" y="188" fill="#171717" font-family="ui-monospace, SFMono-Regular, Menlo, 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', monospace" font-size="24" font-weight="800">버그 고쳐줘.</text>
+  <text x="308" y="187" fill="#6E6A63" font-family="system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', sans-serif" font-size="28" font-weight="800">→</text>
+  <text x="334" y="132" fill="#6E6A63" font-family="ui-monospace, SFMono-Regular, Menlo, 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', monospace" font-size="18" font-weight="700">아닌 쪽에 X</text>
+  <rect x="334" y="148" width="286" height="62" rx="9" fill="#F7F3EA" stroke="#171717" stroke-width="4"/>
+  <text x="353" y="188" fill="#171717" font-family="ui-monospace, SFMono-Regular, Menlo, 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', monospace" font-size="20" font-weight="800">시작할까요?</text>
+  <g stroke="#D92332" stroke-width="10" stroke-linecap="round">
+    <path d="M344 156L610 202"/>
+    <path d="M610 156L344 202"/>
+  </g>
+  <rect x="334" y="228" width="286" height="62" rx="9" fill="#D9D4C9" stroke="#171717" stroke-width="4"/>
+  <text x="353" y="268" fill="#171717" font-family="ui-monospace, SFMono-Regular, Menlo, 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', monospace" font-size="20" font-weight="800">고쳤고 테스트 통과.</text>
+  <text x="633" y="224" fill="#6E6A63" font-family="system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', sans-serif" font-size="28" font-weight="800">→</text>
+  <text x="670" y="132" fill="#6E6A63" font-family="ui-monospace, SFMono-Regular, Menlo, 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', monospace" font-size="18" font-weight="700">만들어진 규칙</text>
+  <rect x="670" y="148" width="476" height="142" rx="12" fill="#F7F3EA" stroke="#171717" stroke-width="5"/>
+  <path d="M694 178H1122" stroke="#171717" stroke-width="5" stroke-linecap="round"/>
+  <text x="694" y="226" fill="#171717" font-family="ui-monospace, SFMono-Regular, Menlo, 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', monospace" font-size="24" font-weight="800">먼저 실행한다.</text>
+  <text x="694" y="262" fill="#171717" font-family="ui-monospace, SFMono-Regular, Menlo, 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', monospace" font-size="24" font-weight="800">그다음 보고한다.</text>
+  <text x="54" y="356" fill="#171717" font-family="system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', sans-serif" font-size="24" font-weight="800">X를 치고 — 규칙을 남긴다.</text>
+  <text x="54" y="386" fill="#6E6A63" font-family="ui-monospace, SFMono-Regular, Menlo, 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', monospace" font-size="16" font-weight="700">2분 → 로컬 규칙 8줄</text>
+</svg>

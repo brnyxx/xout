@@ -102,7 +102,7 @@ def test_readmes_are_bilingual_brand_first_and_lifecycle_complete() -> None:
         assert readme.count("<h1>xout</h1>") == 1
         assert f"v{version}" in readme
         assert ".github/assets/logo.svg" in readme
-        assert ".github/assets/hero.svg" in readme
+        assert re.search(r"\.github/assets/hero(\.ko)?\.svg", readme)
         assert "uvx xout" in readme
         assert "xout undo" in readme
         assert "xout status" in readme

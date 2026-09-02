@@ -16,7 +16,6 @@ import pytest
 
 from xout.compiler import (
     IRREVERSIBLE_CLAUSE,
-    IRREVERSIBLE_CLAUSE_EN,
     RULE_LANG_TABLES,
     RULE_TEXT,
     RULE_TEXT_EN,

@@ -11,8 +11,6 @@
   "nav_share": "Share",
   "primary_navigation_label": "Primary navigation",
   "language_label": "Language",
-  "english": "EN",
-  "korean": "KO",
   "hero_title": "Cross out the agent behavior you never want again.",
   "hero_body": "Every AI coding tool follows a rules file, and almost nobody writes a good one. xout shows you two concrete things your agent could do - in a bugfix, a new feature, and a risky migration - and you cross out the one you never want to see again. xout writes the rules and plugs them into the tool you use: Claude Code, Codex, OpenCode, Gemini CLI, Copilot, pi, Kiro, or anything that reads AGENTS.md.",
   "proof_line": "15 cross-outs · three scenes (two routine, one hard to reverse) · every one of the eight axes backed by your X's · one line to enable, one to roll back",

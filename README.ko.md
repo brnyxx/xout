@@ -6,7 +6,7 @@
 
 **다시 보고 싶지 않은 AI 행동에 X를 치세요.**
 
-<img src=".github/assets/hero.svg" alt="버그 고쳐줘가 A/B 행동 비교가 되는 그림: 시작할까요?에 X가 그어지고 고쳤고 테스트 통과가 남아 먼저 실행하고 나중에 보고한다는 규칙이 된다" width="920">
+<img src=".github/assets/hero.ko.svg" alt="버그 고쳐줘가 A/B 행동 비교가 되는 그림: 시작할까요?에 X가 그어지고 고쳤고 테스트 통과가 남아 먼저 실행하고 나중에 보고한다는 규칙이 된다" width="920">
 
 [![PyPI](https://img.shields.io/pypi/v/xout)](https://pypi.org/project/xout/) [![CI](https://github.com/brnyxx/xout/actions/workflows/ci.yml/badge.svg)](https://github.com/brnyxx/xout/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 

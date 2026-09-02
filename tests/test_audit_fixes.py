@@ -11,7 +11,6 @@ from pathlib import Path
 import pytest
 
 from xout.cli import main
-from xout.compiler import XOUT_MD
 from xout.state import ColdOpenSession
 from xout.store import EventStore
 

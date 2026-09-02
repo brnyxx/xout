@@ -19,7 +19,8 @@ from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE_ROOT = ROOT / "site"
-LOCALES = ("en", "ko")
+LOCALES = ("en", "ko", "ja", "zh")
+OG_LOCALE = {"en": "en_US", "ko": "ko_KR", "ja": "ja_JP", "zh": "zh_CN"}
 PLACEHOLDER = re.compile(r"{{([a-z][a-z0-9_]*)}}")
 BUILD_KEYS = frozenset(
     {
@@ -32,6 +33,12 @@ BUILD_KEYS = frozenset(
         "canonical_url",
         "en_url",
         "ko_url",
+        "ja_url",
+        "zh_url",
+        "ja_href",
+        "zh_href",
+        "ja_current",
+        "zh_current",
         "repository_url",
         "repository_readme_url",
         "repository_releases_url",
@@ -47,15 +54,24 @@ ASSETS = (
     (Path("../.github/assets/hero.svg"), Path("assets/hero.svg")),
     (Path("../.github/assets/how-it-works.gif"), Path("assets/how-it-works.gif")),
     (Path("../.github/assets/how-it-works.ko.gif"), Path("assets/how-it-works.ko.gif")),
+    (Path("../.github/assets/how-it-works.ja.gif"), Path("assets/how-it-works.ja.gif")),
+    (Path("../.github/assets/how-it-works.zh.gif"), Path("assets/how-it-works.zh.gif")),
     (Path("../.github/assets/social-card.png"), Path("assets/social-card.png")),
+    (Path("../.github/assets/social-card.ko.png"), Path("assets/social-card.ko.png")),
+    (Path("../.github/assets/social-card.ja.png"), Path("assets/social-card.ja.png")),
+    (Path("../.github/assets/social-card.zh.png"), Path("assets/social-card.zh.png")),
     (Path("../.github/assets/demo.gif"), Path("assets/demo.gif")),
     (Path("../.github/assets/demo.en.gif"), Path("assets/demo.en.gif")),
+    (Path("../.github/assets/demo.ja.gif"), Path("assets/demo.ja.gif")),
+    (Path("../.github/assets/demo.zh.gif"), Path("assets/demo.zh.gif")),
 )
 ARTIFACT_FILES = frozenset(
     {
         ".nojekyll",
         "index.html",
         "ko/index.html",
+        "ja/index.html",
+        "zh/index.html",
         "robots.txt",
         "sitemap.xml",
         "assets/site.css",
@@ -63,9 +79,16 @@ ARTIFACT_FILES = frozenset(
         "assets/hero.svg",
         "assets/how-it-works.gif",
         "assets/how-it-works.ko.gif",
+        "assets/how-it-works.ja.gif",
+        "assets/how-it-works.zh.gif",
         "assets/social-card.png",
+        "assets/social-card.ko.png",
+        "assets/social-card.ja.png",
+        "assets/social-card.zh.png",
         "assets/demo.gif",
         "assets/demo.en.gif",
+        "assets/demo.ja.gif",
+        "assets/demo.zh.gif",
     }
 )
 PROHIBITED_TAGS = frozenset(
@@ -74,7 +97,7 @@ PROHIBITED_TAGS = frozenset(
 PROHIBITED_FETCH_ATTRIBUTES = frozenset(
     {"action", "data", "formaction", "poster", "srcset", "style"}
 )
-ARTIFACT_DIRECTORIES = frozenset({"assets", "ko"})
+ARTIFACT_DIRECTORIES = frozenset({"assets", "ko", "ja", "zh"})
 FIXED_EPOCH = 315532800
 PROJECT_BLOCK = re.compile(r"(?ms)^\[project\]\s*$\n(?P<body>.*?)(?=^\[|\Z)")
 VERSION_LINE = re.compile(r'^version\s*=\s*"(?P<version>[^"]+)"\s*$', re.MULTILINE)
@@ -196,7 +219,7 @@ def load_content(content_dir: Path) -> dict[str, dict[str, str]]:
         ):
             raise SiteBuildError(f"INVALID_LOCALE_VALUES:{locale}")
         catalogs[locale] = payload
-    if set(catalogs["en"]) != set(catalogs["ko"]):
+    if any(set(catalogs["en"]) != set(catalogs[locale]) for locale in LOCALES[1:]):
         raise SiteBuildError("LOCALE_KEY_MISMATCH")
     return catalogs
 
@@ -216,26 +239,32 @@ def _build_values(
     repository_url: str,
     version: str,
 ) -> dict[str, str]:
-    en_url = site_url
-    ko_url = site_url + "ko/"
-    return {
+    urls = {loc: site_url + ("" if loc == "en" else f"{loc}/") for loc in LOCALES}
+
+    def href(target: str) -> str:
+        if target == locale:
+            return "./"
+        if target == "en":
+            return "../"
+        return f"{target}/" if locale == "en" else f"../{target}/"
+
+    values = {
         "lang": locale,
         "asset_prefix": "" if locale == "en" else "../",
-        "en_href": "./" if locale == "en" else "../",
-        "ko_href": "ko/" if locale == "en" else "./",
-        "en_current": "page" if locale == "en" else "false",
-        "ko_current": "page" if locale == "ko" else "false",
-        "canonical_url": en_url if locale == "en" else ko_url,
-        "en_url": en_url,
-        "ko_url": ko_url,
+        "canonical_url": urls[locale],
         "repository_url": repository_url,
         "repository_readme_url": repository_url + "#readme",
         "repository_releases_url": repository_url + "/releases",
-        "og_locale": "en_US" if locale == "en" else "ko_KR",
+        "og_locale": OG_LOCALE[locale],
         "og_locale_alt": "ko_KR" if locale == "en" else "en_US",
-        "social_image_url": site_url + "assets/social-card.png",
+        "social_image_url": site_url + "assets/" + ("social-card.png" if locale == "en" else f"social-card.{locale}.png"),
         "version": version,
     }
+    for loc in LOCALES:
+        values[f"{loc}_url"] = urls[loc]
+        values[f"{loc}_href"] = href(loc)
+        values[f"{loc}_current"] = "page" if loc == locale else "false"
+    return values
 
 
 def render(
@@ -337,19 +366,20 @@ def _validate_route(
 
 
 def _validate_assets(root: Path) -> None:
-    png = (root / "assets/social-card.png").read_bytes()
-    if len(png) < 24 or png[:8] != b"\x89PNG\r\n\x1a\n":
-        raise SiteBuildError("INVALID_ARTIFACT_TREE:social-card")
-    width, height = struct.unpack(">II", png[16:24])
-    if (width, height) != (1200, 630):
-        raise SiteBuildError("INVALID_ARTIFACT_TREE:social-card-size")
-    for gif_name in ("assets/demo.gif", "assets/demo.en.gif"):
+    for card in ("social-card.png", "social-card.ko.png", "social-card.ja.png", "social-card.zh.png"):
+        png = (root / "assets" / card).read_bytes()
+        if len(png) < 24 or png[:8] != b"\x89PNG\r\n\x1a\n":
+            raise SiteBuildError(f"INVALID_ARTIFACT_TREE:{card}")
+        width, height = struct.unpack(">II", png[16:24])
+        if (width, height) != (1200, 630):
+            raise SiteBuildError(f"INVALID_ARTIFACT_TREE:{card}-size")
+    for gif_name in ("assets/demo.gif", "assets/demo.en.gif", "assets/demo.ja.gif", "assets/demo.zh.gif"):
         demo = (root / gif_name).read_bytes()
         if len(demo) < 10 or demo[:6] not in {b"GIF87a", b"GIF89a"}:
             raise SiteBuildError(f"INVALID_ARTIFACT_TREE:{gif_name}")
         if struct.unpack("<HH", demo[6:10]) != (960, 608):
             raise SiteBuildError("INVALID_ARTIFACT_TREE:demo-size")
-    for gif_name in ("assets/how-it-works.gif", "assets/how-it-works.ko.gif"):
+    for gif_name in ("assets/how-it-works.gif", "assets/how-it-works.ko.gif", "assets/how-it-works.ja.gif", "assets/how-it-works.zh.gif"):
         motion = (root / gif_name).read_bytes()
         if len(motion) < 10 or motion[:6] not in {b"GIF87a", b"GIF89a"}:
             raise SiteBuildError(f"INVALID_ARTIFACT_TREE:{gif_name}")
@@ -384,7 +414,9 @@ def validate_tree(root: Path, repository_url: str, site_url: str) -> None:
     }
     if directories != ARTIFACT_DIRECTORIES:
         raise SiteBuildError("INVALID_ARTIFACT_TREE:directory-allowlist")
-    canonical_urls = frozenset({site_url, site_url + "ko/"})
+    canonical_urls = frozenset(
+        site_url + ("" if locale == "en" else f"{locale}/") for locale in LOCALES
+    )
     for route in (root / "index.html", root / "ko/index.html"):
         _validate_route(route, root, repository_url, canonical_urls)
     _validate_assets(root)
@@ -416,14 +448,15 @@ def _write_tree(
     version: str,
 ) -> None:
     template_path = _source_file(source, Path("template.html"))
-    _source_file(source, Path("content/en.json"))
-    _source_file(source, Path("content/ko.json"))
+    for locale in LOCALES:
+        _source_file(source, Path(f"content/{locale}.json"))
     template = template_path.read_text(encoding="utf-8")
     catalogs = load_content(source / "content")
-    (staging / "ko").mkdir(parents=True)
+    for locale in LOCALES[1:]:
+        (staging / locale).mkdir(parents=True)
     (staging / "assets").mkdir()
     for locale in LOCALES:
-        route = staging / ("index.html" if locale == "en" else "ko/index.html")
+        route = staging / ("index.html" if locale == "en" else f"{locale}/index.html")
         route.write_text(
             render(
                 template,
@@ -453,9 +486,11 @@ def _write_tree(
     (staging / "sitemap.xml").write_text(
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-        f"  <url><loc>{html.escape(site_url)}</loc></url>\n"
-        f"  <url><loc>{html.escape(site_url + 'ko/')}</loc></url>\n"
-        "</urlset>\n",
+        + "".join(
+            f"  <url><loc>{html.escape(site_url + ('' if loc == 'en' else loc + '/'))}</loc></url>\n"
+            for loc in LOCALES
+        )
+        + "</urlset>\n",
         encoding="utf-8",
         newline="\n",
     )

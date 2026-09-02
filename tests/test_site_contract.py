@@ -20,6 +20,8 @@ EXPECTED_ARTIFACTS = {
     ".nojekyll",
     "index.html",
     "ko/index.html",
+    "ja/index.html",
+    "zh/index.html",
     "robots.txt",
     "sitemap.xml",
     "assets/site.css",
@@ -27,9 +29,16 @@ EXPECTED_ARTIFACTS = {
     "assets/hero.svg",
     "assets/how-it-works.gif",
     "assets/how-it-works.ko.gif",
+    "assets/how-it-works.ja.gif",
+    "assets/how-it-works.zh.gif",
     "assets/social-card.png",
+    "assets/social-card.ko.png",
+    "assets/social-card.ja.png",
+    "assets/social-card.zh.png",
     "assets/demo.gif",
     "assets/demo.en.gif",
+    "assets/demo.ja.gif",
+    "assets/demo.zh.gif",
 }
 
 
@@ -137,14 +146,24 @@ def test_site_source_has_exact_locale_and_placeholder_parity() -> None:
     catalogs = builder.load_content(ROOT / "site" / "content")
     locale_keys = builder.template_keys(template) - builder.BUILD_KEYS
 
-    assert set(catalogs["en"]) == set(catalogs["ko"]) == set(locale_keys)
+    assert set(catalogs) == set(builder.LOCALES) == {"en", "ko", "ja", "zh"}
+    for locale in builder.LOCALES:
+        assert set(catalogs[locale]) == set(locale_keys), locale
     assert template.lower().count("<h1") == 1
     assert "<script" not in template.lower()
     assert "<form" not in template.lower()
     assert "<del>" in template
     assert "6,561" not in template  # the visible figure is localized but parity-checked
     for key in ("open_command", "enable_command", "status_command"):
-        assert catalogs["en"][key] == catalogs["ko"][key]
+        for locale in builder.LOCALES:
+            assert catalogs[locale][key] == catalogs["en"][key], (locale, key)
+    for locale in builder.LOCALES:
+        expected = "demo.gif" if locale == "ko" else f"demo.{locale}.gif"
+        assert catalogs[locale]["demo_gif"] == f"assets/{expected}", locale
+        motion = "how-it-works.gif" if locale == "en" else f"how-it-works.{locale}.gif"
+        assert catalogs[locale]["how_it_works_gif"] == f"assets/{motion}", locale
+        if locale != "ko":  # ko is the default language, no flag
+            assert f"--lang {locale}" in catalogs[locale]["quickstart_cmd"], locale
 
 
 def test_site_build_is_deterministic_bilingual_and_bounded(tmp_path: Path) -> None:
@@ -187,6 +206,25 @@ def test_rendered_routes_have_matching_structure_links_and_seo(tmp_path: Path) -
     en_outline.feed(english)
     ko_outline.feed(korean)
     assert en_outline.structure == ko_outline.structure
+    for locale in ("ja", "zh"):
+        page = (output / locale / "index.html").read_text(encoding="utf-8")
+        outline = Outline()
+        outline.feed(page)
+        assert outline.structure == en_outline.structure, locale
+        assert f'<link rel="canonical" href="{SITE_URL}{locale}/">' in page
+        assert f'<meta property="og:image" content="{SITE_URL}assets/social-card.{locale}.png">' in page
+        assert '<link rel="stylesheet" href="../assets/site.css">' in page
+        assert 'aria-current="page"' in page
+        assert "{{" not in page
+        assert f"--lang {locale}" in page
+        assert "4,374" in page
+    for page in (english, korean):
+        for locale in ("en", "ko", "ja", "zh"):
+            assert f'hreflang="{ {"zh": "zh-Hans"}.get(locale, locale) }"' in page
+        assert 'href="ja/"' in page or 'href="../ja/"' in page
+    sitemap = (output / "sitemap.xml").read_text(encoding="utf-8")
+    for suffix in ("", "ko/", "ja/", "zh/"):
+        assert f"<loc>{SITE_URL}{suffix}</loc>" in sitemap
     assert [item[1] for item in en_outline.structure if item[0] == "section"] == [
         "hero",
         "outcome",
@@ -246,6 +284,9 @@ def test_brand_assets_are_local_deterministic_and_social_ready(tmp_path: Path) -
     for name, dimensions in (
         ("logo.svg", 'viewBox="0 0 256 256"'),
         ("hero.svg", 'viewBox="0 0 1200 420"'),
+        ("hero.ko.svg", 'viewBox="0 0 1200 420"'),
+        ("hero.ja.svg", 'viewBox="0 0 1200 420"'),
+        ("hero.zh.svg", 'viewBox="0 0 1200 420"'),
     ):
         body = (ROOT / ".github" / "assets" / name).read_text(encoding="utf-8")
         assert dimensions in body
@@ -263,6 +304,10 @@ def test_brand_assets_are_local_deterministic_and_social_ready(tmp_path: Path) -
         assert motion[:6] in {b"GIF87a", b"GIF89a"}, name
         assert struct.unpack("<HH", motion[6:10]) == (960, 540), name
         assert len(motion) < 6_000_000, name
+    for card in ("social-card.ko.png", "social-card.ja.png", "social-card.zh.png"):
+        payload = (ROOT / ".github" / "assets" / card).read_bytes()
+        assert payload[:8] == b"\x89PNG\r\n\x1a\n", card
+        assert struct.unpack(">II", payload[16:24]) == (1200, 630), card
     hero = (ROOT / ".github" / "assets" / "hero.svg").read_text(encoding="utf-8")
     for message in (
         "FIX THE BUG.",

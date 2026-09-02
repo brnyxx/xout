@@ -59,10 +59,16 @@ def test_every_language_owns_its_surfaces() -> None:
         motion = diagram.read_bytes()
         assert motion[:6] in {b"GIF87a", b"GIF89a"}, diagram.name
         assert struct.unpack("<HH", motion[6:10]) == (960, 540), diagram.name
+        hero = assets / ("hero.svg" if lang == "en" else f"hero.{lang}.svg")
+        assert 'viewBox="0 0 1200 420"' in hero.read_text(encoding="utf-8"), hero.name
+        card = assets / ("social-card.png" if lang == "en" else f"social-card.{lang}.png")
+        png = card.read_bytes()
+        assert struct.unpack(">II", png[16:24]) == (1200, 630), card.name
         readme = ROOT / ("README.md" if lang == "en" else f"README.{lang}.md")
         body = readme.read_text(encoding="utf-8")
         assert diagram.name in body, readme.name
         assert gif.name in body, readme.name
+        assert hero.name in body, readme.name
         for other in SUPPORTED_LANGS:
             link = "README.md" if other == "en" else f"README.{other}.md"
             assert other == lang or link in body, (readme.name, link)

@@ -65,3 +65,17 @@ npx remotion studio src/index.ts # live preview while editing
 
 GIFs are 960x540 at 15 fps (`--every-nth-frame=2 --scale=0.5`); keep each
 under 6 MB - the site contract test enforces it.
+
+The other per-language pictures come from the same places:
+
+```bash
+python3 scripts/build_hero.py                   # .github/assets/hero.svg + hero.<ko|ja|zh>.svg
+cd video && STILLS_ONLY=1 node render.mjs       # video/out/social-card.<lang>.png
+cp out/social-card.{ko,ja,zh}.png ../.github/assets/
+```
+
+`social-card.png` (the English card) stays the output of
+`scripts/build_social_card.py`; the test suite compares it byte for byte.
+Every language owns a pack, a demo GIF, a how-it-works GIF, a hero, a social
+card, a README, and a site route - `tests/test_repo_hygiene.py` fails when one
+is missing.

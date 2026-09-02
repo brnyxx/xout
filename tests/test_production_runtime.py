@@ -11,12 +11,8 @@
 from __future__ import annotations
 
 import json
-import http.client
 import tempfile
-import threading
 import unittest
-import urllib.error
-import urllib.request
 from pathlib import Path
 
 from xout.compiler import MANIFEST_JSON, XOUT_MD, SETTINGS_JSON

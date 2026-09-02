@@ -2,27 +2,27 @@
   <title id="title">xout — X out the wrong behavior, keep the rule</title>
   <desc id="desc">xout turns one request into an A/B behavior test: the wrong behavior is crossed out with a crimson X and the survivor becomes a local rule.</desc>
   <rect width="1200" height="420" fill="#F7F3EA"/>
-  <text x="54" y="58" fill="#171717" font-family="system-ui, sans-serif" font-size="34" font-weight="800" letter-spacing="5">XOUT</text>
-  <text x="54" y="88" fill="#6E6A63" font-family="system-ui, sans-serif" font-size="15" font-weight="700" letter-spacing="2">X OUT THE AI BEHAVIOR YOU NEVER WANT AGAIN</text>
-  <text x="54" y="132" fill="#6E6A63" font-family="ui-monospace, monospace" font-size="18" font-weight="700" letter-spacing="1">INPUT</text>
+  <text x="54" y="58" fill="#171717" font-family="system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', sans-serif" font-size="34" font-weight="800" letter-spacing="5">XOUT</text>
+  <text x="54" y="88" fill="#6E6A63" font-family="system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', sans-serif" font-size="15" font-weight="700" letter-spacing="2">X OUT THE AI BEHAVIOR YOU NEVER WANT AGAIN</text>
+  <text x="54" y="132" fill="#6E6A63" font-family="ui-monospace, SFMono-Regular, Menlo, 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', monospace" font-size="18" font-weight="700" letter-spacing="1">INPUT</text>
   <rect x="54" y="148" width="250" height="62" rx="9" fill="#D9D4C9" stroke="#171717" stroke-width="4"/>
-  <text x="74" y="188" fill="#171717" font-family="ui-monospace, monospace" font-size="24" font-weight="800">FIX THE BUG.</text>
-  <text x="308" y="187" fill="#6E6A63" font-family="system-ui, sans-serif" font-size="28" font-weight="800">→</text>
-  <text x="334" y="132" fill="#6E6A63" font-family="ui-monospace, monospace" font-size="18" font-weight="700" letter-spacing="1">X OUT THE WRONG ONE</text>
+  <text x="74" y="188" fill="#171717" font-family="ui-monospace, SFMono-Regular, Menlo, 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', monospace" font-size="24" font-weight="800">FIX THE BUG.</text>
+  <text x="308" y="187" fill="#6E6A63" font-family="system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', sans-serif" font-size="28" font-weight="800">→</text>
+  <text x="334" y="132" fill="#6E6A63" font-family="ui-monospace, SFMono-Regular, Menlo, 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', monospace" font-size="18" font-weight="700" letter-spacing="1">X OUT THE WRONG ONE</text>
   <rect x="334" y="148" width="286" height="62" rx="9" fill="#F7F3EA" stroke="#171717" stroke-width="4"/>
-  <text x="353" y="188" fill="#171717" font-family="ui-monospace, monospace" font-size="20" font-weight="800">SHOULD I START?</text>
+  <text x="353" y="188" fill="#171717" font-family="ui-monospace, SFMono-Regular, Menlo, 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', monospace" font-size="20" font-weight="800">SHOULD I START?</text>
   <g stroke="#D92332" stroke-width="10" stroke-linecap="round">
     <path d="M344 156L610 202"/>
     <path d="M610 156L344 202"/>
   </g>
   <rect x="334" y="228" width="286" height="62" rx="9" fill="#D9D4C9" stroke="#171717" stroke-width="4"/>
-  <text x="353" y="268" fill="#171717" font-family="ui-monospace, monospace" font-size="20" font-weight="800">FIXED. TESTS PASS.</text>
-  <text x="633" y="224" fill="#6E6A63" font-family="system-ui, sans-serif" font-size="28" font-weight="800">→</text>
-  <text x="670" y="132" fill="#6E6A63" font-family="ui-monospace, monospace" font-size="18" font-weight="700" letter-spacing="1">GENERATED RULE</text>
+  <text x="353" y="268" fill="#171717" font-family="ui-monospace, SFMono-Regular, Menlo, 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', monospace" font-size="20" font-weight="800">FIXED. TESTS PASS.</text>
+  <text x="633" y="224" fill="#6E6A63" font-family="system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', sans-serif" font-size="28" font-weight="800">→</text>
+  <text x="670" y="132" fill="#6E6A63" font-family="ui-monospace, SFMono-Regular, Menlo, 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', monospace" font-size="18" font-weight="700" letter-spacing="1">GENERATED RULE</text>
   <rect x="670" y="148" width="476" height="142" rx="12" fill="#F7F3EA" stroke="#171717" stroke-width="5"/>
   <path d="M694 178H1122" stroke="#171717" stroke-width="5" stroke-linecap="round"/>
-  <text x="694" y="226" fill="#171717" font-family="ui-monospace, monospace" font-size="24" font-weight="800">ACT FIRST.</text>
-  <text x="694" y="262" fill="#171717" font-family="ui-monospace, monospace" font-size="24" font-weight="800">REPORT AFTER.</text>
-  <text x="54" y="356" fill="#171717" font-family="system-ui, sans-serif" font-size="24" font-weight="800" letter-spacing="1">X IT OUT — KEEP THE RULE.</text>
-  <text x="54" y="386" fill="#6E6A63" font-family="ui-monospace, monospace" font-size="16" font-weight="700" letter-spacing="1">2 MINUTES → 8 LOCAL RULES</text>
+  <text x="694" y="226" fill="#171717" font-family="ui-monospace, SFMono-Regular, Menlo, 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', monospace" font-size="24" font-weight="800">ACT FIRST.</text>
+  <text x="694" y="262" fill="#171717" font-family="ui-monospace, SFMono-Regular, Menlo, 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', monospace" font-size="24" font-weight="800">REPORT AFTER.</text>
+  <text x="54" y="356" fill="#171717" font-family="system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', sans-serif" font-size="24" font-weight="800" letter-spacing="1">X IT OUT — KEEP THE RULE.</text>
+  <text x="54" y="386" fill="#6E6A63" font-family="ui-monospace, SFMono-Regular, Menlo, 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', monospace" font-size="16" font-weight="700" letter-spacing="1">2 MINUTES → 8 LOCAL RULES</text>
 </svg>

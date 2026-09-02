@@ -9,6 +9,8 @@
   <link rel="canonical" href="{{canonical_url}}">
   <link rel="alternate" hreflang="en" href="{{en_url}}">
   <link rel="alternate" hreflang="ko" href="{{ko_url}}">
+  <link rel="alternate" hreflang="ja" href="{{ja_url}}">
+  <link rel="alternate" hreflang="zh-Hans" href="{{zh_url}}">
   <link rel="alternate" hreflang="x-default" href="{{en_url}}">
   <link rel="icon" href="{{asset_prefix}}assets/logo.svg" type="image/svg+xml">
   <meta property="og:type" content="website">
@@ -44,8 +46,10 @@
       <a href="#share">{{nav_share}}</a>
     </nav>
     <nav class="language" aria-label="{{language_label}}">
-      <a href="{{en_href}}" class="{{en_current}}" aria-current="{{en_current}}">{{english}}</a>
-      <a href="{{ko_href}}" class="{{ko_current}}" aria-current="{{ko_current}}">{{korean}}</a>
+      <a href="{{en_href}}" class="{{en_current}}" aria-current="{{en_current}}" lang="en">EN</a>
+      <a href="{{ko_href}}" class="{{ko_current}}" aria-current="{{ko_current}}" lang="ko">KO</a>
+      <a href="{{ja_href}}" class="{{ja_current}}" aria-current="{{ja_current}}" lang="ja">JA</a>
+      <a href="{{zh_href}}" class="{{zh_current}}" aria-current="{{zh_current}}" lang="zh">ZH</a>
     </nav>
     <a class="header-repository" href="{{repository_url}}">{{footer_repository}}</a>
   </header>

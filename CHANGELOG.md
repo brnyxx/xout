@@ -13,9 +13,13 @@ slow cadence: minor versions ship every 6-12 months, patches only for defects.
   ledger stays language-neutral; `xout why --lang ja|zh` renders the same
   receipts.
 - A how-it-works film per language (`.github/assets/how-it-works*.gif`,
-  rendered with Remotion from `video/`) in the READMEs and on the site (en/ko),
+  rendered with Remotion from `video/`) in the READMEs and on the site,
   plus an under-the-hood ledger diagram in the READMEs.
-- `README.ja.md` and `README.zh.md`.
+- `README.ja.md` and `README.zh.md`, a Japanese and a Chinese site route
+  (`/ja/`, `/zh/`, with hreflang links and a four-language switcher), and a
+  hero image and social card per language (`hero.<lang>.svg`,
+  `social-card.<lang>.png`). `tests/test_repo_hygiene.py` fails when a
+  language is missing any of its surfaces.
 - `xout probe` - opt-in, outside any session: sends each measured scene as
   an A/B question to an external runner (default `claude -p`) twice, bare
   and with the landed `XOUT.md` in front, and writes a receipt under
