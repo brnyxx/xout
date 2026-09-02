@@ -20,6 +20,8 @@ from urllib.parse import urlparse
 ROOT = Path(__file__).resolve().parents[1]
 SITE_ROOT = ROOT / "site"
 LOCALES = ("en", "ko", "ja", "zh")
+NPM_URL = "https://www.npmjs.com/package/@brnyxx/xout"
+PYPI_URL = "https://pypi.org/project/xout/"
 OG_LOCALE = {"en": "en_US", "ko": "ko_KR", "ja": "ja_JP", "zh": "zh_CN"}
 PLACEHOLDER = re.compile(r"{{([a-z][a-z0-9_]*)}}")
 BUILD_KEYS = frozenset(
@@ -42,6 +44,8 @@ BUILD_KEYS = frozenset(
         "repository_url",
         "repository_readme_url",
         "repository_releases_url",
+        "npm_url",
+        "pypi_url",
         "og_locale",
         "og_locale_alt",
         "social_image_url",
@@ -255,6 +259,8 @@ def _build_values(
         "repository_url": repository_url,
         "repository_readme_url": repository_url + "#readme",
         "repository_releases_url": repository_url + "/releases",
+        "npm_url": NPM_URL,
+        "pypi_url": PYPI_URL,
         "og_locale": OG_LOCALE[locale],
         "og_locale_alt": "ko_KR" if locale == "en" else "en_US",
         "social_image_url": site_url + "assets/" + ("social-card.png" if locale == "en" else f"social-card.{locale}.png"),
@@ -340,6 +346,8 @@ def _validate_route(
         repository_url,
         repository_url + "#readme",
         repository_url + "/releases",
+        NPM_URL,
+        PYPI_URL,
         "https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement",
     }
     for tag, attribute, value, attributes in parser.references:

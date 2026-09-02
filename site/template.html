@@ -51,7 +51,11 @@
       <a href="{{ja_href}}" class="{{ja_current}}" aria-current="{{ja_current}}" lang="ja">JA</a>
       <a href="{{zh_href}}" class="{{zh_current}}" aria-current="{{zh_current}}" lang="zh">ZH</a>
     </nav>
-    <a class="header-repository" href="{{repository_url}}">{{footer_repository}}</a>
+    <div class="header-links">
+      <a class="icon-link" href="{{repository_url}}" title="GitHub"><svg class="icon" viewBox="0 0 16 16" width="20" height="20" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg><span class="sr-only">GitHub - {{footer_repository}}</span></a>
+      <a class="icon-link" href="{{npm_url}}" title="npm"><svg class="icon icon-wordmark" viewBox="0 0 44 18" width="44" height="18" aria-hidden="true" focusable="false"><rect width="44" height="18" rx="2" fill="#CB3837"/><text x="22" y="13" font-size="11" font-weight="700" fill="#fff" text-anchor="middle" font-family="system-ui, sans-serif">npm</text></svg><span class="sr-only">npm</span></a>
+      <a class="icon-link" href="{{pypi_url}}" title="PyPI"><svg class="icon icon-wordmark" viewBox="0 0 44 18" width="44" height="18" aria-hidden="true" focusable="false"><rect width="44" height="18" rx="2" fill="#3775A9"/><text x="22" y="13" font-size="11" font-weight="700" fill="#fff" text-anchor="middle" font-family="system-ui, sans-serif">PyPI</text></svg><span class="sr-only">PyPI</span></a>
+    </div>
   </header>
 
   <main id="main">
@@ -64,21 +68,14 @@
           <p class="first-screen-notice">{{first_screen_notice}}</p>
           <div class="actions">
             <a class="button" href="#outcome">{{hero_mechanism_cta}}</a>
-            <a class="button button-secondary" href="{{repository_releases_url}}">{{hero_releases_cta}}</a>
+            <a class="button button-secondary" href="{{repository_releases_url}}"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M12 3v11m0 0-4-4m4 4 4-4M4 17v3h16v-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>{{hero_releases_cta}}</a>
           </div>
         </div>
         <div class="hero-story">
-          <p class="sr-only">{{storyboard_accessible}}</p>
-          <div class="storyboard" aria-hidden="true">
-            <div class="story-step story-input"><span class="story-label">{{story_input_label}}</span><strong>{{story_input}}</strong></div>
-            <div class="story-pair">
-              <div class="story-step story-falsified"><span class="story-label">{{story_behavior_label}}</span><del>{{story_wrong}}</del><span class="strike-line"></span></div>
-              <div class="story-step story-survivor"><span class="story-label">{{story_behavior_label}}</span><strong>{{story_survivor}}</strong></div>
-            </div>
-            <div class="story-step story-rule"><span class="story-label">{{story_rule_label}}</span><strong>{{story_rule}}</strong></div>
-            <div class="story-step story-next"><span class="story-label">{{story_next_label}}</span><strong>{{story_next}}</strong></div>
-          </div>
-          <p class="sr-only">{{storyboard_followup}}</p>
+          <figure class="how-it-works hero-motion">
+            <img src="{{asset_prefix}}{{how_it_works_gif}}" alt="{{how_it_works_alt}}" width="960" height="540" fetchpriority="high">
+            <figcaption>{{how_it_works_caption}}</figcaption>
+          </figure>
         </div>
       </div>
       <ul class="trust-strip" aria-label="{{trust_label}}">
@@ -114,10 +111,19 @@
     <section id="mechanism" aria-labelledby="mechanism-title">
       <h2 id="mechanism-title">{{mechanism_title}}</h2>
       <p class="section-intro">{{mechanism_intro}}</p>
-      <figure class="how-it-works">
-        <img src="{{asset_prefix}}{{how_it_works_gif}}" alt="{{how_it_works_alt}}" width="960" height="540" loading="lazy">
-        <figcaption>{{how_it_works_caption}}</figcaption>
-      </figure>
+      <div class="mechanism-story">
+            <p class="sr-only">{{storyboard_accessible}}</p>
+            <div class="storyboard" aria-hidden="true">
+              <div class="story-step story-input"><span class="story-label">{{story_input_label}}</span><strong>{{story_input}}</strong></div>
+              <div class="story-pair">
+                <div class="story-step story-falsified"><span class="story-label">{{story_behavior_label}}</span><del>{{story_wrong}}</del><span class="strike-line"></span></div>
+                <div class="story-step story-survivor"><span class="story-label">{{story_behavior_label}}</span><strong>{{story_survivor}}</strong></div>
+              </div>
+              <div class="story-step story-rule"><span class="story-label">{{story_rule_label}}</span><strong>{{story_rule}}</strong></div>
+              <div class="story-step story-next"><span class="story-label">{{story_next_label}}</span><strong>{{story_next}}</strong></div>
+            </div>
+            <p class="sr-only">{{storyboard_followup}}</p>
+      </div>
       <div class="contrast-grid">
         <article class="transcript falsified">
           <p class="card-label"><span class="strike-mark" aria-hidden="true">×</span> {{falsified_label}}</p>
@@ -167,7 +173,7 @@
     <section id="share" aria-labelledby="share-title">
       <h2 id="share-title">{{share_title}}</h2>
       <blockquote>{{share_sentence}}</blockquote>
-      <div class="share-links"><a href="{{repository_readme_url}}">{{share_readme}}</a><a href="{{repository_releases_url}}">{{share_releases}}</a></div>
+      <div class="share-links"><a class="button button-secondary" href="{{repository_readme_url}}"><svg class="icon" viewBox="0 0 16 16" width="20" height="20" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>{{share_readme}}</a><a class="button button-secondary" href="{{repository_releases_url}}"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M12 3v11m0 0-4-4m4 4 4-4M4 17v3h16v-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>{{share_releases}}</a><a class="button button-secondary" href="{{npm_url}}"><svg class="icon icon-wordmark" viewBox="0 0 44 18" width="44" height="18" aria-hidden="true" focusable="false"><rect width="44" height="18" rx="2" fill="#CB3837"/><text x="22" y="13" font-size="11" font-weight="700" fill="#fff" text-anchor="middle" font-family="system-ui, sans-serif">npm</text></svg><span class="sr-only">npm</span></a><a class="button button-secondary" href="{{pypi_url}}"><svg class="icon icon-wordmark" viewBox="0 0 44 18" width="44" height="18" aria-hidden="true" focusable="false"><rect width="44" height="18" rx="2" fill="#3775A9"/><text x="22" y="13" font-size="11" font-weight="700" fill="#fff" text-anchor="middle" font-family="system-ui, sans-serif">PyPI</text></svg><span class="sr-only">PyPI</span></a></div>
     </section>
   </main>
 
