@@ -43,6 +43,15 @@ slow cadence: minor versions ship every 6-12 months, patches only for defects.
 - `xout reconcile` reports near-duplicates: lines that read almost like an
   `XOUT.md` sentence (similarity >= 0.6, shown with the score) in text and
   JSON output. They are reported only - `--apply` never removes them.
+- `xout own add "…"` / `xout own list` / `xout own drop <id>` - the behaviours
+  the frozen 8-axis catalog does not cover, written by hand in your own words.
+  Each line lands verbatim in its own `XOUT.md` section after the
+  hard-to-reverse rules, and in `manifest.json` as `own_lines`. Lines are two
+  new append-only events (`own_line_added`, `own_line_dropped`) folded like
+  everything else: dropping one appends a tombstone, never a rewrite. They are
+  not measured - no pair, no grade, no effect on the remaining combinations.
+  Adding or dropping a line re-lands `XOUT.md`; before your first finished
+  session the line waits for it.
 
 ## [1.1.0] - 2026-09-02
 

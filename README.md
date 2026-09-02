@@ -235,6 +235,8 @@ After the fifteenth X, three files land under `~/.claude/xout/`:
 
 Rules you confirmed with an X are labeled **confirmed**. Defaults xout filled in without asking you are labeled **guessed** and queued for a quick re-pick. Nothing is activated until you say yes.
 
+Eight axes will not hold everything you care about, and the catalog does not grow to make room. Write the rest yourself: `xout own add "Never touch the production database from a local shell."` The sentence lands in its own section at the end of `XOUT.md`, word for word as you typed it - xout does not measure it, rank it, or rewrite it. `xout own list` shows your lines with an id each, `xout own drop <id>` takes one back, and both re-land `XOUT.md` on the spot. The lines sit in the same append-only ledger as your X's, so nothing is ever erased: dropping a line appends a tombstone, and the next landing folds it out.
+
 *(Popper 1.x landed the same files as `POPPER.md` and `settings.popper.json` under `~/.claude/popper/`; xout migrates them on first run.)*
 
 ## The map
@@ -283,6 +285,7 @@ That X is the whole product.
 | `xout probe --repeat N` | Ask each question N times; majority decides, every answer is kept | own dir (`probes/`) | opt-in |
 | `xout probe --context-file FILE` | Put a real project document in front of the rules, so they have to survive being buried | own dir (`probes/`) | opt-in |
 | `xout probe --via-target ID` | Keep the rules out of the prompt; take the block out of that tool's own rules file for the bare pass and put it back for the ruled pass | that tool's file (savepoint first), restored at the end | opt-in |
+| `xout own add "…"` / `list` / `drop <id>` | Your own lines, in your own words, next to the eight rules | own dir only | - |
 | `xout pair` / `xout strike` | Headless JSON session for agents and scripts | own dir only | - |
 
 ## Why you can trust it

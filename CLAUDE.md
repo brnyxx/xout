@@ -16,7 +16,11 @@ cannot enforce by itself.
    probe positions, and the validity floor are read from the sealed document.
    A guard test fails the build if runtime code restates them as literals.
 4. **The 8-axis catalog is frozen.** 3 values per axis, 6,561 combinations.
-   Quality goes up; the catalog does not grow.
+   Quality goes up; the catalog does not grow. Behaviour the catalog does not
+   cover lives outside it as the user's own lines (`xout own`): written by
+   hand, folded from the ledger like everything else, rendered verbatim in
+   their own `XOUT.md` section - never measured, never graded, never counted
+   against the combinations.
 5. **Zero runtime dependencies, zero LLM calls in a session.** The engine is
    stdlib-only. The measurement instrument must not depend on the thing it
    measures. The deliberate exceptions live outside sessions and are opt-in:
