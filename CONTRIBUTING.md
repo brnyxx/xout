@@ -63,7 +63,7 @@ cp out/how-it-works.*.gif ../.github/assets/   # en is how-it-works.gif
 npx remotion studio src/index.ts # live preview while editing
 ```
 
-GIFs are 960x540 at 15 fps (`--every-nth-frame=2 --scale=0.5`); keep each
+GIFs are 1280x720 at 15 fps (`--every-nth-frame=2 --scale=0.666667`); the site plays the 1080p MP4 instead; keep each
 under 6 MB - the site contract test enforces it.
 
 The other per-language pictures come from the same places:

@@ -307,7 +307,7 @@ def test_brand_assets_are_local_deterministic_and_social_ready(tmp_path: Path) -
     ):
         motion = (ROOT / ".github" / "assets" / name).read_bytes()
         assert motion[:6] in {b"GIF87a", b"GIF89a"}, name
-        assert struct.unpack("<HH", motion[6:10]) == (960, 540), name
+        assert struct.unpack("<HH", motion[6:10]) == (1280, 720), name
         assert len(motion) < 6_000_000, name
     for card in ("social-card.ko.png", "social-card.ja.png", "social-card.zh.png"):
         payload = (ROOT / ".github" / "assets" / card).read_bytes()

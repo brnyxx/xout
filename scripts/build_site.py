@@ -409,7 +409,7 @@ def _validate_assets(root: Path) -> None:
         motion = (root / gif_name).read_bytes()
         if len(motion) < 10 or motion[:6] not in {b"GIF87a", b"GIF89a"}:
             raise SiteBuildError(f"INVALID_ARTIFACT_TREE:{gif_name}")
-        if struct.unpack("<HH", motion[6:10]) != (960, 540):
+        if struct.unpack("<HH", motion[6:10]) != (1280, 720):
             raise SiteBuildError("INVALID_ARTIFACT_TREE:how-it-works-size")
     for name in ("logo.svg", "hero.svg"):
         svg = (root / "assets" / name).read_text(encoding="utf-8").lower()
