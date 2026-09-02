@@ -4,11 +4,16 @@
 실제 적용(`--apply --grant`)은 중복 줄 제거뿐이며, 그 전에 반드시
 세이브포인트를 만든다 - 모순 줄은 어느 쪽이 맞는지 사용자만 알기 때문에
 목록으로 보여 주기만 하고 절대 손대지 않는다.
+
+같은 값을 말하되 문장까지 XOUT.md와 거의 같은 줄은 따로 센다. 이런 줄은
+사용자가 직접 다듬어 둔 문장이거나 조건 하나가 덧붙어 있을 수 있어, 유사도
+점수를 붙여 보고만 하고 `--apply`도 건드리지 않는다.
 """
 
 from __future__ import annotations
 
 import difflib
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping, Sequence
@@ -18,11 +23,98 @@ from xout.savepoint import Savepoint, atomic_write_bytes, create
 
 RECONCILE_DIR = "reconcile"
 
+#: 문장까지 거의 같다고 볼 최소 유사도 - 이 위는 지우지 않고 점수만 붙여 보고한다.
+NEAR_DUPLICATE_THRESHOLD = 0.6
+
+_PUNCT_RE = re.compile(r"[^\w\s]", re.UNICODE)
+_SPACE_RE = re.compile(r"\s+")
+#: 한중일 문자 - 띄어쓰기가 토큰 경계를 주지 않아 글자 bigram으로 자른다.
+_CJK_RE = re.compile(r"[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af]")
+
+
+def normalize(text: str) -> str:
+    """소문자로 낮추고 구두점을 지우고 공백을 하나로 모은다."""
+    return _SPACE_RE.sub(" ", _PUNCT_RE.sub(" ", text.lower())).strip()
+
+
+def shingles(text: str) -> set[str]:
+    """비교 단위 - 한중일은 글자 bigram, 그 밖은 공백 토큰."""
+    normal = normalize(text)
+    if not normal:
+        return set()
+    if _CJK_RE.search(normal):
+        chars = normal.replace(" ", "")
+        if len(chars) < 2:
+            return {chars}
+        return {chars[index:index + 2] for index in range(len(chars) - 1)}
+    return set(normal.split())
+
+
+def similarity(left: str, right: str) -> float:
+    """두 문장의 겹침 비율 (0.0 ~ 1.0) - 공유 shingle의 Dice 계수."""
+    first, second = shingles(left), shingles(right)
+    if not first or not second:
+        return 0.0
+    return 2 * len(first & second) / (len(first) + len(second))
+
+
+@dataclass(frozen=True, slots=True)
+class NearDuplicate:
+    """규칙 파일 한 줄이 같은 (축, 값)의 XOUT.md 문장과 문장까지 거의 같은 지점."""
+
+    axis: str
+    value: str
+    path: str
+    line_no: int
+    line: str
+    score: float
+    rule: str
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "axis": self.axis,
+            "value": self.value,
+            "path": self.path,
+            "line": self.line_no,
+            "text": self.line,
+            "score": round(self.score, 3),
+            "rule": self.rule,
+        }
+
+
+def find_near_duplicates(
+    duplicates: Sequence[Duplicate],
+    sentences: Mapping[tuple[str, str], str],
+    threshold: float = NEAR_DUPLICATE_THRESHOLD,
+) -> list[NearDuplicate]:
+    """같은 (축, 값)의 규칙 문장과 threshold 이상 겹치는 줄을 점수와 함께 낸다."""
+    near: list[NearDuplicate] = []
+    for duplicate in duplicates:
+        sentence = sentences.get((duplicate.axis, duplicate.value))
+        if not sentence:
+            continue
+        score = similarity(duplicate.line, sentence)
+        if score < threshold:
+            continue
+        near.append(
+            NearDuplicate(
+                axis=duplicate.axis,
+                value=duplicate.value,
+                path=duplicate.path,
+                line_no=duplicate.line_no,
+                line=duplicate.line,
+                score=score,
+                rule=sentence,
+            )
+        )
+    return near
+
 
 @dataclass(frozen=True, slots=True)
 class ReconcilePlan:
     duplicates: tuple[Duplicate, ...]
     conflicts: tuple[Conflict, ...]
+    near_duplicates: tuple[NearDuplicate, ...] = ()
 
     @property
     def files_to_edit(self) -> tuple[str, ...]:
@@ -32,6 +124,7 @@ class ReconcilePlan:
         return {
             "duplicates": [d.to_dict() for d in self.duplicates],
             "conflicts": [c.to_dict() for c in self.conflicts],
+            "near_duplicates": [n.to_dict() for n in self.near_duplicates],
             "files_to_edit": list(self.files_to_edit),
         }
 
@@ -39,10 +132,19 @@ class ReconcilePlan:
 def plan(
     observations: list[Observation],
     rules: Mapping[str, tuple[str, str | None]],
+    sentences: Mapping[tuple[str, str], str] | None = None,
 ) -> ReconcilePlan:
+    """중복/모순/거의 같은 줄로 나눈다 - 거의 같은 줄은 제거 대상에서 뺀다."""
+    duplicates = find_duplicates(observations, rules)
+    near = find_near_duplicates(duplicates, sentences or {})
+    reported = {(item.path, item.line_no) for item in near}
     return ReconcilePlan(
-        duplicates=tuple(find_duplicates(observations, rules)),
+        duplicates=tuple(
+            duplicate for duplicate in duplicates
+            if (duplicate.path, duplicate.line_no) not in reported
+        ),
         conflicts=tuple(find_conflicts(observations, rules)),
+        near_duplicates=tuple(near),
     )
 
 

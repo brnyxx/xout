@@ -1155,6 +1155,8 @@ _RECONCILE_MSG = {
         "applied": "중복 줄을 지웠다: {files}",
         "savepoint": "세이브포인트 {id} - 되돌리기: xout savepoint restore {id}",
         "nothing": "지울 중복 줄이 없다.",
+        "near_header": "XOUT.md 문장과 거의 같은 줄 {count}건 (점수만 붙여 보고한다 - 지우지 않는다):",
+        "near_line": "  - [{axis}] {value}  {path}:{line_no}  겹침 {score}  \"{text}\"",
     },
     "en": {
         "no_rules": "No landed rules yet - run xout first.",
@@ -1167,6 +1169,8 @@ _RECONCILE_MSG = {
         "applied": "removed duplicate lines in: {files}",
         "savepoint": "savepoint {id} - roll back with: xout savepoint restore {id}",
         "nothing": "No duplicate lines to remove.",
+        "near_header": "{count} line(s) that read almost like an XOUT.md sentence (reported with a score, left alone):",
+        "near_line": "  - [{axis}] {value}  {path}:{line_no}  overlap {score}  \"{text}\"",
     },
     "ja": {
         "no_rules": "着地した規則がない - 先に xout を実行すること。",
@@ -1179,6 +1183,8 @@ _RECONCILE_MSG = {
         "applied": "重複行を削除した: {files}",
         "savepoint": "セーブポイント {id} - 戻すには: xout savepoint restore {id}",
         "nothing": "削除する重複行はない。",
+        "near_header": "XOUT.md の文とほぼ同じ行 {count}件 (スコアを付けて報告するだけ - 削除はしない):",
+        "near_line": "  - [{axis}] {value}  {path}:{line_no}  重なり {score}  \"{text}\"",
     },
     "zh": {
         "no_rules": "还没有落地的规则 - 先跑一次 xout。",
@@ -1191,6 +1197,8 @@ _RECONCILE_MSG = {
         "applied": "已删除重复行: {files}",
         "savepoint": "存档点 {id} - 回滚: xout savepoint restore {id}",
         "nothing": "没有需要删的重复行。",
+        "near_header": "有 {count} 行和 XOUT.md 的句子几乎一样 (只带分数报告，不删除):",
+        "near_line": "  - [{axis}] {value}  {path}:{line_no}  重合 {score}  \"{text}\"",
     },
 }
 
@@ -1213,7 +1221,12 @@ def cmd_reconcile(args: argparse.Namespace) -> int:
         return 1
     roots = [Path(root) for root in (args.roots or ["."])]
     observations = mine(roots, include_user=args.include_user)
-    plan = reconcile_plan(observations, _manifest_rules_by_axis(manifest))
+    sentences = {
+        (entry["axis"], entry["value"]): entry.get("rule", "")
+        for entry in manifest.get("rules", [])
+        if isinstance(entry.get("axis"), str) and isinstance(entry.get("value"), str)
+    }
+    plan = reconcile_plan(observations, _manifest_rules_by_axis(manifest), sentences)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
     patch_path = None
     patch_text = render_patch(plan.duplicates) if plan.duplicates else ""
@@ -1246,7 +1259,7 @@ def cmd_reconcile(args: argparse.Namespace) -> int:
     if args.json_output:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         return 0
-    if not plan.duplicates and not plan.conflicts:
+    if not plan.duplicates and not plan.conflicts and not plan.near_duplicates:
         print(msg["clean"])
         return 0
     if plan.duplicates:
@@ -1257,6 +1270,10 @@ def cmd_reconcile(args: argparse.Namespace) -> int:
         print(msg["conf_header"].format(count=len(plan.conflicts)))
         for c in plan.conflicts:
             print(msg["line"].format(axis=axis_label(c.axis, lang), value=c.observed_value, path=c.path, line_no=c.line_no, text=c.line))
+    if plan.near_duplicates:
+        print(msg["near_header"].format(count=len(plan.near_duplicates)))
+        for n in plan.near_duplicates:
+            print(msg["near_line"].format(axis=axis_label(n.axis, lang), value=n.value, path=n.path, line_no=n.line_no, score=f"{n.score:.2f}", text=n.line))
     if args.apply:
         if payload.get("changed_files"):
             print(msg["applied"].format(files=", ".join(payload["changed_files"])))
