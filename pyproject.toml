@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "xout"
-version = "1.0.1"
+version = "1.1.0"
 description = "X out the AI behavior you never want again - cross out wrong agent behavior, keep the rule, plug it into Claude Code, Codex, OpenCode, Gemini CLI, Copilot, pi, Kiro or any AGENTS.md reader"
 readme = "README.md"
 requires-python = ">=3.10"

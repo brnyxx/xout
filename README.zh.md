@@ -30,7 +30,7 @@ uvx xout --lang zh
 
 **不上云。没有遥测。会话期间不调用 LLM。凡是写到自有目录之外的东西，都先做一个存档点，一条命令就能撤回。**
 
-**v1.0.1 · Python 3.10–3.14 · MIT · 零第三方运行时依赖**
+**v1.1.0 · Python 3.10–3.14 · MIT · 零第三方运行时依赖**
 
 <details>
 <summary><strong>其他安装方式</strong>（pip、venv）</summary>
@@ -318,14 +318,14 @@ npx skills@latest add brnyxx/xout
 <details>
 <summary><strong>带校验和验证的插件安装</strong></summary>
 
-从 [v1.0.1 release](../../releases/tag/v1.0.1) 下载 `xout-plugin-1.0.1.zip`、`SHA256SUMS` 和 `verify_checksums.py`，三个文件放同一个目录，然后：
+从 [v1.1.0 release](../../releases/tag/v1.1.0) 下载 `xout-plugin-1.1.0.zip`、`SHA256SUMS` 和 `verify_checksums.py`，三个文件放同一个目录，然后：
 
 ```bash
 python3 verify_checksums.py SHA256SUMS \
-  --only xout-plugin-1.0.1.zip verify_checksums.py
-DEST="$HOME/.local/share/xout-plugin-1.0.1"
+  --only xout-plugin-1.1.0.zip verify_checksums.py
+DEST="$HOME/.local/share/xout-plugin-1.1.0"
 test ! -e "$DEST" || { echo "destination already exists: $DEST" >&2; exit 1; }
-python3 -m zipfile -e xout-plugin-1.0.1.zip "$DEST"
+python3 -m zipfile -e xout-plugin-1.1.0.zip "$DEST"
 claude plugin marketplace add "$DEST"
 claude plugin install xout@xout-marketplace
 ```

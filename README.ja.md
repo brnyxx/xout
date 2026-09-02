@@ -30,7 +30,7 @@ uvx xout --lang ja
 
 **クラウドなし。テレメトリなし。セッション中に LLM を呼ぶこともありません。自分のフォルダの外に書く内容はすべてセーブポイントを取ってからで、コマンド 1 つで元に戻せます。**
 
-**v1.0.1 · Python 3.10–3.14 · MIT · 実行時のサードパーティ依存はゼロ**
+**v1.1.0 · Python 3.10–3.14 · MIT · 実行時のサードパーティ依存はゼロ**
 
 <details>
 <summary><strong>その他のインストール方法</strong> (pip, venv)</summary>
@@ -318,14 +318,14 @@ npx skills@latest add brnyxx/xout
 <details>
 <summary><strong>チェックサム検証つきのプラグインインストール</strong></summary>
 
-[v1.0.1 リリース](../../releases/tag/v1.0.1) から `xout-plugin-1.0.1.zip`、`SHA256SUMS`、`verify_checksums.py` をダウンロードし、3 つを同じディレクトリに置いてから:
+[v1.1.0 リリース](../../releases/tag/v1.1.0) から `xout-plugin-1.1.0.zip`、`SHA256SUMS`、`verify_checksums.py` をダウンロードし、3 つを同じディレクトリに置いてから:
 
 ```bash
 python3 verify_checksums.py SHA256SUMS \
-  --only xout-plugin-1.0.1.zip verify_checksums.py
-DEST="$HOME/.local/share/xout-plugin-1.0.1"
+  --only xout-plugin-1.1.0.zip verify_checksums.py
+DEST="$HOME/.local/share/xout-plugin-1.1.0"
 test ! -e "$DEST" || { echo "destination already exists: $DEST" >&2; exit 1; }
-python3 -m zipfile -e xout-plugin-1.0.1.zip "$DEST"
+python3 -m zipfile -e xout-plugin-1.1.0.zip "$DEST"
 claude plugin marketplace add "$DEST"
 claude plugin install xout@xout-marketplace
 ```

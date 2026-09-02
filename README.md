@@ -30,7 +30,7 @@ That's it. The whole session runs in your terminal. X things out for about 2 min
 
 **No cloud. No telemetry. No LLM calls during a session. Anything it writes outside its own folder gets a savepoint first and comes back out with one command.**
 
-**v1.0.1 · Python 3.10–3.14 · MIT · no third-party packages at runtime**
+**v1.1.0 · Python 3.10–3.14 · MIT · no third-party packages at runtime**
 
 <details>
 <summary><strong>Other install paths</strong> (pip, venv)</summary>
@@ -318,14 +318,14 @@ npx skills@latest add brnyxx/xout
 <details>
 <summary><strong>Checksum-verified plugin install</strong></summary>
 
-Download `xout-plugin-1.0.1.zip`, `SHA256SUMS`, and `verify_checksums.py` from the [v1.0.1 release](../../releases/tag/v1.0.1), keep all three in one directory, then:
+Download `xout-plugin-1.1.0.zip`, `SHA256SUMS`, and `verify_checksums.py` from the [v1.1.0 release](../../releases/tag/v1.1.0), keep all three in one directory, then:
 
 ```bash
 python3 verify_checksums.py SHA256SUMS \
-  --only xout-plugin-1.0.1.zip verify_checksums.py
-DEST="$HOME/.local/share/xout-plugin-1.0.1"
+  --only xout-plugin-1.1.0.zip verify_checksums.py
+DEST="$HOME/.local/share/xout-plugin-1.1.0"
 test ! -e "$DEST" || { echo "destination already exists: $DEST" >&2; exit 1; }
-python3 -m zipfile -e xout-plugin-1.0.1.zip "$DEST"
+python3 -m zipfile -e xout-plugin-1.1.0.zip "$DEST"
 claude plugin marketplace add "$DEST"
 claude plugin install xout@xout-marketplace
 ```

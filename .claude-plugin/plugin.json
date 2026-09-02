@@ -1,7 +1,7 @@
 {
   "name": "xout",
   "displayName": "xout",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "X out the AI behavior you never want again; the choices you keep become rules for Claude Code, Codex, OpenCode, Gemini CLI, Copilot, pi, Kiro, or any AGENTS.md reader.",
   "author": {
     "name": "Brian Kim"

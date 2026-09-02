@@ -30,7 +30,7 @@ uvx xout
 
 **클라우드 없음. 텔레메트리 없음. 세션 중 LLM 호출 없음. 자기 폴더 밖에 뭔가 쓸 때는 항상 세이브포인트를 먼저 만들고 명령 하나면 되돌립니다.**
 
-**v1.0.1 · Python 3.10–3.14 · MIT · 서드파티 런타임 패키지 0개**
+**v1.1.0 · Python 3.10–3.14 · MIT · 서드파티 런타임 패키지 0개**
 
 <details>
 <summary><strong>다른 설치 경로</strong> (pip, venv)</summary>
@@ -315,14 +315,14 @@ npx skills@latest add brnyxx/xout
 <details>
 <summary><strong>체크섬 검증 플러그인 설치</strong></summary>
 
-[v1.0.1 릴리스](../../releases/tag/v1.0.1)에서 `xout-plugin-1.0.1.zip`, `SHA256SUMS`, `verify_checksums.py`를 받아 한 디렉토리에 두고:
+[v1.1.0 릴리스](../../releases/tag/v1.1.0)에서 `xout-plugin-1.1.0.zip`, `SHA256SUMS`, `verify_checksums.py`를 받아 한 디렉토리에 두고:
 
 ```bash
 python3 verify_checksums.py SHA256SUMS \
-  --only xout-plugin-1.0.1.zip verify_checksums.py
-DEST="$HOME/.local/share/xout-plugin-1.0.1"
+  --only xout-plugin-1.1.0.zip verify_checksums.py
+DEST="$HOME/.local/share/xout-plugin-1.1.0"
 test ! -e "$DEST" || { echo "destination already exists: $DEST" >&2; exit 1; }
-python3 -m zipfile -e xout-plugin-1.0.1.zip "$DEST"
+python3 -m zipfile -e xout-plugin-1.1.0.zip "$DEST"
 claude plugin marketplace add "$DEST"
 claude plugin install xout@xout-marketplace
 ```

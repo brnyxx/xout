@@ -5,7 +5,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and xout follows [Semantic Versioning](https://semver.org/) with a deliberately
 slow cadence: minor versions ship every 6-12 months, patches only for defects.
 
-## [Unreleased]
+## [1.1.0] - 2026-09-02
 
 ### Added
 - Japanese and Simplified Chinese runtime packs: `--lang ja` and `--lang zh`
@@ -137,5 +137,6 @@ same falsification engine, new name, new measurement design.
 ### Fixed
 - `xout why` printed `rule: None` - it read the wrong manifest key.
 
+[1.1.0]: https://github.com/brnyxx/xout/releases/tag/v1.1.0
 [1.0.1]: https://github.com/brnyxx/xout/releases/tag/v1.0.1
 [1.0.0]: https://github.com/brnyxx/xout/releases/tag/v1.0.0
