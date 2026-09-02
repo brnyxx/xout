@@ -2,7 +2,7 @@
 
 <h1>xout</h1>
 
-<img src=".github/assets/logo.svg" alt="xout のロゴ: 振る舞いカードを太い深紅の X で消し、その下に残った 1 行のルール" width="96">
+<img src=".github/assets/logo.svg" alt="xout のロゴ: 深紅の線で 8 等分した円のうち、1 切れだけ黒く塗られている" width="96">
 
 **二度と要らない AI の振る舞いを、X で消す。**
 

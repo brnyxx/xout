@@ -1,14 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
-  <title id="title">xout logo</title>
-  <desc id="desc">A behavior card crossed out with a bold crimson X; a single kept rule line remains below.</desc>
-  <rect width="256" height="256" rx="28" fill="#F7F3EA"/>
-  <rect x="48" y="48" width="160" height="140" rx="12" fill="#F7F3EA" stroke="#171717" stroke-width="7" stroke-linejoin="round"/>
-  <g stroke="#171717" stroke-width="7" stroke-linecap="round">
-    <path d="M72 84H184M72 112H168M72 140H152"/>
-  </g>
-  <g stroke="#D92332" stroke-width="20" stroke-linecap="round">
-    <path d="M58 58L198 178"/>
-    <path d="M198 58L58 178"/>
-  </g>
-  <path d="M72 220H184" stroke="#171717" stroke-width="10" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="xout">
+  <title>xout</title>
+  <circle cx="128" cy="128" r="104" fill="#F7F3EA" stroke="#171717" stroke-width="10"/>
+  <path d="M128 128 L128 24 A104 104 0 0 1 201.5 54.5 Z" fill="#171717"/>
+  <path d="M128 24 V232 M24 128 H232 M54.5 54.5 L201.5 201.5 M201.5 54.5 L54.5 201.5" fill="none" stroke="#D92332" stroke-width="8" stroke-linecap="round"/>
 </svg>

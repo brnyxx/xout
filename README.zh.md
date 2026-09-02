@@ -2,7 +2,7 @@
 
 <h1>xout</h1>
 
-<img src=".github/assets/logo.svg" alt="xout 标志：一张行为卡片被一道醒目的深红 X 划掉，下面留着一行保留下来的规则" width="96">
+<img src=".github/assets/logo.svg" alt="xout 标志：一个被深红线条切成八份的圆，只有一块涂成黑色" width="96">
 
 **把你再也不想看到的 AI 行为，一笔划掉。**
 

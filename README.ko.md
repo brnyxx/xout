@@ -2,7 +2,7 @@
 
 <h1>xout</h1>
 
-<img src=".github/assets/logo.svg" alt="xout 로고: 굵은 크림슨 X로 지운 행동 카드와 그 아래 남은 규칙 한 줄" width="96">
+<img src=".github/assets/logo.svg" alt="xout 로고: 크림슨 선으로 8등분한 원에서 한 조각만 검게 칠해진 모양" width="96">
 
 **다시 보고 싶지 않은 AI 행동에 X를 치세요.**
 

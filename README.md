@@ -2,7 +2,7 @@
 
 <h1>xout</h1>
 
-<img src=".github/assets/logo.svg" alt="xout logo: a behavior card crossed out with a bold crimson X, with one kept rule line below" width="96">
+<img src=".github/assets/logo.svg" alt="xout logo: a circle cut into eight slices by crimson lines, with one slice filled black" width="96">
 
 **X out the AI behavior you never want again.**
 
