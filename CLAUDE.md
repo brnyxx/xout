@@ -24,9 +24,10 @@ cannot enforce by itself.
 5. **Zero runtime dependencies, zero LLM calls in a session.** The engine is
    stdlib-only. The measurement instrument must not depend on the thing it
    measures. The deliberate exceptions live outside sessions and are opt-in:
-   `xout probe`, and `xout mine|conflicts --runner`, call an external runner
-   the user names and write only a receipt under the owned directory
-   (`probes/`, `judgments/`). The pattern layer of `mine` stays the default.
+   `xout probe`, `xout audit`, and `xout mine|conflicts --runner`, call an
+   external runner the user names and write only a receipt under the owned
+   directory (`probes/`, `audits/`, `judgments/`). The pattern layer of `mine`
+   stays the default.
 6. **Consent gates every write outside the owned directory.** Outside
    `~/.claude/xout/` xout touches exactly two things, both explicit: the one
    `@import` line in `~/.claude/CLAUDE.md` (receipt-proofed, `xout undo`), and

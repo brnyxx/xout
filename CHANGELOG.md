@@ -13,6 +13,18 @@ slow cadence: minor versions ship every 6-12 months, patches only for defects.
   (`workflow_dispatch`) as well as on a tag.
 
 ### Added
+- `xout audit [paths] --runner "…"`: measures the lines your own rule files
+  already have, one at a time, instead of only the eight compiled rules. Your
+  agent writes a scene per line (a task, an action that obeys the line, one
+  that breaks it); the scene is then asked twice, bare and with that single
+  line in front of it. Each line comes back as *already default* (the agent
+  does it anyway), *the line does work*, *ignored* (the line is right there and
+  it does the other thing), or *unclear*. Once per file it also reports lines
+  that pull against each other. Headings, table rows, code blocks and short
+  lines are dropped before anything is sent and `--limit` (60) caps the rest;
+  `--repeat N` decides by majority, `--dry-run` calls nothing. No rule file is
+  touched and the ledger is never read - the receipt with every raw answer
+  lands under `~/.claude/xout/audits/`.
 - `xout mine --runner "…"` and `xout conflicts --runner "…"`: an opt-in
   second layer that hands the lines of your rule files to your own agent
   (`claude -p`, `codex exec`, any runner from the probe table) and asks it to

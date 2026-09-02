@@ -223,6 +223,27 @@ You probably already have rule files. xout treats them as evidence, not as compe
 - **`xout reconcile`** lists the lines in your old files that `XOUT.md` now covers and writes a proposed patch under `~/.claude/xout/reconcile/`. Only `xout reconcile --apply --grant` actually removes those lines, and only after taking a savepoint. Lines that merely read like one of your rules are listed separately with a similarity score and are never removed.
 - **`xout savepoint`** snapshots your rule files byte for byte whenever you like; `xout savepoint restore <id>` puts them back. Every `enable`, `undo`, and `reconcile --apply` takes one automatically.
 
+## Audit the rules file you already have
+
+A session measures eight axes. The `CLAUDE.md` you already wrote has many more lines than that, and most of them have never been put in front of an agent to see whether they change anything. `xout audit` takes them one at a time.
+
+For each line it asks your own agent to write a small scene - a task, one next action that obeys the line, one that breaks it - and then puts that scene twice: once bare, once with that single line in front of it as a standing instruction. What comes back sorts the line into one of four:
+
+- **already default** - the agent goes that way even with the line absent. The sentence is not doing anything; deleting it would change nothing.
+- **the line does work** - bare it goes the other way, with the line it complies. This is what a rule is supposed to look like.
+- **ignored** - the line is right there in front of the agent and it does the other thing anyway. These matter most: the line reads like protection and isn't.
+- **unclear** - no readable answer, or the trials split.
+
+Once per file it also asks which lines pull against each other, and reports the pairs. Nothing is edited, ever; the receipt with every raw answer lands under `~/.claude/xout/audits/`.
+
+```bash
+xout audit --runner "claude -p --output-format text"   # your project files and ~/.claude
+xout audit . --no-user --limit 20 --repeat 3           # this repo only, three trials per line
+xout audit --dry-run                                   # what would be sent, and a sample prompt
+```
+
+Headings, table rows, code blocks and one-word lines are dropped before anything is sent, and `--limit` (60 by default) caps the rest, so a first run stays cheap. Raise it once you know what the first pass says.
+
 ## What you get
 
 After the fifteenth X, three files land under `~/.claude/xout/`:
@@ -285,6 +306,7 @@ That X is the whole product.
 | `xout probe --repeat N` | Ask each question N times; majority decides, every answer is kept | own dir (`probes/`) | opt-in |
 | `xout probe --context-file FILE` | Put a real project document in front of the rules, so they have to survive being buried | own dir (`probes/`) | opt-in |
 | `xout probe --via-target ID` | Keep the rules out of the prompt; take the block out of that tool's own rules file for the bare pass and put it back for the ruled pass | that tool's file (savepoint first), restored at the end | opt-in |
+| `xout audit [paths] --runner "…"` | Measure the lines your own rule files already have, one at a time: does the agent do it anyway, does the line change the answer, or is it ignored | own dir (`audits/`) | opt-in |
 | `xout own add "…"` / `list` / `drop <id>` | Your own lines, in your own words, next to the eight rules | own dir only | - |
 | `xout pair` / `xout strike` | Headless JSON session for agents and scripts | own dir only | - |
 
