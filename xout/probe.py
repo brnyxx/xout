@@ -1,7 +1,7 @@
 """효과 탐침 - 컴파일된 규칙이 실제 에이전트의 선택을 움직이는지 잰다.
 
 세션은 LLM을 호출하지 않는다는 불변식은 그대로다. 탐침은 세션 밖에서
-사용자가 명시적으로 켜는 별도 명령이고, 러너는 외부 CLI(기본 `claude -p`)다.
+사용자가 명시적으로 켜는 별도 명령이고, 러너는 외부 CLI(기본 `claude -p --safe-mode`)다.
 같은 장면 프롬프트를 규칙 없이 한 번, 착지된 XOUT.md 본문을 앞세워 한 번
 던져 A/B 선택이 생존값 쪽으로 움직였는지 영수증(JSON)으로 남긴다.
 
@@ -39,7 +39,10 @@ from xout.fixtures import (
 )
 
 PROBE_DIR = "probes"
-DEFAULT_RUNNER: tuple[str, ...] = ("claude", "-p", "--output-format", "text")
+#: 기본 러너는 --safe-mode로 뜬다: 사용자의 CLAUDE.md·플러그인·MCP를 싣지 않아야
+#: "규칙 없이" 패스가 정말 규칙 없이 묻는 것이고, 호출당 컨텍스트도 1/3이다.
+DEFAULT_RUNNER: tuple[str, ...] = ("claude", "-p", "--safe-mode", "--output-format", "text")
+SAFE_MODE_FLAG = "--safe-mode"
 DEFAULT_TIMEOUT = 180.0
 
 #: 탐침 프롬프트 골격 - 인식론 어휘 없이, 한 글자 답만 요구한다.

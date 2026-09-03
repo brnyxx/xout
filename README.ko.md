@@ -217,6 +217,8 @@ Gemini CLI는 이 머신에 인증이 없어 돌리지 못했습니다. 러너�
 | gajae-code | `gjc -p` |
 | Kiro | `kiro-cli chat --no-interactive` |
 
+기본 러너는 Claude Code를 `--safe-mode`로 띄웁니다. 사용자의 `CLAUDE.md`, 플러그인, MCP 서버를 싣지 않는 모드입니다. 이게 없으면 "규칙 없이" 패스가 규칙 없이가 아닙니다. 글로벌 규칙 파일이 이미 들어가 있고, 호출당 비용도 세 배쯤 됩니다. 이 페이지의 실측은 그게 기본값이 되기 전에 돌린 것이라 "규칙 없이도 같은 답" 열에는 작성자 본인의 규칙이 섞여 있습니다. "규칙 지킴" 열은 영향이 없습니다. `--via-target claude`는 규칙을 `CLAUDE.md`로 전달하는 측정이라 일반 모드가 필요하고, `xout probe`가 그 조합을 거부합니다. 큰 배치는 `--model`로 작은 모델을 지정하세요. 답은 한 글자입니다.
+
 ## 이미 갖고 있는 프롬프트
 
 규칙 파일이 이미 있을 겁니다. xout은 그 파일과 경쟁하지 않고 증거로 씁니다.
@@ -241,7 +243,7 @@ Gemini CLI는 이 머신에 인증이 없어 돌리지 못했습니다. 러너�
 파일마다 한 번씩 어느 줄들이 서로 반대로 당기는지도 묻고 그 짝을 알려 줍니다. 무엇도 고치지 않습니다. 원문 답변이 전부 든 영수증은 `~/.claude/xout/audits/`에 남습니다.
 
 ```bash
-xout audit --runner "claude -p --output-format text"   # 프로젝트 파일과 ~/.claude
+xout audit --runner "claude -p --safe-mode --output-format text"   # 프로젝트 파일과 ~/.claude
 xout audit . --no-user --limit 20 --repeat 3           # 이 저장소만, 줄마다 세 번
 xout audit --dry-run                                   # 무엇이 나가는지와 프롬프트 예시
 ```

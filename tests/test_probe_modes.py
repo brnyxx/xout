@@ -10,7 +10,7 @@ import pytest
 
 from xout.cli import main
 from xout.compiler import XOUT_MD
-from xout.probe import ProbeCase, ProbeOutcome, build_prompt, majority, probe
+from xout.probe import DEFAULT_RUNNER, SAFE_MODE_FLAG, ProbeCase, ProbeOutcome, build_prompt, majority, probe
 from xout.state import ColdOpenSession
 from xout.store import EventStore
 from xout.targets import find_block
@@ -205,3 +205,22 @@ def test_probe_two_pass_order_with_phase_hook() -> None:
     assert phases == ["bare", "ruled"]
     assert seen == ["bare"] * 4 + ["ruled"] * 4
     assert report.delivery == "target:t" and report.summary["trials"] == 4
+
+
+def test_default_runner_is_safe_mode_so_the_bare_pass_is_bare() -> None:
+    """기본 러너가 사용자의 CLAUDE.md를 싣고 뜨면 "규칙 없이" 패스가 규칙 없이가 아니다."""
+    assert SAFE_MODE_FLAG in DEFAULT_RUNNER
+    assert DEFAULT_RUNNER[:2] == ("claude", "-p")
+
+
+def test_via_target_claude_refuses_a_safe_mode_runner(capsys, landed: Path, tmp_path: Path) -> None:
+    runner = _script(tmp_path, "any.py", "print('A')\n") + f" {SAFE_MODE_FLAG}"
+    assert main(
+        ["probe", "--base-dir", str(landed), "--lang", "en", "--runner", runner,
+         "--via-target", "claude", "--json"]
+    ) == 1
+    assert json.loads(capsys.readouterr().out)["error"] == "safe_mode_conflict"
+    assert main(
+        ["probe", "--base-dir", str(landed), "--lang", "ko", "--runner", runner, "--via-target", "claude"]
+    ) == 1
+    assert "--safe-mode" in capsys.readouterr().out

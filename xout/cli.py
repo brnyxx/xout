@@ -94,6 +94,7 @@ from xout.targets import MODE_IMPORT, REGISTRY, block_state, ensure_block, remov
 from xout.savepoint import SavepointError, create as create_savepoint, list_savepoints, restore as restore_savepoint
 from xout.probe import (
     DEFAULT_RUNNER,
+    SAFE_MODE_FLAG,
     DEFAULT_TIMEOUT,
     ProbeError,
     ProbeOutcome,
@@ -929,6 +930,7 @@ _PROBE_MSG = {
         "context": "방해 문서: {path}",
         "not_active": "[{id}]가 활성 상태가 아니다 - 먼저: xout enable --grant --target {id}",
         "unknown_target": "모르는 타깃: {id} (xout targets 로 목록 확인)",
+        "safe_mode_conflict": "[{id}]는 CLAUDE.md의 import 한 줄로 규칙을 전달하는데, 러너의 {flag}는 CLAUDE.md를 싣지 않는다 - 이 측정만 --runner \"claude -p --output-format text\"로 돌려라",
         "restore_failed": "주의: [{id}] 원상복구 실패 - xout enable --grant --target {id} 로 되돌려라: {error}",
         "trials": " · 시행 기준 {trials_held}/{trials} · 매 시행 지킴 {every}/{cases}",
     },
@@ -949,6 +951,7 @@ _PROBE_MSG = {
         "context": "distractor document: {path}",
         "not_active": "[{id}] is not active - first: xout enable --grant --target {id}",
         "unknown_target": "unknown target: {id} (see xout targets)",
+        "safe_mode_conflict": "[{id}] delivers rules through the import line in CLAUDE.md, but the runner's {flag} skips CLAUDE.md - run this one measurement with --runner \"claude -p --output-format text\"",
         "restore_failed": "warning: could not restore [{id}] - run xout enable --grant --target {id}: {error}",
         "trials": " · by trial {trials_held}/{trials} · held every trial {every}/{cases}",
     },
@@ -969,6 +972,7 @@ _PROBE_MSG = {
         "context": "妨害文書: {path}",
         "not_active": "[{id}] は有効になっていない - 先に: xout enable --grant --target {id}",
         "unknown_target": "不明なターゲット: {id} (xout targets で一覧)",
+        "safe_mode_conflict": "[{id}] は CLAUDE.md の import 1 行で規則を渡すが、ランナーの {flag} は CLAUDE.md を読み込まない - この測定だけ --runner \"claude -p --output-format text\" で実行すること",
         "restore_failed": "注意: [{id}] を元に戻せなかった - xout enable --grant --target {id} で戻すこと: {error}",
         "trials": " · 試行ベース {trials_held}/{trials} · 毎回維持 {every}/{cases}",
     },
@@ -989,6 +993,7 @@ _PROBE_MSG = {
         "context": "干扰文档: {path}",
         "not_active": "[{id}] 没有启用 - 先执行: xout enable --grant --target {id}",
         "unknown_target": "未知目标: {id} (用 xout targets 查看)",
+        "safe_mode_conflict": "[{id}] 通过 CLAUDE.md 里的 import 行传递规则，但运行器的 {flag} 不加载 CLAUDE.md - 这次测量请用 --runner \"claude -p --output-format text\"",
         "restore_failed": "注意: [{id}] 没能恢复原状 - 用 xout enable --grant --target {id} 恢复: {error}",
         "trials": " · 按次数 {trials_held}/{trials} · 每次都保持 {every}/{cases}",
     },
@@ -1068,6 +1073,10 @@ def cmd_probe(args: argparse.Namespace) -> int:
             print(json.dumps({"error": "unknown_target"}) if args.json_output else text)
             return 1
         path = target.resolve(Path.home(), Path.cwd())
+        if target.mode == MODE_IMPORT and SAFE_MODE_FLAG in shlex.split(args.runner, posix=os.name != "nt"):
+            text = msg["safe_mode_conflict"].format(id=target.target_id, flag=SAFE_MODE_FLAG)
+            print(json.dumps({"error": "safe_mode_conflict"}) if args.json_output else text)
+            return 1
         if target.mode == MODE_IMPORT:
             active = _activation_state(base)["status"] == "active"
             path = OwnedWriter(base_dir=base).claude_md_path
@@ -2511,7 +2520,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_mine.add_argument("roots", nargs="*", help="스캔할 루트 (기본: 현재 디렉토리)")
     p_mine.add_argument("--json", dest="json_output", action="store_true", help="JSON으로 출력")
     p_mine.add_argument("--no-user", dest="include_user", action="store_false", help="~/.claude/CLAUDE.md, ~/.claude/rules 는 읽지 않는다")
-    p_mine.add_argument("--runner", default=None, help="옵트인: 이 명령(예: claude -p --output-format text)에게 줄 판정을 맡기고 정규식과 대조한다")
+    p_mine.add_argument("--runner", default=None, help="옵트인: 이 명령(예: claude -p --safe-mode --output-format text)에게 줄 판정을 맡기고 정규식과 대조한다")
     p_mine.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT)
     p_mine.set_defaults(func=cmd_mine)
 
@@ -2555,7 +2564,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_probe.add_argument(
         "--runner",
         default=" ".join(DEFAULT_RUNNER),
-        help="프롬프트를 마지막 인자로 받아 stdout에 답하는 명령 (기본: claude -p --output-format text)",
+        help="프롬프트를 마지막 인자로 받아 stdout에 답하는 명령 (기본: claude -p --safe-mode --output-format text)",
     )
     p_probe.add_argument("--axes", nargs="*", help="이 축만 탐침")
     p_probe.add_argument("--quick", action="store_true", help="축당 한 장면만")
@@ -2576,7 +2585,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_audit.add_argument(
         "--runner",
         default=" ".join(DEFAULT_RUNNER),
-        help="프롬프트를 마지막 인자로 받아 stdout에 답하는 명령 (기본: claude -p --output-format text)",
+        help="프롬프트를 마지막 인자로 받아 stdout에 답하는 명령 (기본: claude -p --safe-mode --output-format text)",
     )
     p_audit.add_argument("--no-user", dest="include_user", action="store_false", help="~/.claude/CLAUDE.md, ~/.claude/rules 는 읽지 않는다")
     p_audit.add_argument("--limit", type=int, default=AUDIT_LIMIT, help=f"러너에 보낼 줄 수 상한 (기본 {AUDIT_LIMIT})")

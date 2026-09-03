@@ -217,6 +217,8 @@ Gemini CLI 没跑，因为这台机器没配 Gemini 的认证；运行器列在�
 | gajae-code | `gjc -p` |
 | Kiro | `kiro-cli chat --no-interactive` |
 
+默认运行器用 `--safe-mode` 启动 Claude Code，这个模式不加载你自己的 `CLAUDE.md`、插件和 MCP 服务器。没有它，"不带规则" 那一遍并不是真的不带规则：你的全局规则文件已经在里面，每次调用的开销也大约是三倍。本页的实测是在它成为默认值之前跑的，所以 "不带规则也一致" 一列混进了作者自己的规则；"规则保持" 各列不受影响。`--via-target claude` 是通过 `CLAUDE.md` 本身传递规则的测量，需要普通模式，`xout probe` 会拒绝这个组合。大批量时用 `--model` 指定小模型，答案只有一个字母。
+
 ## 你已有的提示词
 
 你多半已经有规则文件了。xout 把它们当依据，不当对手。
@@ -241,7 +243,7 @@ Gemini CLI 没跑，因为这台机器没配 Gemini 的认证；运行器列在�
 每份文件它还会问一次，哪些行彼此在往相反方向拽，并把这些成对的行报出来。它从不改动任何东西；带着每一条原始回答的回执，落在 `~/.claude/xout/audits/` 下面。
 
 ```bash
-xout audit --runner "claude -p --output-format text"   # 你的项目文件和 ~/.claude
+xout audit --runner "claude -p --safe-mode --output-format text"   # 你的项目文件和 ~/.claude
 xout audit . --no-user --limit 20 --repeat 3           # 只看这个仓库，每行跑三遍
 xout audit --dry-run                                   # 会送出什么，以及一份提示词样例
 ```

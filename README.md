@@ -207,7 +207,7 @@ A runner is any command that takes the prompt as its last argument and prints th
 
 | Tool | `xout probe --runner "…"` |
 |---|---|
-| Claude Code | `claude -p --output-format text` (default) |
+| Claude Code | `claude -p --safe-mode --output-format text` (default) |
 | OpenAI Codex CLI | `codex exec` (outside a git repo add `--skip-git-repo-check`) |
 | OpenCode | `opencode run` |
 | Gemini CLI | `gemini -p` |
@@ -216,6 +216,8 @@ A runner is any command that takes the prompt as its last argument and prints th
 | oh-my-pi | `omp -p` |
 | gajae-code | `gjc -p` |
 | Kiro | `kiro-cli chat --no-interactive` |
+
+The default runner starts Claude Code with `--safe-mode`, which skips your own `CLAUDE.md`, plugins and MCP servers. Without it the "bare" pass is not bare: it already carries whatever your global rules file says, and each call costs about three times as much. The runs on this page were made before that became the default, so their "matched without rules" column includes the author's own rules; the "rule held" columns are unaffected. `--via-target claude` needs the normal mode, because that measurement delivers the rules through `CLAUDE.md` itself, and `xout probe` refuses the combination. Pin a small model with `--model` for big batches; the answer is one letter.
 
 ## Your existing prompts
 
@@ -241,7 +243,7 @@ For each line it asks your own agent to write a small scene - a task, one next a
 Once per file it also asks which lines pull against each other, and reports the pairs. Nothing is edited, ever; the receipt with every raw answer lands under `~/.claude/xout/audits/`.
 
 ```bash
-xout audit --runner "claude -p --output-format text"   # your project files and ~/.claude
+xout audit --runner "claude -p --safe-mode --output-format text"   # your project files and ~/.claude
 xout audit . --no-user --limit 20 --repeat 3           # this repo only, three trials per line
 xout audit --dry-run                                   # what would be sent, and a sample prompt
 ```

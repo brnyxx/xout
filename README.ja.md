@@ -217,6 +217,8 @@ Gemini CLI はこのマシンで認証していないため走らせていませ
 | gajae-code | `gjc -p` |
 | Kiro | `kiro-cli chat --no-interactive` |
 
+既定のランナーは Claude Code を `--safe-mode` で起動します。自分の `CLAUDE.md`、プラグイン、MCP サーバーを読み込まないモードです。これがないと「規則なし」のパスは規則なしではありません。グローバルの規則ファイルが最初から入っていて、1 回の呼び出しのコストも 3 倍ほどになります。このページの実測はそれが既定になる前のものなので、「規則なしでも一致」列には作者自身の規則が混ざっています。「規則維持」列には影響ありません。`--via-target claude` は規則を `CLAUDE.md` 経由で渡す測定なので通常モードが必要で、`xout probe` はその組み合わせを拒否します。大きなバッチでは `--model` で小さなモデルを指定してください。答えは 1 文字です。
+
 ## 既存のプロンプト
 
 ルールファイルなら、おそらくもうお持ちでしょう。xout はそれを競合相手ではなく根拠として扱います。
@@ -241,7 +243,7 @@ Gemini CLI はこのマシンで認証していないため走らせていませ
 ファイルごとに 1 回、どの行どうしが引っ張り合っているかも尋ね、その組を報告します。何かを書き換えることは、一度もありません。生の回答をすべて収めたレシートは `~/.claude/xout/audits/` 配下に着地します。
 
 ```bash
-xout audit --runner "claude -p --output-format text"   # プロジェクトのファイルと ~/.claude
+xout audit --runner "claude -p --safe-mode --output-format text"   # プロジェクトのファイルと ~/.claude
 xout audit . --no-user --limit 20 --repeat 3           # このリポジトリだけ、行ごとに 3 回
 xout audit --dry-run                                   # 何が送られるかと、プロンプトの見本
 ```
