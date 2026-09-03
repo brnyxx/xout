@@ -7,6 +7,14 @@ slow cadence: minor versions ship every 6-12 months, patches only for defects.
 
 ## [Unreleased]
 
+### Fixed
+- The default probe runner is now `claude -p --safe-mode --output-format text`.
+  Without `--safe-mode` a headless Claude Code run loads the user's own
+  `~/.claude/CLAUDE.md`, plugins and MCP servers, so the "bare" pass was never
+  bare and each call carried about three times the context. `--via-target
+  claude` refuses a `--safe-mode` runner, because that measurement delivers the
+  rules through `CLAUDE.md` itself.
+
 ### Changed
 - The npm package is `@brnyxx/xout` (it was never published under the
   earlier placeholder name). The Release workflow can publish it on demand
